@@ -25,6 +25,7 @@
 - ✅ Build the first visible L2 hillside street kit: marked road, kerbs, paths, retaining wall, shop front, benches, lamps and planted boxes.
 - Reframe Hillside as Ravnbro, an original old Danish river-town-inspired rail district: build connected frontage groups, timber-and-brick material modules, courtyards and the bell-and-signal landmark.
 - ✅ Replace the generic Hillside station façade with Ravnbro's original red-brick civic station kit: gable, clock, repeated windows, chimneys and a cobbled forecourt.
+- ✅ Replace the remaining generic Hillside buildings with Ravnbro timber-frame frontages, a bakehouse awning, depot yard gate and a walkable service-lane threshold.
 - Add the Reedwater Edge with bridgelets, reeds and water-level details as the district's southern visual boundary.
 - Extend L2/L3 with rail hardware, dense interaction pockets and collision-aware terrain.
 - Add recorded ambience and music after an original audio session.

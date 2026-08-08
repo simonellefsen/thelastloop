@@ -379,6 +379,7 @@ export class GameWorld implements PlayerController {
     this.addFlatBuilding(6.8, -4.7, '#d8d4c5', '#be7654', 'BAKERY')
     this.addFlatBuilding(-6.8, -7.3, '#e2c971', '#4e6970', 'HOME')
     this.addFlatBuilding(-7.1, 5.3, '#c9ded6', '#50666a', 'DEPOT')
+    this.addRavnbroLaneThreshold()
     this.addFlatKeeper(0, 2.2)
     this.addFlatClue('signal', 'Signal box', -7.2, -0.5, 'The brass plate reads: “Every last train returns in a LOOP.”')
     this.addFlatClue('mural', 'Market mural', 7.2, -1.7, 'A faded market mural shows the town under a gold SUNSET.')
@@ -467,21 +468,97 @@ export class GameWorld implements PlayerController {
       this.addRavnbroStation(x, z, wall, roofColor)
       return
     }
+    this.addRavnbroFrontage(x, z, wall, roofColor, label)
+  }
+
+  /** Replaces isolated house primitives with small, imperfect street façades. */
+  private addRavnbroFrontage(x: number, z: number, wall: string, roofColor: string, label: string): void {
     const building = new Group()
-    const body = new Mesh(new BoxGeometry(2.6, 1.7, 2.05), new MeshLambertMaterial({ color: wall, flatShading: true }))
-    body.position.y = 0.85
+    const width = label === 'DEPOT' ? 3.35 : label === 'BAKERY' ? 3.05 : 2.72
+    const bodyHeight = label === 'DEPOT' ? 1.82 : 1.68
+    const depth = 2.05
+    const wallMaterial = new MeshLambertMaterial({ color: wall, flatShading: true })
+    const frameMaterial = new MeshLambertMaterial({ color: label === 'DEPOT' ? '#6b4840' : '#574239', flatShading: true })
+    const roofMaterial = new MeshLambertMaterial({ color: roofColor, flatShading: true })
+    const body = new Mesh(new BoxGeometry(width, bodyHeight, depth), wallMaterial)
+    body.position.y = bodyHeight / 2
     building.add(body)
-    const roof = new Mesh(new ConeGeometry(1.75, 0.82, 4), new MeshLambertMaterial({ color: roofColor, flatShading: true }))
+    const roof = new Mesh(new ConeGeometry(width * 0.68, 0.82, 4), roofMaterial)
     roof.rotation.y = Math.PI / 4
-    roof.position.y = 2.08
+    roof.position.y = bodyHeight + 0.42
     building.add(roof)
-    for (const windowX of [-0.68, 0.68]) {
-      const window = new Mesh(new PlaneGeometry(0.48, 0.48), new MeshLambertMaterial({ color: '#274a54', side: DoubleSide }))
-      window.position.set(windowX, 1.04, 1.031)
+
+    // Timber grid: deliberately slightly uneven spans make a compact row feel
+    // hand-built rather than a repeated suburban house asset.
+    const frontZ = depth / 2 + 0.014
+    const frameXs = label === 'DEPOT' ? [-1.38, -0.47, 0.47, 1.38] : [-width / 2 + 0.22, 0, width / 2 - 0.22]
+    for (const frameX of frameXs) {
+      const upright = new Mesh(new BoxGeometry(0.11, bodyHeight + 0.13, 0.07), frameMaterial)
+      upright.position.set(frameX, bodyHeight / 2, frontZ)
+      building.add(upright)
+    }
+    for (const frameY of [0.42, bodyHeight - 0.34]) {
+      const beam = new Mesh(new BoxGeometry(width + 0.08, 0.1, 0.08), frameMaterial)
+      beam.position.set(0, frameY, frontZ)
+      building.add(beam)
+    }
+    const windowXs = label === 'DEPOT' ? [-1.0, 1.0] : [-width * 0.27, width * 0.27]
+    for (const windowX of windowXs) {
+      const window = new Mesh(new PlaneGeometry(0.43, 0.5), new MeshLambertMaterial({ color: '#dce8df', side: DoubleSide }))
+      window.position.set(windowX, bodyHeight * 0.62, frontZ + 0.006)
       building.add(window)
+    }
+    const doorWidth = label === 'DEPOT' ? 0.86 : 0.58
+    const door = new Mesh(new PlaneGeometry(doorWidth, 0.92), new MeshLambertMaterial({ color: label === 'BAKERY' ? '#47666c' : '#31555b', side: DoubleSide }))
+    door.position.set(0, 0.47, frontZ + 0.008)
+    building.add(door)
+    if (label === 'BAKERY') {
+      const awningMaterial = new MeshLambertMaterial({ color: '#d5a34d', flatShading: true })
+      const awning = new Mesh(new BoxGeometry(width - 0.3, 0.16, 0.48), awningMaterial)
+      awning.position.set(0, 1.12, 1.27)
+      building.add(awning)
+      const shopSign = this.createSign('BAKEHOUSE', '#fff5d8', 190, 52)
+      shopSign.scale.set(1.1, 0.3, 1)
+      shopSign.position.set(0, 1.53, 1.08)
+      building.add(shopSign)
+    }
+    if (label === 'DEPOT') {
+      const depotSign = this.createSign('YARD', '#eaf2dc', 150, 48)
+      depotSign.scale.set(0.86, 0.27, 1)
+      depotSign.position.set(0, 1.54, 1.08)
+      building.add(depotSign)
+    }
+    if (label === 'HOME') {
+      const passage = new Mesh(new BoxGeometry(0.76, 0.82, 0.12), frameMaterial)
+      passage.position.set(0, 0.41, frontZ + 0.025)
+      building.add(passage)
+      const passageInset = new Mesh(new PlaneGeometry(0.5, 0.62), new MeshLambertMaterial({ color: '#263f45', side: DoubleSide }))
+      passageInset.position.set(0, 0.36, frontZ + 0.09)
+      building.add(passageInset)
     }
     building.position.set(x, gentleStreetHeight(x, z), z)
     this.hillsideStreet.add(building)
+  }
+
+  /** A small service-lane threshold makes the depot route read as part of a town. */
+  private addRavnbroLaneThreshold(): void {
+    const lane = this.createRollingStreetSurface(1.28, 3.25, -5.1, 4.1, '#cfc6a2', 0.075)
+    this.hillsideStreet.add(lane)
+    const gate = new Group()
+    const timber = new MeshLambertMaterial({ color: '#62463a', flatShading: true })
+    for (const x of [-0.52, 0.52]) {
+      const post = new Mesh(new BoxGeometry(0.13, 1.42, 0.13), timber)
+      post.position.set(x, 0.71, 0)
+      gate.add(post)
+    }
+    const lintel = new Mesh(new BoxGeometry(1.22, 0.16, 0.16), timber)
+    lintel.position.set(0, 1.34, 0)
+    gate.add(lintel)
+    const lantern = new Mesh(new SphereGeometry(0.1, 6, 5), new MeshLambertMaterial({ color: '#f4d779', emissive: new Color('#c78639'), emissiveIntensity: 0.7, flatShading: true }))
+    lantern.position.set(0, 1.13, 0.1)
+    gate.add(lantern)
+    gate.position.set(-5.1, gentleStreetHeight(-5.1, 2.55), 2.55)
+    this.hillsideStreet.add(gate)
   }
 
   /**
