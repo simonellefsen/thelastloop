@@ -1,6 +1,7 @@
 import {
   AmbientLight,
   BoxGeometry,
+  CatmullRomCurve3,
   CanvasTexture,
   Color,
   ConeGeometry,
@@ -22,6 +23,7 @@ import {
   Sprite,
   SpriteMaterial,
   TorusGeometry,
+  TubeGeometry,
   Vector2,
   Vector3,
   WebGLRenderer,
@@ -75,6 +77,8 @@ export class GameWorld implements PlayerController {
   // The title is a single atlas, not three isolated demo planets.  It stays
   // deliberately low-detail so the whole connected loop reads at phone scale.
   private readonly titleAtlas = new Group()
+  private readonly titleTrain = new Group()
+  private titleRoute: CatmullRomCurve3 | undefined
   private readonly hillsideStreet = new Group()
   private readonly harbourStreet = new Group()
   private readonly observatoryStreet = new Group()
@@ -383,6 +387,42 @@ export class GameWorld implements PlayerController {
     this.addTitleWaystation(1.28, 2.68, '#8b74aa')
     this.addTitleGrove(1.22, -2.62)
     this.addTitleGrove(1.31, 2.27)
+    this.addTitleRailRoute()
+  }
+
+  /** A continuous, visible route is the title world's connective tissue. */
+  private addTitleRailRoute(): void {
+    const routePoints = [
+      [0.74, -1.7], [1.17, -0.78], [0.94, 0.18], [1.14, 0.94],
+      [0.8, 1.82], [1.28, 2.68], [1.31, 2.27], [1.22, -2.62],
+    ].map(([latitude, longitude]) => this.normalAt(latitude, longitude).multiplyScalar(10.62))
+    this.titleRoute = new CatmullRomCurve3(routePoints, true, 'centripetal')
+    const ballast = new Mesh(
+      new TubeGeometry(this.titleRoute, 160, 0.105, 5, true),
+      new MeshLambertMaterial({ color: '#36535b', flatShading: true }),
+    )
+    const rail = new Mesh(
+      new TubeGeometry(this.titleRoute, 160, 0.052, 5, true),
+      new MeshLambertMaterial({ color: '#e6c65d', emissive: new Color('#9a7334'), emissiveIntensity: 0.25, flatShading: true }),
+    )
+    this.titleAtlas.add(ballast, rail)
+    this.createTitleTrain()
+  }
+
+  private createTitleTrain(): void {
+    const chassis = new Mesh(new BoxGeometry(0.34, 0.16, 0.72), new MeshLambertMaterial({ color: '#284a52', flatShading: true }))
+    chassis.position.y = 0.12
+    this.titleTrain.add(chassis)
+    const engine = new Mesh(new BoxGeometry(0.34, 0.29, 0.36), new MeshLambertMaterial({ color: '#c96149', flatShading: true }))
+    engine.position.set(0, 0.3, -0.13)
+    this.titleTrain.add(engine)
+    const cabin = new Mesh(new BoxGeometry(0.31, 0.37, 0.25), new MeshLambertMaterial({ color: '#e7d3a2', flatShading: true }))
+    cabin.position.set(0, 0.39, 0.2)
+    this.titleTrain.add(cabin)
+    const lamp = new Mesh(new SphereGeometry(0.065, 6, 5), new MeshLambertMaterial({ color: '#fff0a1', emissive: new Color('#d9953e'), emissiveIntensity: 0.8, flatShading: true }))
+    lamp.position.set(0, 0.31, -0.33)
+    this.titleTrain.add(lamp)
+    this.titleAtlas.add(this.titleTrain)
   }
 
   private addTitleSettlement(kind: 'ravnbro' | 'harbour' | 'moonhill', latitude: number, longitude: number, heading: number): void {
@@ -2534,6 +2574,18 @@ export class GameWorld implements PlayerController {
     this.camera.position.set(Math.cos(angle) * orbitRadius, height + Math.sin(angle * 1.7) * 0.8, Math.sin(angle) * orbitRadius)
     this.camera.up.copy(UP)
     this.camera.lookAt(0, 0.2, 0)
+    this.updateTitleTrain()
+  }
+
+  private updateTitleTrain(): void {
+    if (!this.titleRoute) return
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const progress = prefersReducedMotion ? 0.07 : (this.clock.elapsed * 0.026) % 1
+    const position = this.titleRoute.getPointAt(progress)
+    const ahead = this.titleRoute.getPointAt((progress + 0.003) % 1)
+    this.titleTrain.position.copy(position)
+    this.titleTrain.up.copy(position.clone().normalize())
+    this.titleTrain.lookAt(ahead)
   }
 
   private updateStation(): void {
