@@ -71,6 +71,9 @@ export class GameWorld implements PlayerController {
   private readonly scene = new Scene()
   private readonly camera = new PerspectiveCamera(40, 1, 0.1, 120)
   private readonly root = new Group()
+  // The title is a single atlas, not three isolated demo planets.  It stays
+  // deliberately low-detail so the whole connected loop reads at phone scale.
+  private readonly titleAtlas = new Group()
   private readonly hillsideStreet = new Group()
   private readonly harbourStreet = new Group()
   private readonly harbourWorld = new Group()
@@ -172,11 +175,14 @@ export class GameWorld implements PlayerController {
     if (this.started) return
     this.hillsideStreet.visible = false
     this.harbourStreet.visible = false
-    this.root.visible = district === 'hillside'
-    this.ambient.visible = district === 'hillside'
-    this.harbourWorld.visible = district === 'harbour'
-    this.harbourAmbient.visible = district === 'harbour'
-    this.observatoryWorld.visible = district === 'observatory'
+    // Keep the complete world visible while the copy changes.  Selecting a
+    // route should never make two-thirds of the title planet disappear.
+    this.root.visible = true
+    this.ambient.visible = true
+    this.harbourWorld.visible = false
+    this.harbourAmbient.visible = false
+    this.observatoryWorld.visible = false
+    this.titleAtlas.rotation.y = district === 'hillside' ? 0 : district === 'harbour' ? -0.24 : 0.24
   }
 
   start(): void {
@@ -350,7 +356,117 @@ export class GameWorld implements PlayerController {
     this.root.add(rim)
     this.addRailLoop()
     this.addDistrict()
+    this.createTitleAtlas()
     return ground
+  }
+
+  /**
+   * A readable map of the entire route at title scale.  These are original,
+   * purpose-built silhouettes rather than the playable districts copied three
+   * times.  Their job is to make the small planet feel settled all the way
+   * around before the detailed district streams in at street scale.
+   */
+  private createTitleAtlas(): void {
+    this.root.add(this.titleAtlas)
+    this.addTitleSettlement('ravnbro', 0.74, -1.7, 0.25)
+    this.addTitleSettlement('harbour', 0.94, 0.18, -0.55)
+    this.addTitleSettlement('moonhill', 0.8, 1.82, 0.45)
+    this.addTitleWaystation(1.17, -0.78, '#d4ae57')
+    this.addTitleWaystation(1.14, 0.94, '#5f87a2')
+    this.addTitleWaystation(1.28, 2.68, '#8b74aa')
+    this.addTitleGrove(1.22, -2.62)
+    this.addTitleGrove(1.31, 2.27)
+  }
+
+  private addTitleSettlement(kind: 'ravnbro' | 'harbour' | 'moonhill', latitude: number, longitude: number, heading: number): void {
+    const settlement = new Group()
+    const baseColor = kind === 'harbour' ? '#7da69e' : kind === 'moonhill' ? '#7f8aa0' : '#b8a873'
+    const base = new Mesh(new CylinderGeometry(1.85, 2.15, 0.18, 8), new MeshLambertMaterial({ color: baseColor, flatShading: true }))
+    base.position.y = 0.1
+    settlement.add(base)
+    const road = new Mesh(new BoxGeometry(3.25, 0.07, 0.38), new MeshLambertMaterial({ color: kind === 'harbour' ? '#426e78' : '#556c6f', flatShading: true }))
+    road.position.y = 0.22
+    settlement.add(road)
+    const walls = kind === 'harbour' ? ['#b9644d', '#e5d4aa', '#d78356'] : kind === 'moonhill' ? ['#d7d3be', '#7285a7', '#b8a4c6'] : ['#a94f3f', '#d6c26d', '#d8ded0']
+    const roofs = kind === 'harbour' ? ['#264b52', '#d7a447', '#385e62'] : kind === 'moonhill' ? ['#3d4b76', '#59658a', '#4e557e'] : ['#344c51', '#b86d50', '#4f6870']
+    for (let index = 0; index < 3; index += 1) {
+      const house = new Group()
+      const body = new Mesh(new BoxGeometry(0.92 + (index % 2) * 0.16, 0.72 + (index === 1 ? 0.22 : 0), 0.76), new MeshLambertMaterial({ color: walls[index], flatShading: true }))
+      body.position.y = 0.55
+      house.add(body)
+      const roof = new Mesh(new ConeGeometry(0.72 + (index % 2) * 0.1, 0.42, 4), new MeshLambertMaterial({ color: roofs[index], flatShading: true }))
+      roof.rotation.y = Math.PI / 4
+      roof.position.y = 1.12 + (index === 1 ? 0.22 : 0)
+      house.add(roof)
+      house.position.set(-1.05 + index * 1.05, 0.18, index === 1 ? -0.62 : 0.62)
+      house.rotation.y = index === 1 ? Math.PI / 2 : 0
+      settlement.add(house)
+    }
+    if (kind === 'harbour') {
+      const mast = new Mesh(new BoxGeometry(0.1, 2.1, 0.1), new MeshLambertMaterial({ color: '#c9784f', flatShading: true }))
+      mast.position.set(1.1, 1.25, -0.55)
+      settlement.add(mast)
+      const arm = new Mesh(new BoxGeometry(1.34, 0.1, 0.1), new MeshLambertMaterial({ color: '#c9784f', flatShading: true }))
+      arm.position.set(1.68, 2.1, -0.55)
+      settlement.add(arm)
+      const boat = new Mesh(new BoxGeometry(1.25, 0.24, 0.5), new MeshLambertMaterial({ color: '#f0dfbd', flatShading: true }))
+      boat.position.set(-0.3, 0.37, -1.08)
+      settlement.add(boat)
+    } else if (kind === 'moonhill') {
+      const dome = new Mesh(new SphereGeometry(0.68, 9, 6, 0, Math.PI * 2, 0, Math.PI / 2), new MeshLambertMaterial({ color: '#48527f', flatShading: true }))
+      dome.position.set(0, 0.9, -0.12)
+      settlement.add(dome)
+      const scope = new Mesh(new CylinderGeometry(0.12, 0.16, 1.25, 7), new MeshLambertMaterial({ color: '#eee5c8', flatShading: true }))
+      scope.rotation.z = Math.PI / 3
+      scope.position.set(0.78, 1.38, -0.12)
+      settlement.add(scope)
+    } else {
+      const tower = new Mesh(new BoxGeometry(0.42, 1.74, 0.42), new MeshLambertMaterial({ color: '#9d4e42', flatShading: true }))
+      tower.position.set(0, 1.06, -0.2)
+      settlement.add(tower)
+      const spire = new Mesh(new ConeGeometry(0.38, 0.68, 4), new MeshLambertMaterial({ color: '#344c51', flatShading: true }))
+      spire.position.set(0, 2.24, -0.2)
+      settlement.add(spire)
+    }
+    this.placeOnPlanet(settlement, latitude, longitude, heading)
+    this.titleAtlas.add(settlement)
+  }
+
+  private addTitleWaystation(latitude: number, longitude: number, color: string): void {
+    const stop = new Group()
+    const platform = new Mesh(new BoxGeometry(1.25, 0.14, 0.8), new MeshLambertMaterial({ color: '#ded5af', flatShading: true }))
+    platform.position.y = 0.12
+    stop.add(platform)
+    const shelter = new Mesh(new BoxGeometry(0.72, 0.62, 0.38), new MeshLambertMaterial({ color, flatShading: true }))
+    shelter.position.set(-0.1, 0.47, 0)
+    stop.add(shelter)
+    const roof = new Mesh(new ConeGeometry(0.6, 0.32, 4), new MeshLambertMaterial({ color: '#304a51', flatShading: true }))
+    roof.rotation.y = Math.PI / 4
+    roof.position.set(-0.1, 0.94, 0)
+    stop.add(roof)
+    const lamp = new Mesh(new SphereGeometry(0.12, 6, 5), new MeshLambertMaterial({ color: '#f5d56c', emissive: new Color('#c98a3e'), emissiveIntensity: 0.58, flatShading: true }))
+    lamp.position.set(0.5, 0.86, 0.12)
+    stop.add(lamp)
+    this.placeOnPlanet(stop, latitude, longitude, 0)
+    this.titleAtlas.add(stop)
+  }
+
+  private addTitleGrove(latitude: number, longitude: number): void {
+    const grove = new Group()
+    const trunkMaterial = new MeshLambertMaterial({ color: '#694c3d', flatShading: true })
+    for (let index = 0; index < 4; index += 1) {
+      const tree = new Group()
+      const trunk = new Mesh(new CylinderGeometry(0.07, 0.12, 0.7, 5), trunkMaterial)
+      trunk.position.y = 0.35
+      tree.add(trunk)
+      const crown = new Mesh(new ConeGeometry(0.48 + (index % 2) * 0.1, 1.08, 6), new MeshLambertMaterial({ color: index % 2 ? '#3f815d' : '#327052', flatShading: true }))
+      crown.position.y = 1.0
+      tree.add(crown)
+      tree.position.set((index % 2 - 0.5) * 0.82, 0.1, (Math.floor(index / 2) - 0.5) * 0.86)
+      grove.add(tree)
+    }
+    this.placeOnPlanet(grove, latitude, longitude, 0)
+    this.titleAtlas.add(grove)
   }
 
   private createHillsideStreetWorld(): void {
@@ -2234,8 +2350,11 @@ export class GameWorld implements PlayerController {
     // The title is a map-like overview, not the street camera pulled back. A
     // high orbit makes the complete tiny world and its water silhouette visible
     // before the player drops into the local, lower exploration view.
-    const orbitRadius = compactPhone ? 5.8 : 8.2
-    const height = compactPhone ? 34 : 29
+    // Portrait is constrained by width, not height.  A tall narrow viewport
+    // needs a much higher orbit to show the entire circular planet rather than
+    // cropping its east and west edges.
+    const orbitRadius = compactPhone ? 8.4 : 8.2
+    const height = compactPhone ? 62 : 29
     this.camera.position.set(Math.cos(angle) * orbitRadius, height + Math.sin(angle * 1.7) * 0.8, Math.sin(angle) * orbitRadius)
     this.camera.up.copy(UP)
     this.camera.lookAt(0, 0.2, 0)
