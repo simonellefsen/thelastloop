@@ -27,6 +27,7 @@
 - ✅ Add a continuous title-rail route and a small moving train to connect the globe's settlements visually.
 - ✅ Make title route previews useful without isolating the selected district: rotate the complete atlas and light the chosen destination beacon.
 - ✅ Add a street-level entry zoom and a staged world-detail/terrain plan.
+- ✅ Make the arrival zoom real in all three local districts: a short elevated camera frame eases into the close, upright exploration view without a loading screen.
 - ✅ Replace Hillside gameplay with a gently curved local street district: upright characters/buildings, stable camera, rolling ground, authored roads and building collision.
 - ✅ Move Green Light Home and The Morning Chorus into the playable Hillside district, including local visual-state changes.
 - ✅ Add the first authored Hillside connection: a step-and-rail route to the bell, road kerbs, retaining edges and planted collision props.

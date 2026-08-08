@@ -28,7 +28,7 @@ import {
   Vector3,
   WebGLRenderer,
 } from 'three'
-import { entryCameraProfile } from './camera'
+import { entryCameraProfile, streetArrivalProfile, type StreetCameraProfile } from './camera'
 import { objectiveDirection } from './controls'
 import { gentleStreetHeight, isOutsideSphericalBlockers, isWithinWalkableCap, tangentForward } from './math'
 import { nextPassengerIdentity } from './presence'
@@ -3105,6 +3105,7 @@ export class GameWorld implements PlayerController {
     this.streetPosition.set(0, 0, 8)
     this.streetForward.set(0, 0, -1)
     this.streetVelocity.set(0, 0, 0)
+    this.entryCameraProgress = 0
     this.updateSideQuestMarkers()
     this.soundscape.setProfile(soundscapeProfile(this.save.quest))
   }
@@ -3132,6 +3133,7 @@ export class GameWorld implements PlayerController {
     this.streetPosition.set(0, 0, 8)
     this.streetForward.set(0, 0, -1)
     this.streetVelocity.set(0, 0, 0)
+    this.entryCameraProgress = 0
     this.updateSideQuestMarkers()
     this.soundscape.setProfile(soundscapeProfile(this.save.quest))
   }
@@ -3266,6 +3268,7 @@ export class GameWorld implements PlayerController {
     this.streetPosition.set(0, 0, 7.4)
     this.streetForward.set(0, 0, -1)
     this.streetVelocity.set(0, 0, 0)
+    this.entryCameraProgress = 0
   }
 
   private updateHillsideStreetPlayer(delta: number): void {
@@ -3279,10 +3282,11 @@ export class GameWorld implements PlayerController {
     this.player.quaternion.identity()
     this.player.rotation.y = Math.atan2(this.streetForward.x, this.streetForward.z)
 
-    const cameraPosition = playerPosition.clone().add(new Vector3(0, 4.2, 6.8))
+    const profile = this.nextStreetArrivalProfile(delta, { height: 4.2, followDistance: 6.8, lookAhead: 3.2, lookHeight: 0.95 })
+    const cameraPosition = playerPosition.clone().add(new Vector3(0, profile.height, profile.followDistance))
     this.camera.position.lerp(cameraPosition, 0.16)
     this.camera.up.copy(UP)
-    this.camera.lookAt(playerPosition.clone().add(new Vector3(0, 0.95, -3.2)))
+    this.camera.lookAt(playerPosition.clone().add(new Vector3(0, profile.lookHeight, -profile.lookAhead)))
     this.findNearby(playerPosition)
   }
 
@@ -3295,9 +3299,10 @@ export class GameWorld implements PlayerController {
     this.player.position.copy(playerPosition)
     this.player.quaternion.identity()
     this.player.rotation.y = Math.atan2(this.streetForward.x, this.streetForward.z)
-    this.camera.position.lerp(playerPosition.clone().add(new Vector3(0, 3.9, 6.4)), 0.16)
+    const profile = this.nextStreetArrivalProfile(delta, { height: 3.9, followDistance: 6.4, lookAhead: 3.1, lookHeight: 0.9 })
+    this.camera.position.lerp(playerPosition.clone().add(new Vector3(0, profile.height, profile.followDistance)), 0.16)
     this.camera.up.copy(UP)
-    this.camera.lookAt(playerPosition.clone().add(new Vector3(0, 0.9, -3.1)))
+    this.camera.lookAt(playerPosition.clone().add(new Vector3(0, profile.lookHeight, -profile.lookAhead)))
     this.findNearby(playerPosition)
   }
 
@@ -3310,9 +3315,10 @@ export class GameWorld implements PlayerController {
     this.player.position.copy(playerPosition)
     this.player.quaternion.identity()
     this.player.rotation.y = Math.atan2(this.streetForward.x, this.streetForward.z)
-    this.camera.position.lerp(playerPosition.clone().add(new Vector3(0, 4.15, 6.7)), 0.16)
+    const profile = this.nextStreetArrivalProfile(delta, { height: 4.15, followDistance: 6.7, lookAhead: 3.2, lookHeight: 0.94 })
+    this.camera.position.lerp(playerPosition.clone().add(new Vector3(0, profile.height, profile.followDistance)), 0.16)
     this.camera.up.copy(UP)
-    this.camera.lookAt(playerPosition.clone().add(new Vector3(0, 0.94, -3.2)))
+    this.camera.lookAt(playerPosition.clone().add(new Vector3(0, profile.lookHeight, -profile.lookAhead)))
     this.findNearby(playerPosition)
   }
 
@@ -3339,6 +3345,11 @@ export class GameWorld implements PlayerController {
     }
     this.streetPosition.copy(candidate)
     this.streetForward.lerp(this.streetVelocity.clone().normalize(), Math.min(1, delta * 11)).normalize()
+  }
+
+  private nextStreetArrivalProfile(delta: number, settled: StreetCameraProfile): StreetCameraProfile {
+    this.entryCameraProgress = Math.min(1, this.entryCameraProgress + delta / 1.05)
+    return streetArrivalProfile(this.entryCameraProgress, settled)
   }
 
   private updateTitleCamera(): void {
