@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { GameWorld } from './lib/game/GameWorld'
+  import { guideInput } from './lib/game/controls'
   import type { DistrictId, GameHud, QuestState } from './lib/game/types'
   import { sideQuestLabel } from './lib/game/quest'
 
@@ -9,6 +10,10 @@
   let started = false
   let soundEnabled = true
   let error = ''
+  let guidingPointer: number | undefined
+  let guideActive = false
+  let guideX = 0
+  let guideY = 0
   let titleDistrict: DistrictId = 'hillside'
   let hud: GameHud = {
     hint: 'Enter the town when you are ready.',
@@ -91,25 +96,32 @@
     game?.returnToStation()
   }
 
-  function joystick(event: PointerEvent) {
+  function guidePlayer(event: PointerEvent) {
     const target = event.currentTarget as HTMLElement
     const bounds = target.getBoundingClientRect()
-    const x = ((event.clientX - bounds.left) / bounds.width - 0.5) * 2
-    const y = ((event.clientY - bounds.top) / bounds.height - 0.5) * 2
-    const length = Math.hypot(x, y)
-    game?.setJoystick({
-      x: length > 1 ? x / length : x,
-      y: length > 1 ? y / length : y,
-    })
+    game?.setJoystick(guideInput(event.clientX, event.clientY, bounds))
+    guideX = event.clientX
+    guideY = event.clientY
   }
 
-  function beginJoystick(event: PointerEvent) {
+  function beginGuidance(event: PointerEvent) {
+    if (!started || hud.inStation || event.pointerType === 'mouse') return
     const target = event.currentTarget as HTMLElement
+    guidingPointer = event.pointerId
+    guideActive = true
     target.setPointerCapture(event.pointerId)
-    joystick(event)
+    guidePlayer(event)
   }
 
-  function endJoystick() {
+  function continueGuidance(event: PointerEvent) {
+    if (guidingPointer !== event.pointerId) return
+    guidePlayer(event)
+  }
+
+  function endGuidance(event: PointerEvent) {
+    if (guidingPointer !== event.pointerId) return
+    guidingPointer = undefined
+    guideActive = false
     game?.setJoystick({ x: 0, y: 0 })
   }
 
@@ -124,7 +136,16 @@
 </svelte:head>
 
 <main class:playing={started}>
-  <div class="game-host" bind:this={gameHost} aria-label="The Last Loop 3D game world"></div>
+  <div
+    class="game-host"
+    bind:this={gameHost}
+    role="application"
+    aria-label="The Last Loop 3D game world"
+    onpointerdown={beginGuidance}
+    onpointermove={continueGuidance}
+    onpointerup={endGuidance}
+    onpointercancel={endGuidance}
+  ></div>
 
   {#if error}
     <section class="unsupported" role="alert">
@@ -143,7 +164,7 @@
         {/each}
       </div>
       <button class="enter-button" onclick={enterWorld}>Begin the story</button>
-      <p class="title-tip">Preview all three worlds above · iPhone landscape · headphones optional</p>
+      <p class="title-tip">Preview all three worlds above · touch to guide your walk · headphones optional</p>
     </section>
   {:else}
     <section class="hud" aria-live="polite">
@@ -218,23 +239,13 @@
         </div>
       {/if}
 
-      {#if !hud.inStation}<div
-        class="joystick"
-        role="application"
-        aria-label="Movement joystick"
-        onpointerdown={beginJoystick}
-        onpointermove={joystick}
-        onpointerup={endJoystick}
-        onpointercancel={endJoystick}
-      >
-        <div class="joystick-knob"></div>
-      </div>{/if}
+      {#if !hud.inStation && guideActive}<div class="touch-guide" style={`left: ${guideX}px; top: ${guideY}px`} aria-hidden="true">↗</div>{/if}
 
       {#if !hud.inStation}<button class="interact-button" class:ready={hud.nearbyLabel !== ''} onclick={interact} disabled={hud.nearbyLabel === ''}>
         <span>↗</span>
         {hud.nearbyLabel || 'Explore'}
       </button>
-      <p class="controls-tip">Arrow keys and the left thumb move in the matching screen direction. Tap Investigate to collect a clue.</p>{/if}
+      <p class="controls-tip">Hold a finger on the scene to guide your walk. Arrow keys work on desktop.</p>{/if}
     </section>
   {/if}
 </main>

@@ -59,9 +59,9 @@ The station is a small civic anchor rather than a generic house: warm red brick,
 
 ## Controls
 
-- iPhone landscape: left-thumb joystick moves the player; the right-side action button appears near a character or clue.
+- Phone: hold or drag one finger directly on the world and the player follows that screen direction. A small guide ring confirms the current touch; release to stop. The action button appears near a character or clue.
 - Desktop: WASD or arrow keys move; use the action button near a marker.
-- The camera follows automatically. The first release intentionally avoids a second-thumb camera control.
+- The camera follows automatically. Portrait and landscape are both supported; landscape gives the wider district view, while portrait frames the complete title globe.
 - Focus outlines remain visible for keyboard users. Decorative movement honours the device's reduced-motion preference, and rendering pauses while the page is backgrounded to conserve mobile battery.
 
 ## Multiplayer boundary
