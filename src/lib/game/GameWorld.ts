@@ -29,6 +29,7 @@ import {
   WebGLRenderer,
 } from 'three'
 import { entryCameraProfile } from './camera'
+import { objectiveDirection } from './controls'
 import { gentleStreetHeight, isOutsideSphericalBlockers, isWithinWalkableCap, tangentForward } from './math'
 import { nextPassengerIdentity } from './presence'
 import { animationTime, nextRenderResolution, shouldRender } from './runtime'
@@ -145,6 +146,7 @@ export class GameWorld implements PlayerController {
   private inStation = false
   private displayedHint = ''
   private displayedDialogue = ''
+  private objectiveCueKey = ''
 
   constructor(private readonly container: HTMLElement, private readonly events: GameWorldEvents) {
     this.save = readSave(window.localStorage)
@@ -3499,8 +3501,13 @@ export class GameWorld implements PlayerController {
       const markerPosition = new Vector3(...marker.position)
       if (position.distanceTo(markerPosition) < 1.85) next = marker
     }
-    if (next !== this.nearby) {
+    const nearbyChanged = next !== this.nearby
+    if (nearbyChanged) {
       this.nearby = next
+    }
+    const nextObjectiveCueKey = this.currentObjectiveCueKey()
+    if (nearbyChanged || nextObjectiveCueKey !== this.objectiveCueKey) {
+      this.objectiveCueKey = nextObjectiveCueKey
       this.events.onHud(this.currentHud())
     }
   }
@@ -3536,6 +3543,7 @@ export class GameWorld implements PlayerController {
   private emitHud(hint: string, dialogue: string): void {
     this.displayedHint = hint
     this.displayedDialogue = dialogue
+    this.objectiveCueKey = this.currentObjectiveCueKey()
     this.events.onHud(this.currentHud())
   }
 
@@ -3544,9 +3552,12 @@ export class GameWorld implements PlayerController {
     const nearbyLabel = npcName ? 'Talk' : this.nearby === 'station-door' ? 'Enter station' : typeof this.nearby === 'object' ? `Investigate ${this.nearby.label}` : ''
     const showNpcDialogue = !this.inStation && npcName !== ''
     const npcDialogue = this.nearby === 'station-keeper' ? this.stationKeeperDialogue() : this.nearby === 'harbour-keeper' ? this.harbourKeeperDialogue() : this.nearby === 'moon-warden' ? this.moonWardenDialogue() : ''
+    const objective = this.currentObjective()
     return {
       hint: showNpcDialogue ? 'Tap Talk to speak.' : this.displayedHint || this.hint(),
       dialogue: showNpcDialogue ? npcDialogue : this.displayedDialogue || this.dialogue(),
+      objectiveLabel: objective.label,
+      objectiveDirection: objective.direction,
       nearbyLabel: this.inStation ? '' : nearbyLabel,
       showNpcDialogue,
       npcName,
@@ -3556,6 +3567,39 @@ export class GameWorld implements PlayerController {
       district: this.save.district,
       identity: this.save.identity,
     }
+  }
+
+  /** Finds one visible, nearest step so the town remains discoverable without a minimap. */
+  private currentObjective(): { label: string; direction: string } {
+    if (!this.started || this.inStation) return { label: '', direction: '' }
+    const candidates: Array<{ label: string; position: [number, number, number] }> = []
+    if (this.hillsideStreet.visible) {
+      const remainingClues = this.streetClues.filter((clue) => clue.mesh.visible && !this.save.quest.completedClues.includes(clue.id))
+      if (remainingClues.length > 0) candidates.push(...remainingClues)
+      else {
+        candidates.push(...this.streetSideMarkers.filter((marker) => marker.mesh.visible))
+        if (candidates.length === 0 && this.save.quest.stationNameRestored) candidates.push({ label: 'Station door', position: [this.streetStationDoorPosition.x, this.streetStationDoorPosition.y, this.streetStationDoorPosition.z] })
+      }
+    } else if (this.harbourStreet.visible) {
+      candidates.push(...this.harbourStreetSideMarkers.filter((marker) => marker.mesh.visible))
+    } else if (this.observatoryStreet.visible) {
+      candidates.push(...this.observatoryStreetSideMarkers.filter((marker) => marker.mesh.visible))
+    }
+    if (candidates.length === 0) return { label: '', direction: '' }
+    const target = candidates.reduce((nearest, candidate) => {
+      const candidateDistance = this.streetPosition.distanceTo(new Vector3(...candidate.position))
+      const nearestDistance = this.streetPosition.distanceTo(new Vector3(...nearest.position))
+      return candidateDistance < nearestDistance ? candidate : nearest
+    })
+    return {
+      label: `Next: ${target.label}`,
+      direction: objectiveDirection(this.streetForward, this.streetPosition, { x: target.position[0], z: target.position[2] }),
+    }
+  }
+
+  private currentObjectiveCueKey(): string {
+    const objective = this.currentObjective()
+    return `${objective.label}|${objective.direction}`
   }
 
   private resolveSideMarker(marker: SideMarker): void {

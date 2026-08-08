@@ -69,6 +69,7 @@ h1 span { display: inline-block; font-size: .39em; letter-spacing: -.08em; verti
 .interact-button span { display: block; color: #c85b46; font-size: 1.3rem; line-height: 1; }
 .interact-button:disabled { opacity: .63; cursor: default; }
 .interact-button.ready { background: #f9d65b; animation: pulse 1.4s ease-in-out infinite; }
+.objective-cue { position: absolute; left: max(18px, env(safe-area-inset-left)); bottom: max(22px, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 6px; max-width: min(290px, 48vw); margin: 0; padding: 7px 10px; border: 2px solid #294b51; border-radius: 7px; background: rgba(255,249,222,.91); box-shadow: 2px 3px 0 rgba(24,58,66,.42); color: #315158; font-size: clamp(.58rem, 1.25vw, .7rem); line-height: 1; transform: rotate(-.6deg); }.objective-cue::first-letter { color: #c85b46; }.objective-cue strong { color: #24464d; font-weight: 900; }.objective-cue span { color: #8a654d; font-weight: 800; text-transform: uppercase; white-space: nowrap; }
 .controls-tip { position: absolute; left: 50%; bottom: max(7px, calc(env(safe-area-inset-bottom) - 1px)); margin: 0; transform: translateX(-50%); color: rgba(255,255,255,.76); font-size: .59rem; white-space: nowrap; text-shadow: 1px 1px 0 #183a42; }
 .unsupported { background: #193c45; }
 .unsupported h1 { font-size: clamp(2rem, 7vw, 4rem); line-height: .95; }
@@ -82,6 +83,7 @@ h1 span { display: inline-block; font-size: .39em; letter-spacing: -.08em; verti
   .quest-card ul { gap: 2px; }
   .dialogue { width: 43vw; padding: 9px 10px; }
   .controls-tip { display: none; }
+  .objective-cue { max-width: 46vw; padding: 6px 8px; }
 }
 @media (orientation: portrait) {
   .title-screen { padding: 18px; }

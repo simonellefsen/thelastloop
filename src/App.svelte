@@ -19,6 +19,8 @@
   let hud: GameHud = {
     hint: 'Enter the town when you are ready.',
     dialogue: 'A small world remembers every path.',
+    objectiveLabel: '',
+    objectiveDirection: '',
     nearbyLabel: '',
     showNpcDialogue: false,
     npcName: '',
@@ -254,6 +256,9 @@
 
       {#if !hud.inStation && guideActive}<div class="touch-guide" style={`left: ${guideX}px; top: ${guideY}px`} aria-hidden="true">↗</div>{/if}
 
+      {#if !hud.inStation && hud.objectiveLabel}
+        <p class="objective-cue" aria-label={`${hud.objectiveLabel}, ${hud.objectiveDirection}`}>↗ <strong>{hud.objectiveLabel}</strong><span>{hud.objectiveDirection}</span></p>
+      {/if}
       {#if !hud.inStation}<button class="interact-button" class:ready={hud.nearbyLabel !== ''} onclick={interact} disabled={hud.nearbyLabel === ''}>
         <span>↗</span>
         {hud.nearbyLabel || 'Explore'}

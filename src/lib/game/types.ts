@@ -59,6 +59,8 @@ export interface PlayerController {
 export interface GameHud {
   hint: string
   dialogue: string
+  objectiveLabel: string
+  objectiveDirection: string
   nearbyLabel: string
   showNpcDialogue: boolean
   npcName: string
