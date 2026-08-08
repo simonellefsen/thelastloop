@@ -15,6 +15,7 @@
 - ✅ Build Harbour Works as a second compact globe district with a dockside repair story.
 - ✅ Build Moonhill Observatory as a third compact globe district with a telescope-alignment story.
 - ✅ Harden mobile rendering: background-tab pause, reduced-motion renderer support, and visible keyboard focus.
+- ✅ Add a persisted in-game reduced-motion control: users can pause decorative title, ambient and station motion independently of their device-wide preference.
 - ✅ Replace the fixed phone joystick with direct touch guidance: hold or drag anywhere on the world to guide the character, with an on-screen touch indicator and portrait-safe title framing.
 - ✅ Add a small original procedural dusk motif to the adaptive soundscape.
 - ✅ Turn the title into an interactive showcase of all three playable globe districts.

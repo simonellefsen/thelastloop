@@ -49,6 +49,7 @@ const observatoryStreetHeight = (x: number, z: number): number => -0.0012 * (x *
 export interface GameWorldEvents {
   onHud(hud: GameHud): void
   onSound(enabled: boolean): void
+  onReducedMotion(enabled: boolean): void
   onError(message: string): void
 }
 
@@ -183,6 +184,10 @@ export class GameWorld implements PlayerController {
     return this.save.soundEnabled
   }
 
+  getReducedMotion(): boolean {
+    return this.save.reducedMotion
+  }
+
   setTitlePreview(district: DistrictId): void {
     if (this.started) return
     this.hillsideStreet.visible = false
@@ -271,6 +276,13 @@ export class GameWorld implements PlayerController {
     this.events.onSound(this.save.soundEnabled)
     this.soundscape.setEnabled(this.save.soundEnabled)
     if (this.save.soundEnabled) this.playTone(660)
+  }
+
+  toggleReducedMotion(): void {
+    this.save.reducedMotion = !this.save.reducedMotion
+    this.persist()
+    this.events.onReducedMotion(this.save.reducedMotion)
+    this.emitHud(this.save.reducedMotion ? 'Reduced motion is on.' : 'Reduced motion is off.', this.save.reducedMotion ? 'The title orbit and decorative life are paused.' : 'The small world is moving again.')
   }
 
   leaveStation(): void {
@@ -2878,7 +2890,7 @@ export class GameWorld implements PlayerController {
   }
 
   private updateTitleCamera(): void {
-    const angle = animationTime(this.clock.elapsed, window.matchMedia('(prefers-reduced-motion: reduce)').matches) * 0.14
+    const angle = animationTime(this.clock.elapsed, this.prefersReducedMotion()) * 0.14
     const compactPhone = this.camera.aspect < 0.82
     // The title is a map-like overview, not the street camera pulled back. A
     // high orbit makes the complete tiny world and its water silhouette visible
@@ -2896,8 +2908,7 @@ export class GameWorld implements PlayerController {
 
   private updateTitleTrain(): void {
     if (!this.titleRoute) return
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const progress = prefersReducedMotion ? 0.07 : (this.clock.elapsed * 0.026) % 1
+    const progress = this.prefersReducedMotion() ? 0.07 : (this.clock.elapsed * 0.026) % 1
     const position = this.titleRoute.getPointAt(progress)
     const ahead = this.titleRoute.getPointAt((progress + 0.003) % 1)
     this.titleTrain.position.copy(position)
@@ -2910,11 +2921,11 @@ export class GameWorld implements PlayerController {
     this.camera.up.copy(UP)
     this.camera.lookAt(0, 1.8, -2.6)
     const lamp = this.stationInterior.children.at(-1)
-    if (lamp) lamp.position.y = 3.7 + Math.sin(this.clock.elapsed * 2) * 0.07
+    if (lamp) lamp.position.y = 3.7 + Math.sin(animationTime(this.clock.elapsed, this.prefersReducedMotion()) * 2) * 0.07
   }
 
   private updateAmbient(): void {
-    const motion = animationTime(this.clock.elapsed, window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    const motion = animationTime(this.clock.elapsed, this.prefersReducedMotion())
     this.ambient.children.forEach((object, index) => {
       const phase = Number(object.userData.phase ?? 0)
       if (index < 8) {
@@ -2944,7 +2955,7 @@ export class GameWorld implements PlayerController {
   }
 
   private updateStreetLife(): void {
-    const motion = animationTime(this.clock.elapsed, window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    const motion = animationTime(this.clock.elapsed, this.prefersReducedMotion())
     if (this.hillsideStreet.visible) {
       this.streetLife.children.forEach((object) => {
         const kind = String(object.userData.kind ?? '')
@@ -3134,6 +3145,10 @@ export class GameWorld implements PlayerController {
   private persist(write = true): void {
     this.save.playerNormal = [this.currentNormal.x, this.currentNormal.y, this.currentNormal.z]
     if (write) writeSave(window.localStorage, this.save)
+  }
+
+  private prefersReducedMotion(): boolean {
+    return this.save.reducedMotion || window.matchMedia('(prefers-reduced-motion: reduce)').matches
   }
 
   private playTone(frequency: number): void {

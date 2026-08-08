@@ -9,6 +9,7 @@
   let game: GameWorld | undefined
   let started = false
   let soundEnabled = true
+  let reducedMotion = false
   let error = ''
   let guidingPointer: number | undefined
   let guideActive = false
@@ -44,9 +45,11 @@
       game = new GameWorld(gameHost, {
         onHud: (next) => (hud = next),
         onSound: (enabled) => (soundEnabled = enabled),
+        onReducedMotion: (enabled) => (reducedMotion = enabled),
         onError: (message) => (error = message),
       })
       soundEnabled = game.getSoundEnabled()
+      reducedMotion = game.getReducedMotion()
     } catch {
       error = 'This tiny world needs a browser with WebGL support.'
     }
@@ -70,6 +73,10 @@
 
   function toggleSound() {
     game?.toggleSound()
+  }
+
+  function toggleReducedMotion() {
+    game?.toggleReducedMotion()
   }
 
   function leaveStation() {
@@ -135,7 +142,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 </svelte:head>
 
-<main class:playing={started}>
+<main class:playing={started} class:reduced-motion={reducedMotion}>
   <div
     class="game-host"
     bind:this={gameHost}
@@ -170,9 +177,14 @@
     <section class="hud" aria-live="polite">
       <header>
         <div class="wordmark">THE LAST LOOP</div>
-        <button class="sound-button" onclick={toggleSound} aria-label={soundEnabled ? 'Mute sound' : 'Enable sound'}>
-          {soundEnabled ? '♫' : '×'}
-        </button>
+        <div class="header-actions">
+          <button class="motion-button" class:active={reducedMotion} onclick={toggleReducedMotion} aria-label={reducedMotion ? 'Enable ambient motion' : 'Reduce ambient motion'} aria-pressed={reducedMotion}>
+            {reducedMotion ? '◌' : '≈'}
+          </button>
+          <button class="sound-button" onclick={toggleSound} aria-label={soundEnabled ? 'Mute sound' : 'Enable sound'}>
+            {soundEnabled ? '♫' : '×'}
+          </button>
+        </div>
       </header>
 
       {#if !hud.inStation && hud.district === 'hillside'}

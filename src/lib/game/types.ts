@@ -27,8 +27,9 @@ export interface QuestState {
 }
 
 export interface GameSave {
-  version: 4
+  version: 5
   soundEnabled: boolean
+  reducedMotion: boolean
   coatColor: CoatColor
   identity: PassengerIdentity
   district: DistrictId
@@ -45,6 +46,7 @@ export interface WorldInteractable {
 export interface PlayerController {
   setJoystick(input: { x: number; y: number }): void
   interact(): void
+  toggleReducedMotion(): void
   leaveStation(): void
   cycleCoat(): void
   cyclePassengerIdentity(): void

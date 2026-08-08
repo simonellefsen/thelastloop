@@ -11,8 +11,9 @@ export interface StorageLike {
 
 export function defaultSave(): GameSave {
   return {
-    version: 4,
+    version: 5,
     soundEnabled: true,
+    reducedMotion: false,
     coatColor: 'gold',
     identity: defaultPassengerIdentity(),
     district: 'hillside',
@@ -25,10 +26,11 @@ export function readSave(storage: StorageLike): GameSave {
   const fallback = defaultSave()
   try {
     const parsed = JSON.parse(storage.getItem(SAVE_KEY) ?? '') as Omit<Partial<GameSave>, 'version'> & { version?: number }
-    if ((parsed.version !== 1 && parsed.version !== 2 && parsed.version !== 3 && parsed.version !== 4) || !Array.isArray(parsed.playerNormal) || parsed.playerNormal.length !== 3 || !parsed.quest) return fallback
+    if ((parsed.version !== 1 && parsed.version !== 2 && parsed.version !== 3 && parsed.version !== 4 && parsed.version !== 5) || !Array.isArray(parsed.playerNormal) || parsed.playerNormal.length !== 3 || !parsed.quest) return fallback
     return {
-      version: 4,
+      version: 5,
       soundEnabled: typeof parsed.soundEnabled === 'boolean' ? parsed.soundEnabled : fallback.soundEnabled,
+      reducedMotion: typeof parsed.reducedMotion === 'boolean' ? parsed.reducedMotion : fallback.reducedMotion,
       coatColor: isCoatColor(parsed.coatColor) ? parsed.coatColor : fallback.coatColor,
       identity: isPassengerIdentity(parsed.identity) ? parsed.identity : fallback.identity,
       district: isDistrict(parsed.district) ? parsed.district : fallback.district,

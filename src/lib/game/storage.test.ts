@@ -41,8 +41,16 @@ describe('game save', () => {
     const store = memoryStorage()
     store.setItem(SAVE_KEY, JSON.stringify({ version: 1, soundEnabled: true, playerNormal: [0, 1, 0], quest: defaultSave().quest }))
     const save = readSave(store)
-    expect(save.version).toBe(4)
+    expect(save.version).toBe(5)
     expect(save.district).toBe('hillside')
     expect(save.identity).toEqual({ callsign: 'EMBER-7' })
+    expect(save.reducedMotion).toBe(false)
+  })
+
+  it('persists the optional reduced-motion setting', () => {
+    const store = memoryStorage()
+    const save = { ...defaultSave(), reducedMotion: true }
+    writeSave(store, save)
+    expect(readSave(store).reducedMotion).toBe(true)
   })
 })

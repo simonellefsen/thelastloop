@@ -29,8 +29,10 @@ h1 span { display: inline-block; font-size: .39em; letter-spacing: -.08em; verti
 .hud { position: fixed; inset: 0; pointer-events: none; color: #173138; }
 .hud header { position: absolute; top: max(14px, env(safe-area-inset-top)); left: max(18px, env(safe-area-inset-left)); right: max(18px, env(safe-area-inset-right)); display: flex; justify-content: space-between; align-items: center; }
 .wordmark { color: #fff5d6; font-size: clamp(.75rem, 2vw, 1rem); font-weight: 900; letter-spacing: .1em; text-shadow: 2px 2px 0 #183a42; }
-.sound-button, .interact-button { pointer-events: auto; border: 2px solid #264048; background: #fff8db; box-shadow: 2px 3px 0 rgba(20,52,59,.55); color: #193940; cursor: pointer; }
+.header-actions { display: flex; gap: 7px; pointer-events: auto; }
+.sound-button, .motion-button, .interact-button { pointer-events: auto; border: 2px solid #264048; background: #fff8db; box-shadow: 2px 3px 0 rgba(20,52,59,.55); color: #193940; cursor: pointer; }
 .sound-button { width: 43px; height: 43px; border-radius: 8px; font-size: 1.3rem; font-weight: 900; }
+.motion-button { width: 43px; height: 43px; border-radius: 8px; font-size: 1.25rem; font-weight: 900; }.motion-button.active { background: #cde8d2; color: #24585c; }
 .quest-card { position: absolute; top: max(64px, calc(env(safe-area-inset-top) + 48px)); right: max(16px, env(safe-area-inset-right)); width: min(235px, 29vw); padding: 12px 14px; border: 2px solid #2a4b51; border-radius: 7px; background: rgba(255, 249, 222, .94); box-shadow: 3px 4px 0 rgba(26, 61, 67, .45); transform: rotate(1deg); }
 .station-panel { position: absolute; top: max(56px, calc(env(safe-area-inset-top) + 40px)); right: max(16px, env(safe-area-inset-right)); width: min(290px, 36vw); padding: 13px 14px; border: 2px solid #2a4b51; border-radius: 7px; background: rgba(255, 249, 222, .96); box-shadow: 3px 4px 0 rgba(26, 61, 67, .45); transform: rotate(1deg); pointer-events: auto; }
 .station-panel .eyebrow { color: #b55040; font-size: .57rem; }
@@ -88,3 +90,4 @@ h1 span { display: inline-block; font-size: .39em; letter-spacing: -.08em; verti
   .dialogue { width: 62vw; bottom: 15px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+.reduced-motion *, .reduced-motion *::before, .reduced-motion *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
