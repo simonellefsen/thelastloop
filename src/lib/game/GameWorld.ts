@@ -1942,7 +1942,7 @@ export class GameWorld implements PlayerController {
       this.observatoryStreet.add(wall)
       this.addObservatoryStreetBlocker(x, -5.5, 0.45)
     }
-    for (const [x, z, height] of [[-6.3, -2.2, 2.4], [5.6, -1.4, 2.1], [-4.8, -9.4, 2.6], [4.6, -9.6, 2.25]] as Array<[number, number, number]>) {
+    for (const [x, z, height] of [[-7.6, -0.4, 2.4], [5.6, -1.4, 2.1], [-4.8, -9.4, 2.6], [4.6, -9.6, 2.25]] as Array<[number, number, number]>) {
       const pine = new Group()
       const trunk = new Mesh(new CylinderGeometry(0.1, 0.15, height * 0.38, 5), new MeshLambertMaterial({ color: '#55443d', flatShading: true }))
       trunk.position.y = height * 0.19
@@ -1955,6 +1955,7 @@ export class GameWorld implements PlayerController {
       this.addObservatoryStreetBlocker(x, z, 0.62)
     }
     this.addMoonhillLookout()
+    this.addMoonhillLensPath()
     this.addObservatoryStreetMarker('observatory-lens', 'Starlight lens', 'first', -5.5, -2.2, 'A starlight lens rests beside the hill path. The telescope can see again.')
     this.addObservatoryStreetMarker('observatory-scope', 'Align scope', 'second', 1.5, -3.85, 'The moon signal crosses the glass. Every faraway station gets one clear night.')
     this.updateSideQuestMarkers()
@@ -2028,6 +2029,43 @@ export class GameWorld implements PlayerController {
       this.observatoryStreet.add(rock)
       this.addObservatoryStreetBlocker(x, z, 0.38)
     }
+  }
+
+  /** An open westward branch makes Moonhill's first marker a place to walk to. */
+  private addMoonhillLensPath(): void {
+    const stone = new MeshLambertMaterial({ color: '#9d9a9f', flatShading: true })
+    const rail = new MeshLambertMaterial({ color: '#525d75', flatShading: true })
+    const brass = new MeshLambertMaterial({ color: '#c3a26a', flatShading: true })
+    const path = this.createObservatoryStreetSurface(7.2, 2.2, -4.25, -2.2, '#a49fa2', 0.14)
+    this.observatoryStreet.add(path)
+    for (let x = -7.5; x <= -1.05; x += 0.54) {
+      const slab = new Mesh(new BoxGeometry(0.42, 0.055, 1.88), stone)
+      slab.position.set(x, observatoryStreetHeight(x, -2.2) + 0.19, -2.2)
+      this.observatoryStreet.add(slab)
+    }
+    for (const z of [-3.18, -1.22]) {
+      for (const x of [-7.2, -5.05, -2.9]) {
+        const post = new Mesh(new CylinderGeometry(0.055, 0.07, 0.72, 5), rail)
+        post.position.set(x, observatoryStreetHeight(x, z) + 0.36, z)
+        this.observatoryStreet.add(post)
+        this.addObservatoryStreetBlocker(x, z, 0.18)
+      }
+      const handrail = new Mesh(new BoxGeometry(6.35, 0.055, 0.055), rail)
+      handrail.position.set(-4.05, observatoryStreetHeight(-4.05, z) + 0.67, z)
+      this.observatoryStreet.add(handrail)
+    }
+    const lensDais = new Mesh(new CylinderGeometry(0.77, 0.86, 0.12, 8), brass)
+    lensDais.position.set(-5.5, observatoryStreetHeight(-5.5, -2.2) + 0.06, -2.2)
+    this.observatoryStreet.add(lensDais)
+    for (const angle of [0, Math.PI * 2 / 3, Math.PI * 4 / 3]) {
+      const starStone = new Mesh(new SphereGeometry(0.09, 5, 4), new MeshLambertMaterial({ color: '#e2d7ad', emissive: new Color('#8e7ab3'), emissiveIntensity: 0.35, flatShading: true }))
+      starStone.position.set(-5.5 + Math.cos(angle) * 0.47, observatoryStreetHeight(-5.5 + Math.cos(angle) * 0.47, -2.2 + Math.sin(angle) * 0.47) + 0.18, -2.2 + Math.sin(angle) * 0.47)
+      this.observatoryStreet.add(starStone)
+    }
+    const sign = this.createSign('LENS PATH', '#f1ebdc', 185, 48)
+    sign.scale.set(1.04, 0.28, 1)
+    sign.position.set(-3.05, observatoryStreetHeight(-3.05, -0.95) + 1.03, -0.95)
+    this.observatoryStreet.add(sign)
   }
 
   private createObservatoryStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number): Mesh {

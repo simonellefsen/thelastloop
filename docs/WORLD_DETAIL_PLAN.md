@@ -39,6 +39,8 @@ Tideyard now branches west from the same dock road. Its paved board route, net s
 
 Moonhill now mirrors that depth with a Wind Lookout beyond the observatory terrace: a sheltered rest point, star-chart table, fire bowl and low parapet form a quiet outward-facing pocket while preserving a clear path to the telescope.
 
+Lens Path is Moonhill's westward branch from the observatory road. Low handrails and repeated stone slabs lead to a tiny three-star dais, while the nearby pine is held back from the marker's interaction radius so the first violet objective stays visible and reachable.
+
 Ravnbro's bridge now reaches Reedwater Landing rather than stopping at a collision wall. A plank deck, tiny shelter, moored skiff and boundary posts make its river edge a deliberate, safe walkable destination.
 
 Ambient life belongs to each local district rather than a global simulation: Harbour Works uses a small flight of dock gulls and slow water ripples, while Moonhill has three high swifts and a few fireflies around the lookout. These meshes animate only while their district is visible, have no collision or save state, and remain a mobile-safe visual layer rather than networked actors.
