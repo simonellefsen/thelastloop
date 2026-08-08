@@ -121,6 +121,7 @@ export class GameWorld implements PlayerController {
   private currentNormal = new Vector3()
   private streetPosition = new Vector3(0, 0, 7.4)
   private streetForward = new Vector3(0, 0, -1)
+  private streetVelocity = new Vector3()
   private playerForward = new Vector3(0, 0, -1)
   private joystick = new Vector2()
   private started = false
@@ -2770,6 +2771,7 @@ export class GameWorld implements PlayerController {
     if (resetPosition) this.currentNormal.copy(this.normalAt(0.34, -0.3))
     this.streetPosition.set(0, 0, 8)
     this.streetForward.set(0, 0, -1)
+    this.streetVelocity.set(0, 0, 0)
     this.updateSideQuestMarkers()
     this.soundscape.setProfile(soundscapeProfile(this.save.quest))
   }
@@ -2796,6 +2798,7 @@ export class GameWorld implements PlayerController {
     if (resetPosition) this.currentNormal.copy(this.normalAt(0.34, -0.3))
     this.streetPosition.set(0, 0, 8)
     this.streetForward.set(0, 0, -1)
+    this.streetVelocity.set(0, 0, 0)
     this.updateSideQuestMarkers()
     this.soundscape.setProfile(soundscapeProfile(this.save.quest))
   }
@@ -2929,25 +2932,15 @@ export class GameWorld implements PlayerController {
     this.player.visible = true
     this.streetPosition.set(0, 0, 7.4)
     this.streetForward.set(0, 0, -1)
+    this.streetVelocity.set(0, 0, 0)
   }
 
   private updateHillsideStreetPlayer(delta: number): void {
-    const keyboard = new Vector2(
-      (this.keys.has('d') || this.keys.has('arrowright') ? 1 : 0) - (this.keys.has('a') || this.keys.has('arrowleft') ? 1 : 0),
-      (this.keys.has('w') || this.keys.has('arrowup') ? 1 : 0) - (this.keys.has('s') || this.keys.has('arrowdown') ? 1 : 0),
-    )
-    const input = this.joystick.lengthSq() > 0.002 ? this.joystick.clone() : keyboard
-    if (input.lengthSq() > 0) {
-      input.normalize()
-      const direction = new Vector3(input.x, 0, -input.y).normalize()
-      const candidate = this.streetPosition.clone().addScaledVector(direction, delta * 4.2)
+    this.moveStreetPlayer(delta, 4.2, (candidate) => {
       const inBounds = Math.abs(candidate.x) < 18.5 && candidate.z < 14.5 && candidate.z > -15.5
       const clearOfBuildings = this.streetBlockers.every((blocker) => candidate.distanceTo(blocker.center) > blocker.radius)
-      if (inBounds && clearOfBuildings) {
-        this.streetPosition.copy(candidate)
-        this.streetForward.copy(direction)
-      }
-    }
+      return inBounds && clearOfBuildings
+    })
     const playerPosition = this.streetPosition.clone().setY(gentleStreetHeight(this.streetPosition.x, this.streetPosition.z) + 0.04)
     this.player.position.copy(playerPosition)
     this.player.quaternion.identity()
@@ -2961,21 +2954,10 @@ export class GameWorld implements PlayerController {
   }
 
   private updateHarbourStreetPlayer(delta: number): void {
-    const keyboard = new Vector2(
-      (this.keys.has('d') || this.keys.has('arrowright') ? 1 : 0) - (this.keys.has('a') || this.keys.has('arrowleft') ? 1 : 0),
-      (this.keys.has('w') || this.keys.has('arrowup') ? 1 : 0) - (this.keys.has('s') || this.keys.has('arrowdown') ? 1 : 0),
-    )
-    const input = this.joystick.lengthSq() > 0.002 ? this.joystick.clone() : keyboard
-    if (input.lengthSq() > 0) {
-      input.normalize()
-      const direction = new Vector3(input.x, 0, -input.y).normalize()
-      const candidate = this.streetPosition.clone().addScaledVector(direction, delta * 4.1)
+    this.moveStreetPlayer(delta, 4.1, (candidate) => {
       const inBounds = Math.abs(candidate.x) < 15.5 && candidate.z < 11.5 && candidate.z > -10.5
-      if (inBounds && this.harbourStreetBlockers.every((blocker) => candidate.distanceTo(blocker.center) > blocker.radius)) {
-        this.streetPosition.copy(candidate)
-        this.streetForward.copy(direction)
-      }
-    }
+      return inBounds && this.harbourStreetBlockers.every((blocker) => candidate.distanceTo(blocker.center) > blocker.radius)
+    })
     const playerPosition = this.streetPosition.clone().setY(harbourStreetHeight(this.streetPosition.x, this.streetPosition.z) + 0.04)
     this.player.position.copy(playerPosition)
     this.player.quaternion.identity()
@@ -2987,21 +2969,10 @@ export class GameWorld implements PlayerController {
   }
 
   private updateObservatoryStreetPlayer(delta: number): void {
-    const keyboard = new Vector2(
-      (this.keys.has('d') || this.keys.has('arrowright') ? 1 : 0) - (this.keys.has('a') || this.keys.has('arrowleft') ? 1 : 0),
-      (this.keys.has('w') || this.keys.has('arrowup') ? 1 : 0) - (this.keys.has('s') || this.keys.has('arrowdown') ? 1 : 0),
-    )
-    const input = this.joystick.lengthSq() > 0.002 ? this.joystick.clone() : keyboard
-    if (input.lengthSq() > 0) {
-      input.normalize()
-      const direction = new Vector3(input.x, 0, -input.y).normalize()
-      const candidate = this.streetPosition.clone().addScaledVector(direction, delta * 3.85)
+    this.moveStreetPlayer(delta, 3.85, (candidate) => {
       const inBounds = Math.abs(candidate.x) < 15.5 && candidate.z < 11.5 && candidate.z > -10.8
-      if (inBounds && this.observatoryStreetBlockers.every((blocker) => candidate.distanceTo(blocker.center) > blocker.radius)) {
-        this.streetPosition.copy(candidate)
-        this.streetForward.copy(direction)
-      }
-    }
+      return inBounds && this.observatoryStreetBlockers.every((blocker) => candidate.distanceTo(blocker.center) > blocker.radius)
+    })
     const playerPosition = this.streetPosition.clone().setY(observatoryStreetHeight(this.streetPosition.x, this.streetPosition.z) + 0.04)
     this.player.position.copy(playerPosition)
     this.player.quaternion.identity()
@@ -3010,6 +2981,31 @@ export class GameWorld implements PlayerController {
     this.camera.up.copy(UP)
     this.camera.lookAt(playerPosition.clone().add(new Vector3(0, 0.94, -3.2)))
     this.findNearby(playerPosition)
+  }
+
+  /** Small momentum and turn easing keeps direct guidance responsive without snapping the avatar. */
+  private moveStreetPlayer(delta: number, speed: number, isWalkable: (candidate: Vector3) => boolean): void {
+    const keyboard = new Vector2(
+      (this.keys.has('d') || this.keys.has('arrowright') ? 1 : 0) - (this.keys.has('a') || this.keys.has('arrowleft') ? 1 : 0),
+      (this.keys.has('w') || this.keys.has('arrowup') ? 1 : 0) - (this.keys.has('s') || this.keys.has('arrowdown') ? 1 : 0),
+    )
+    const input = this.joystick.lengthSq() > 0.002 ? this.joystick.clone() : keyboard
+    const desiredVelocity = input.lengthSq() > 0.002
+      ? new Vector3(input.x, 0, -input.y).clampLength(0, 1).multiplyScalar(speed)
+      : new Vector3()
+    const easing = Math.min(1, delta * (desiredVelocity.lengthSq() > 0 ? 8.5 : 12))
+    this.streetVelocity.lerp(desiredVelocity, easing)
+    if (this.streetVelocity.lengthSq() < 0.0008) {
+      this.streetVelocity.set(0, 0, 0)
+      return
+    }
+    const candidate = this.streetPosition.clone().addScaledVector(this.streetVelocity, delta)
+    if (!isWalkable(candidate)) {
+      this.streetVelocity.set(0, 0, 0)
+      return
+    }
+    this.streetPosition.copy(candidate)
+    this.streetForward.lerp(this.streetVelocity.clone().normalize(), Math.min(1, delta * 11)).normalize()
   }
 
   private updateTitleCamera(): void {
