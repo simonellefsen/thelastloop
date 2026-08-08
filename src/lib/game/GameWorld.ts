@@ -126,6 +126,7 @@ export class GameWorld implements PlayerController {
   private playerForward = new Vector3(0, 0, -1)
   private joystick = new Vector2()
   private started = false
+  private titlePreviewDistrict: DistrictId = 'hillside'
   private animationFrame = 0
   private entryCameraProgress = 1
   private nearby: Clue | SideMarker | 'station-keeper' | 'station-door' | 'harbour-keeper' | 'moon-warden' | undefined
@@ -150,6 +151,7 @@ export class GameWorld implements PlayerController {
 
   constructor(private readonly container: HTMLElement, private readonly events: GameWorldEvents) {
     this.save = readSave(window.localStorage)
+    this.titlePreviewDistrict = this.save.district
     this.currentNormal.fromArray(this.save.playerNormal).normalize()
     this.soundscape = new Soundscape(this.save.soundEnabled)
 
@@ -199,6 +201,7 @@ export class GameWorld implements PlayerController {
 
   setTitlePreview(district: DistrictId): void {
     if (this.started) return
+    this.titlePreviewDistrict = district
     this.hillsideStreet.visible = false
     this.harbourStreet.visible = false
     this.observatoryStreet.visible = false
@@ -216,18 +219,19 @@ export class GameWorld implements PlayerController {
   }
 
   start(): void {
-    this.setTitlePreview(this.save.district)
+    this.setTitlePreview(this.titlePreviewDistrict)
     this.started = true
     this.entryCameraProgress = 0
+    this.save.district = this.titlePreviewDistrict
     this.save.quest.introductionSeen = true
     this.persist()
     this.soundscape.start(soundscapeProfile(this.save.quest))
-    if (this.save.district === 'harbour') {
+    if (this.titlePreviewDistrict === 'harbour') {
       this.showHarbour(false)
       this.emitHud('The tide clock is still waiting at Harbour Works.', 'Find the blue valve, then return it to the dock pump.')
       return
     }
-    if (this.save.district === 'observatory') {
+    if (this.titlePreviewDistrict === 'observatory') {
       this.showObservatory(false)
       this.emitHud('Moonhill is quiet beneath the stars.', 'Find the starlight lens, then align the telescope.')
       return
