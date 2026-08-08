@@ -47,6 +47,8 @@ River Trade Lane completes that southern approach: a cobbled branch runs from th
 
 Ambient life belongs to each local district rather than a global simulation: Harbour Works uses a small flight of dock gulls and slow water ripples, while Moonhill has three high swifts and a few fireflies around the lookout. These meshes animate only while their district is visible, have no collision or save state, and remain a mobile-safe visual layer rather than networked actors.
 
+The renderer starts at a capped device pixel ratio and now adapts only after sustained frame-budget pressure. It steps down before a long exploration session turns into stutter, then slowly regains detail during stable performance; this is local rendering policy, not a change to the authored world or save data.
+
 ## Next terrain foundation
 
 1. Give Harbour Works and Moonhill their own named, flat local coordinate frames.

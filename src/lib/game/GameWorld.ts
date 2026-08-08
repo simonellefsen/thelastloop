@@ -31,7 +31,7 @@ import {
 import { entryCameraProfile } from './camera'
 import { gentleStreetHeight, isOutsideSphericalBlockers, isWithinWalkableCap, tangentForward } from './math'
 import { nextPassengerIdentity } from './presence'
-import { animationTime, shouldRender } from './runtime'
+import { animationTime, nextRenderResolution, shouldRender } from './runtime'
 import { advanceSideQuest, defaultQuest, resolveClue, unlockHarbour, unlockObservatory } from './quest'
 import { coatColors, nextCoatColor } from './style'
 import { Soundscape, soundscapeProfile } from './soundscape'
@@ -114,6 +114,10 @@ export class GameWorld implements PlayerController {
   private readonly onKeyUp = (event: KeyboardEvent) => this.keys.delete(event.key.toLowerCase())
   private readonly onResize = () => this.resize()
   private readonly onVisibilityChange = () => this.handleVisibilityChange()
+  private renderPixelRatio = 1
+  private maxPixelRatio = 1
+  private slowFrames = 0
+  private fastFrames = 0
   private currentNormal = new Vector3()
   private streetPosition = new Vector3(0, 0, 7.4)
   private streetForward = new Vector3(0, 0, -1)
@@ -147,7 +151,9 @@ export class GameWorld implements PlayerController {
     this.soundscape = new Soundscape(this.save.soundEnabled)
 
     this.renderer = new WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' })
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.65))
+    this.maxPixelRatio = Math.min(window.devicePixelRatio || 1, 1.65)
+    this.renderPixelRatio = this.maxPixelRatio
+    this.renderer.setPixelRatio(this.renderPixelRatio)
     this.renderer.outputColorSpace = 'srgb'
     this.renderer.domElement.setAttribute('aria-hidden', 'true')
     container.appendChild(this.renderer.domElement)
@@ -2793,8 +2799,10 @@ export class GameWorld implements PlayerController {
     this.animationFrame = 0
     if (!shouldRender(document.visibilityState)) return
     const now = performance.now()
-    const delta = Math.min((now - this.clock.last) / 1000, 0.05)
+    const frameSeconds = (now - this.clock.last) / 1000
+    const delta = Math.min(frameSeconds, 0.05)
     this.clock.last = now
+    this.updateRenderResolution(frameSeconds)
     this.clock.elapsed += delta
     if (this.started) {
       if (this.inStation) this.updateStation()
@@ -3215,6 +3223,16 @@ export class GameWorld implements PlayerController {
     return this.save.reducedMotion || window.matchMedia('(prefers-reduced-motion: reduce)').matches
   }
 
+  private updateRenderResolution(frameSeconds: number): void {
+    const next = nextRenderResolution({ pixelRatio: this.renderPixelRatio, slowFrames: this.slowFrames, fastFrames: this.fastFrames }, frameSeconds, this.maxPixelRatio)
+    this.slowFrames = next.slowFrames
+    this.fastFrames = next.fastFrames
+    if (next.pixelRatio === this.renderPixelRatio) return
+    this.renderPixelRatio = next.pixelRatio
+    this.renderer.setPixelRatio(this.renderPixelRatio)
+    this.resize()
+  }
+
   private playTone(frequency: number): void {
     this.soundscape.playCue(frequency)
   }
@@ -3230,6 +3248,8 @@ export class GameWorld implements PlayerController {
   private handleVisibilityChange(): void {
     if (!shouldRender(document.visibilityState) || this.animationFrame) return
     this.clock.last = performance.now()
+    this.slowFrames = 0
+    this.fastFrames = 0
     this.tick()
   }
 }

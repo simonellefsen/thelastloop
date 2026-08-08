@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { animationTime, shouldRender } from './runtime'
+import { animationTime, nextRenderResolution, shouldRender } from './runtime'
 
 describe('renderer runtime policy', () => {
   it('renders only visible documents', () => {
@@ -10,5 +10,16 @@ describe('renderer runtime policy', () => {
   it('freezes decorative motion when reduced motion is requested', () => {
     expect(animationTime(12.4, true)).toBe(0)
     expect(animationTime(12.4, false)).toBe(12.4)
+  })
+
+  it('drops pixel density only after sustained slow frames', () => {
+    const next = nextRenderResolution({ pixelRatio: 1.65, slowFrames: 44, fastFrames: 0 }, 1 / 24, 1.65)
+    expect(next).toEqual({ pixelRatio: 1.5, slowFrames: 0, fastFrames: 0 })
+  })
+
+  it('recovers pixel density conservatively and honours its cap', () => {
+    const next = nextRenderResolution({ pixelRatio: 1.4, slowFrames: 0, fastFrames: 239 }, 1 / 60, 1.65)
+    expect(next).toEqual({ pixelRatio: 1.5, slowFrames: 0, fastFrames: 0 })
+    expect(nextRenderResolution({ pixelRatio: 1.65, slowFrames: 0, fastFrames: 239 }, 1 / 60, 1.65).pixelRatio).toBe(1.65)
   })
 })
