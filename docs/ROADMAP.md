@@ -21,5 +21,6 @@
 ## Later: shared loop
 
 - ✅ Introduce anonymous local passenger identities and an honest solo carriage board.
+- ✅ Define and test a versioned WebSocket protocol boundary, without enabling networking.
 - Host a persistent WebSocket service outside Vercel and synchronise movement with interpolation.
 - Keep quests, NPCs and ambient animation local unless they need shared state.

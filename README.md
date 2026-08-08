@@ -25,4 +25,4 @@ vercel --prod
 
 The required production domain is `https://thelastloop.vercel.app/`. Do not substitute a fallback hostname without an explicit product decision.
 
-See [the design brief](docs/DESIGN.md) and [the roadmap](docs/ROADMAP.md) for the story, visual rules and future multiplayer boundary.
+See [the design brief](docs/DESIGN.md), [roadmap](docs/ROADMAP.md), and [shared-loop protocol boundary](docs/SHARED_LOOP.md) for the story, visual rules and future multiplayer boundary.
