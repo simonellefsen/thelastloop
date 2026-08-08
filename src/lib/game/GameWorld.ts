@@ -27,7 +27,7 @@ import {
   WebGLRenderer,
 } from 'three'
 import { entryCameraProfile } from './camera'
-import { isOutsideSphericalBlockers, isWithinWalkableCap, tangentForward } from './math'
+import { gentleStreetHeight, isOutsideSphericalBlockers, isWithinWalkableCap, tangentForward } from './math'
 import { nextPassengerIdentity } from './presence'
 import { animationTime, shouldRender } from './runtime'
 import { advanceSideQuest, defaultQuest, resolveClue, unlockHarbour, unlockObservatory } from './quest'
@@ -343,23 +343,26 @@ export class GameWorld implements PlayerController {
 
   private createHillsideStreetWorld(): void {
     this.hillsideStreet.visible = false
-    const ground = new Mesh(new PlaneGeometry(42, 38, 16, 14), new MeshLambertMaterial({ color: '#79bd68', flatShading: true, side: DoubleSide }))
+    const groundGeometry = new PlaneGeometry(42, 38, 24, 20)
+    const groundPositions = groundGeometry.getAttribute('position')
+    for (let index = 0; index < groundPositions.count; index += 1) {
+      groundPositions.setZ(index, gentleStreetHeight(groundPositions.getX(index), -groundPositions.getY(index)))
+    }
+    groundGeometry.computeVertexNormals()
+    const ground = new Mesh(groundGeometry, new MeshLambertMaterial({ color: '#79bd68', flatShading: true, side: DoubleSide }))
     ground.rotation.x = -Math.PI / 2
     this.hillsideStreet.add(ground)
 
-    const road = new Mesh(new BoxGeometry(4.2, 0.12, 28), new MeshLambertMaterial({ color: '#516d71', flatShading: true }))
-    road.position.set(0, 0.06, -1)
+    const road = this.createRollingStreetSurface(4.2, 28, 0, -1, '#516d71', 0.08)
     this.hillsideStreet.add(road)
-    const pathMaterial = new MeshLambertMaterial({ color: '#d8d2b2', flatShading: true })
     for (const [x, z, width, length] of [[-6, -2, 2.2, 10], [6.2, -4.4, 2.2, 9], [0, -10, 6.5, 2.1]] as Array<[number, number, number, number]>) {
-      const path = new Mesh(new BoxGeometry(width, 0.1, length), pathMaterial)
-      path.position.set(x, 0.05, z)
+      const path = this.createRollingStreetSurface(width, length, x, z, '#d8d2b2', 0.07)
       this.hillsideStreet.add(path)
     }
     const paint = new MeshLambertMaterial({ color: '#f2e7b9', flatShading: true })
     for (let z = -12; z <= 10; z += 2.2) {
       const dash = new Mesh(new BoxGeometry(0.1, 0.03, 0.75), paint)
-      dash.position.set(0, 0.14, z)
+      dash.position.set(0, gentleStreetHeight(0, z) + 0.15, z)
       this.hillsideStreet.add(dash)
     }
 
@@ -379,6 +382,19 @@ export class GameWorld implements PlayerController {
     this.scene.add(this.hillsideStreet)
   }
 
+  private createRollingStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number): Mesh {
+    const geometry = new PlaneGeometry(width, length, Math.max(2, Math.ceil(width)), Math.max(4, Math.ceil(length / 1.5)))
+    const positions = geometry.getAttribute('position')
+    for (let index = 0; index < positions.count; index += 1) {
+      positions.setZ(index, gentleStreetHeight(x + positions.getX(index), z - positions.getY(index)) + offset)
+    }
+    geometry.computeVertexNormals()
+    geometry.rotateX(-Math.PI / 2)
+    const surface = new Mesh(geometry, new MeshLambertMaterial({ color, flatShading: true, side: DoubleSide }))
+    surface.position.set(x, 0, z)
+    return surface
+  }
+
   private addFlatBuilding(x: number, z: number, wall: string, roofColor: string, label: string): void {
     const building = new Group()
     const body = new Mesh(new BoxGeometry(2.6, 1.7, 2.05), new MeshLambertMaterial({ color: wall, flatShading: true }))
@@ -393,7 +409,7 @@ export class GameWorld implements PlayerController {
       window.position.set(windowX, 1.04, 1.031)
       building.add(window)
     }
-    building.position.set(x, 0, z)
+    building.position.set(x, gentleStreetHeight(x, z), z)
     this.hillsideStreet.add(building)
     if (label === 'STATION') {
       const door = new Mesh(new PlaneGeometry(0.58, 0.92), new MeshLambertMaterial({ color: '#3b7680', side: DoubleSide }))
@@ -403,7 +419,7 @@ export class GameWorld implements PlayerController {
       sign.position.set(0, 2.56, 1.13)
       building.add(sign)
       this.streetStationSign = sign
-      this.streetStationDoorPosition.set(x, 0, z + 1.15)
+      this.streetStationDoorPosition.set(x, gentleStreetHeight(x, z + 1.15), z + 1.15)
     }
   }
 
@@ -418,7 +434,7 @@ export class GameWorld implements PlayerController {
     const hat = new Mesh(new CylinderGeometry(0.34, 0.34, 0.11, 8), new MeshLambertMaterial({ color: '#314955', flatShading: true }))
     hat.position.y = 1.44
     keeper.add(hat)
-    keeper.position.set(x, 0, z)
+    keeper.position.set(x, gentleStreetHeight(x, z), z)
     this.hillsideStreet.add(keeper)
   }
 
@@ -437,9 +453,10 @@ export class GameWorld implements PlayerController {
     labelSprite.scale.set(1.55, 0.43, 1)
     labelSprite.position.y = 1.84
     marker.add(labelSprite)
-    marker.position.set(x, 0, z)
+    const height = gentleStreetHeight(x, z)
+    marker.position.set(x, height, z)
     this.hillsideStreet.add(marker)
-    this.streetClues.push({ id, label, text, mesh: marker, position: [x, 0, z] })
+    this.streetClues.push({ id, label, text, mesh: marker, position: [x, height, z] })
   }
 
   private addStreetBlocker(x: number, z: number, radius: number): void {
@@ -456,7 +473,7 @@ export class GameWorld implements PlayerController {
       const bulb = new Mesh(new SphereGeometry(0.12, 7, 5), new MeshLambertMaterial({ color: '#ffe38c', emissive: new Color('#d89b48'), emissiveIntensity: 0.72, flatShading: true }))
       bulb.position.y = 1.72
       lamp.add(bulb)
-      lamp.position.set(x, 0, z)
+      lamp.position.set(x, gentleStreetHeight(x, z), z)
       this.hillsideStreet.add(lamp)
     }
     for (const [x, z] of [[-2.5, -2.2], [3.2, -8.7]]) {
@@ -468,7 +485,7 @@ export class GameWorld implements PlayerController {
       const back = new Mesh(new BoxGeometry(1.15, 0.34, 0.1), wood)
       back.position.set(0, 0.63, 0.13)
       bench.add(back)
-      bench.position.set(x, 0, z)
+      bench.position.set(x, gentleStreetHeight(x, z), z)
       this.hillsideStreet.add(bench)
     }
     for (const [x, z] of [[-3.6, 0.8], [3.8, -3.3], [-4.2, -8.5], [4.2, -8.8]]) {
@@ -479,7 +496,7 @@ export class GameWorld implements PlayerController {
       const crown = new Mesh(new ConeGeometry(0.95, 1.8, 6), new MeshLambertMaterial({ color: '#3e815e', flatShading: true }))
       crown.position.y = 1.7
       tree.add(crown)
-      tree.position.set(x, 0, z)
+      tree.position.set(x, gentleStreetHeight(x, z), z)
       this.hillsideStreet.add(tree)
     }
   }
@@ -1242,7 +1259,7 @@ export class GameWorld implements PlayerController {
         this.streetForward.lerp(direction, 0.22).normalize()
       }
     }
-    const playerPosition = this.streetPosition.clone().setY(0.04)
+    const playerPosition = this.streetPosition.clone().setY(gentleStreetHeight(this.streetPosition.x, this.streetPosition.z) + 0.04)
     this.player.position.copy(playerPosition)
     this.player.quaternion.identity()
     this.player.rotation.y = Math.atan2(this.streetForward.x, this.streetForward.z)
@@ -1302,7 +1319,7 @@ export class GameWorld implements PlayerController {
   private findNearby(position: Vector3): void {
     let next: Clue | SideMarker | 'station-keeper' | 'station-door' | undefined
     if (this.save.district === 'hillside') {
-      const keeperPosition = this.hillsideStreet.visible ? new Vector3(0, 0, 2.2) : this.normalAt(0.47, -0.14).multiplyScalar(PLANET_RADIUS)
+      const keeperPosition = this.hillsideStreet.visible ? new Vector3(0, gentleStreetHeight(0, 2.2), 2.2) : this.normalAt(0.47, -0.14).multiplyScalar(PLANET_RADIUS)
       if (position.distanceTo(keeperPosition) < 2) next = 'station-keeper'
       const stationDoor = this.hillsideStreet.visible ? this.streetStationDoorPosition : this.stationDoorPosition
       if (this.save.quest.stationNameRestored && position.distanceTo(stationDoor) < 2.45) next = 'station-door'

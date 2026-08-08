@@ -15,7 +15,7 @@ The title should read as a small spherical planet. Once the player enters, the c
 
 ## Current implementation
 
-The title remains a spherical overview. On entering Hillside, the game now switches to a distinct, flat street district: an upright station town with a road, paths, lamps, benches, trees and purpose-built building blockers. The camera and player use world-up rather than a spherical normal, so the player, houses and props remain stable at street scale.
+The title remains a spherical overview. On entering Hillside, the game now switches to a distinct, gently curved street district: an upright station town with a shallow rolling ground profile, road, paths, lamps, benches, trees and purpose-built building blockers. The camera and player use world-up rather than a spherical normal, so the player, houses and props remain stable at street scale while the ground still carries a miniature-world rise and fall.
 
 The globe is therefore a macro preview only for Hillside. Its route objects are intentionally not reused as the playable collision layer. Amber clues are placed in the flat district and show an explicit `Investigate …` action when the player enters range.
 

@@ -18,6 +18,10 @@ export function isOutsideSphericalBlockers(point: Vector3, blockers: readonly Sp
   return blockers.every((blocker) => normal.angleTo(blocker.normal) > blocker.radius)
 }
 
+export function gentleStreetHeight(x: number, z: number): number {
+  return -0.003 * (x * x + z * z) + Math.sin(x * 0.24) * Math.cos(z * 0.2) * 0.11
+}
+
 export function tangentForward(forward: Vector3, surfaceNormal: Vector3): Vector3 {
   const tangent = forward.clone().addScaledVector(surfaceNormal, -forward.dot(surfaceNormal))
   return tangent.lengthSq() < 0.0001 ? new Vector3(1, 0, 0).cross(surfaceNormal).normalize() : tangent.normalize()

@@ -18,7 +18,7 @@
 - ✅ Add a small original procedural dusk motif to the adaptive soundscape.
 - ✅ Turn the title into an interactive showcase of all three playable globe districts.
 - ✅ Add a street-level entry zoom and a staged world-detail/terrain plan.
-- ✅ Replace Hillside gameplay with a flat local street district: upright characters/buildings, planar camera, authored roads and building collision.
+- ✅ Replace Hillside gameplay with a gently curved local street district: upright characters/buildings, stable camera, rolling ground, authored roads and building collision.
 - Extend the flat local-world treatment to Harbour Works and Moonhill, then add Hillside slopes, stairs and authored collision edges.
 - ✅ Build the first visible L2 hillside street kit: marked road, kerbs, paths, retaining wall, shop front, benches, lamps and planted boxes.
 - Extend L2/L3 with rail hardware, dense interaction pockets and collision-aware terrain.
