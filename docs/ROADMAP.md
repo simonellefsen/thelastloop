@@ -9,7 +9,8 @@
 
 ## Next: richer town
 
-- Add station interiors, route map, character customisation and two more self-contained quests.
+- ✅ Add the unlockable station interior, route map and railway-coat customisation.
+- Add two more self-contained quests inside the hillside town.
 - Expand original audio from synthesized interaction tones to recorded ambience and music.
 - Build the industrial harbour and forest observatory as distinct globe districts.
 

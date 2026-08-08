@@ -20,4 +20,10 @@ describe('game save', () => {
     writeSave(store, save)
     expect(readSave(store)).toEqual(save)
   })
+
+  it('uses the original gold coat for older saves', () => {
+    const store = memoryStorage()
+    store.setItem(SAVE_KEY, JSON.stringify({ version: 1, soundEnabled: true, playerNormal: [0, 1, 0], quest: defaultSave().quest }))
+    expect(readSave(store).coatColor).toBe('gold')
+  })
 })

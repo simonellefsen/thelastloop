@@ -13,6 +13,8 @@
     dialogue: 'A small world remembers every path.',
     nearbyLabel: '',
     quest: { introductionSeen: false, completedClues: [], stationNameRestored: false },
+    inStation: false,
+    coatColor: 'gold',
   }
 
   const clueLabels: Record<string, string> = {
@@ -47,6 +49,14 @@
 
   function toggleSound() {
     game?.toggleSound()
+  }
+
+  function leaveStation() {
+    game?.leaveStation()
+  }
+
+  function cycleCoat() {
+    game?.cycleCoat()
   }
 
   function joystick(event: PointerEvent) {
@@ -107,6 +117,7 @@
         </button>
       </header>
 
+      {#if !hud.inStation}
       <aside class="quest-card">
         <p class="eyebrow">TONIGHT'S ROUTE</p>
         <h2>{isComplete(hud.quest) ? 'Sunset Loop restored' : 'Find the station name'}</h2>
@@ -119,13 +130,28 @@
           {/each}
         </ul>
       </aside>
+      {:else}
+      <aside class="station-panel">
+        <p class="eyebrow">SUNSET LOOP STATION</p>
+        <h2>Route map</h2>
+        <div class="route-map" aria-label="Future railway destinations">
+          <div class="map-loop"></div>
+          <span class="map-stop current">Sunset Loop<br /><small>here</small></span>
+          <span class="map-stop harbour">Harbour Works<br /><small>coming soon</small></span>
+          <span class="map-stop observatory">Moonhill Observatory<br /><small>coming soon</small></span>
+        </div>
+        <p class="station-copy">The restored line now points towards two places still waiting for their stories.</p>
+        <button class="coat-button" onclick={cycleCoat}>Railway coat: {hud.coatColor} ↻</button>
+        <button class="leave-button" onclick={leaveStation}>Back to town</button>
+      </aside>
+      {/if}
 
       <div class="dialogue" class:complete={isComplete(hud.quest)}>
         <p>{hud.dialogue}</p>
         <small>{hud.hint}</small>
       </div>
 
-      <div
+      {#if !hud.inStation}<div
         class="joystick"
         role="application"
         aria-label="Movement joystick"
@@ -135,13 +161,13 @@
         onpointercancel={endJoystick}
       >
         <div class="joystick-knob"></div>
-      </div>
+      </div>{/if}
 
-      <button class="interact-button" class:ready={hud.nearbyLabel !== ''} onclick={interact} disabled={hud.nearbyLabel === ''}>
+      {#if !hud.inStation}<button class="interact-button" class:ready={hud.nearbyLabel !== ''} onclick={interact} disabled={hud.nearbyLabel === ''}>
         <span>↗</span>
         {hud.nearbyLabel || 'Explore'}
       </button>
-      <p class="controls-tip">Move with the left thumb. Approach glowing markers, then interact.</p>
+      <p class="controls-tip">Move with the left thumb. Approach glowing markers, then interact.</p>{/if}
     </section>
   {/if}
 </main>

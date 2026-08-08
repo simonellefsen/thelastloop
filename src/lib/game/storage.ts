@@ -1,5 +1,5 @@
 import { defaultQuest } from './quest'
-import type { GameSave } from './types'
+import type { CoatColor, GameSave } from './types'
 
 export const SAVE_KEY = 'thelastloop.save.v1'
 
@@ -12,6 +12,7 @@ export function defaultSave(): GameSave {
   return {
     version: 1,
     soundEnabled: true,
+    coatColor: 'gold',
     playerNormal: [0.19, 0.96, 0.2],
     quest: defaultQuest(),
   }
@@ -25,6 +26,7 @@ export function readSave(storage: StorageLike): GameSave {
     return {
       version: 1,
       soundEnabled: typeof parsed.soundEnabled === 'boolean' ? parsed.soundEnabled : fallback.soundEnabled,
+      coatColor: isCoatColor(parsed.coatColor) ? parsed.coatColor : fallback.coatColor,
       playerNormal: parsed.playerNormal as GameSave['playerNormal'],
       quest: {
         introductionSeen: Boolean(parsed.quest.introductionSeen),
@@ -35,6 +37,10 @@ export function readSave(storage: StorageLike): GameSave {
   } catch {
     return fallback
   }
+}
+
+function isCoatColor(value: unknown): value is CoatColor {
+  return value === 'gold' || value === 'berry' || value === 'ocean'
 }
 
 export function writeSave(storage: StorageLike, save: GameSave): void {

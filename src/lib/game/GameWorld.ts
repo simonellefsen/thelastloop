@@ -28,8 +28,9 @@ import {
 } from 'three'
 import { isWithinWalkableCap, tangentForward } from './math'
 import { defaultQuest, resolveClue } from './quest'
+import { coatColors, nextCoatColor } from './style'
 import { readSave, writeSave } from './storage'
-import type { ClueId, GameHud, GameSave, PlayerController, QuestState, WorldInteractable } from './types'
+import type { ClueId, GameHud, GameSave, PlayerController, WorldInteractable } from './types'
 
 const UP = new Vector3(0, 1, 0)
 const PLANET_RADIUS = 10
@@ -54,6 +55,7 @@ export class GameWorld implements PlayerController {
   private readonly camera = new PerspectiveCamera(48, 1, 0.1, 120)
   private readonly root = new Group()
   private readonly player = new Group()
+  private readonly stationInterior = new Group()
   private readonly ground: Mesh
   private readonly raycaster = new Raycaster()
   private readonly clock = { last: performance.now(), elapsed: 0 }
@@ -69,10 +71,15 @@ export class GameWorld implements PlayerController {
   private joystick = new Vector2()
   private started = false
   private animationFrame = 0
-  private nearby: Clue | 'station-keeper' | undefined
+  private nearby: Clue | 'station-keeper' | 'station-door' | undefined
   private stationSign: Sprite | undefined
+  private stationDoorPosition = new Vector3()
+  private playerCoat: MeshLambertMaterial | undefined
   private save: GameSave
   private audioContext: AudioContext | undefined
+  private inStation = false
+  private displayedHint = ''
+  private displayedDialogue = ''
 
   constructor(private readonly container: HTMLElement, private readonly events: GameWorldEvents) {
     this.save = readSave(window.localStorage)
@@ -95,6 +102,7 @@ export class GameWorld implements PlayerController {
 
     this.ground = this.createWorld()
     this.createPlayer()
+    this.createStationInterior()
     this.createAmbientLife()
     this.resize()
     this.resizeObserver = new ResizeObserver(this.onResize)
@@ -122,9 +130,14 @@ export class GameWorld implements PlayerController {
 
   interact(): void {
     if (!this.started || !this.nearby) return
-    this.playTone(this.nearby === 'station-keeper' ? 392 : 523)
+    this.playTone(this.nearby === 'station-keeper' || this.nearby === 'station-door' ? 392 : 523)
+    if (this.nearby === 'station-door') {
+      this.enterStation()
+      return
+    }
     if (this.nearby === 'station-keeper') {
-      this.emitHud('The old sign is blank again. The town kept its name in three little stories.', 'Look for the signal box, market mural and hill bell.')
+      if (this.save.quest.stationNameRestored) this.emitHud('You did it. The station doors are open, and the restored map is waiting inside.', 'Walk to the blue station door to enter.')
+      else this.emitHud('The old sign is blank again. The town kept its name in three little stories.', 'Look for the signal box, market mural and hill bell.')
       return
     }
 
@@ -151,6 +164,24 @@ export class GameWorld implements PlayerController {
     this.persist()
     this.events.onSound(this.save.soundEnabled)
     if (this.save.soundEnabled) this.playTone(660)
+  }
+
+  leaveStation(): void {
+    if (!this.inStation) return
+    this.inStation = false
+    this.stationInterior.visible = false
+    this.root.visible = true
+    this.ambient.visible = true
+    this.player.visible = true
+    this.emitHud('The route map has marked two places beyond Sunset Loop.', 'The harbour and observatory will arrive in a later journey.')
+  }
+
+  cycleCoat(): void {
+    this.save.coatColor = nextCoatColor(this.save.coatColor)
+    this.playerCoat?.color.set(coatColors[this.save.coatColor])
+    this.persist()
+    this.playTone(587)
+    this.emitHud(`Railway coat changed to ${this.save.coatColor}.`, 'A little colour makes a long route feel like your own.')
   }
 
   dispose(): void {
@@ -209,6 +240,7 @@ export class GameWorld implements PlayerController {
     this.addBuilding(0.52, 0.12, -0.22, '#d8d4c5', '#be7654', 'BAKERY')
     this.addBuilding(0.31, 0.6, 0.45, '#e2c971', '#4e6970', 'HOME')
     this.addBuilding(0.62, -0.86, -0.1, '#c9ded6', '#50666a', 'DEPOT')
+    this.stationDoorPosition.copy(this.normalAt(0.38, -0.42)).multiplyScalar(PLANET_RADIUS)
     this.addSteps(0.47, 0.42)
     this.addTrees()
     this.addStationKeeper()
@@ -235,6 +267,9 @@ export class GameWorld implements PlayerController {
     this.placeOnPlanet(building, latitude, longitude, heading)
     this.root.add(building)
     if (label === 'STATION') {
+      const door = new Mesh(new PlaneGeometry(0.5, 0.83), new MeshLambertMaterial({ color: '#3b7680', side: DoubleSide }))
+      door.position.set(0, 0.47, 0.86)
+      building.add(door)
       const sign = this.createSign('____ ____', '#efeee2')
       sign.position.set(0, 2.42, 0.94)
       building.add(sign)
@@ -303,7 +338,8 @@ export class GameWorld implements PlayerController {
   }
 
   private createPlayer(): void {
-    const torso = new Mesh(new CylinderGeometry(0.3, 0.38, 0.85, 6), new MeshLambertMaterial({ color: '#f5be3e', flatShading: true }))
+    this.playerCoat = new MeshLambertMaterial({ color: coatColors[this.save.coatColor], flatShading: true })
+    const torso = new Mesh(new CylinderGeometry(0.3, 0.38, 0.85, 6), this.playerCoat)
     torso.position.y = 0.55
     this.player.add(torso)
     const bag = new Mesh(new BoxGeometry(0.3, 0.43, 0.14), new MeshLambertMaterial({ color: '#784c36', flatShading: true }))
@@ -313,6 +349,38 @@ export class GameWorld implements PlayerController {
     head.position.y = 1.18
     this.player.add(head)
     this.root.add(this.player)
+  }
+
+  private createStationInterior(): void {
+    this.stationInterior.visible = false
+    const floor = new Mesh(new PlaneGeometry(14, 10), new MeshLambertMaterial({ color: '#bd9d75' }))
+    floor.rotation.x = -Math.PI / 2
+    this.stationInterior.add(floor)
+    const backWall = new Mesh(new BoxGeometry(12, 5.2, 0.35), new MeshLambertMaterial({ color: '#d8d1bd', flatShading: true }))
+    backWall.position.set(0, 2.6, -3.4)
+    this.stationInterior.add(backWall)
+    const sideWall = new Mesh(new BoxGeometry(0.35, 5.2, 8), new MeshLambertMaterial({ color: '#c5bb9f', flatShading: true }))
+    sideWall.position.set(-5.8, 2.6, 0)
+    this.stationInterior.add(sideWall)
+    const counter = new Mesh(new BoxGeometry(5.7, 1.3, 1), new MeshLambertMaterial({ color: '#7f5a49', flatShading: true }))
+    counter.position.set(-1.5, 0.65, -1.35)
+    this.stationInterior.add(counter)
+    const map = this.createSign('SUNSET LOOP  •  ROUTE MAP', '#f8d34e', 620, 125)
+    map.position.set(0.7, 3.15, -3.16)
+    map.scale.set(5.5, 1.1, 1)
+    this.stationInterior.add(map)
+    const harbour = this.createSign('HARBOUR WORKS  —  LATER', '#dbe9dd', 350, 70)
+    harbour.position.set(-1.25, 1.86, -3.14)
+    harbour.scale.set(3.15, 0.62, 1)
+    this.stationInterior.add(harbour)
+    const observatory = this.createSign('MOONHILL OBSERVATORY  —  LATER', '#dbe9dd', 420, 70)
+    observatory.position.set(1.2, 1.17, -3.14)
+    observatory.scale.set(3.8, 0.62, 1)
+    this.stationInterior.add(observatory)
+    const lamp = new Mesh(new SphereGeometry(0.32, 8, 6), new MeshLambertMaterial({ color: '#ffe477', emissive: new Color('#e7a943'), emissiveIntensity: 0.9 }))
+    lamp.position.set(3.9, 3.7, -2.6)
+    this.stationInterior.add(lamp)
+    this.scene.add(this.stationInterior)
   }
 
   private createAmbientLife(): void {
@@ -381,7 +449,10 @@ export class GameWorld implements PlayerController {
     const delta = Math.min((now - this.clock.last) / 1000, 0.05)
     this.clock.last = now
     this.clock.elapsed += delta
-    if (this.started) this.updatePlayer(delta)
+    if (this.started) {
+      if (this.inStation) this.updateStation()
+      else this.updatePlayer(delta)
+    }
     else this.updateTitleCamera()
     this.updateAmbient()
     this.renderer.render(this.scene, this.camera)
@@ -429,6 +500,14 @@ export class GameWorld implements PlayerController {
     this.camera.lookAt(0, 1.3, 0)
   }
 
+  private updateStation(): void {
+    this.camera.position.set(0, 3.6, 7.3)
+    this.camera.up.copy(UP)
+    this.camera.lookAt(0, 1.8, -2.6)
+    const lamp = this.stationInterior.children.at(-1)
+    if (lamp) lamp.position.y = 3.7 + Math.sin(this.clock.elapsed * 2) * 0.07
+  }
+
   private updateAmbient(): void {
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : this.clock.elapsed
     this.ambient.children.forEach((object, index) => {
@@ -446,9 +525,10 @@ export class GameWorld implements PlayerController {
   }
 
   private findNearby(position: Vector3): void {
-    let next: Clue | 'station-keeper' | undefined
+    let next: Clue | 'station-keeper' | 'station-door' | undefined
     const keeperPosition = this.normalAt(0.47, -0.14).multiplyScalar(PLANET_RADIUS)
     if (position.distanceTo(keeperPosition) < 2) next = 'station-keeper'
+    if (this.save.quest.stationNameRestored && position.distanceTo(this.stationDoorPosition) < 2.45) next = 'station-door'
     for (const clue of this.clues) {
       if (!clue.mesh.visible) continue
       const cluePosition = new Vector3(...clue.position)
@@ -456,8 +536,7 @@ export class GameWorld implements PlayerController {
     }
     if (next !== this.nearby) {
       this.nearby = next
-      const label = next === 'station-keeper' ? 'Talk' : next?.label ?? ''
-      this.events.onHud({ hint: this.hint(), dialogue: this.dialogue(), nearbyLabel: label, quest: this.save.quest })
+      this.events.onHud(this.currentHud())
     }
   }
 
@@ -472,7 +551,32 @@ export class GameWorld implements PlayerController {
   }
 
   private emitHud(hint: string, dialogue: string): void {
-    this.events.onHud({ hint, dialogue, nearbyLabel: this.nearby === 'station-keeper' ? 'Talk' : this.nearby?.label ?? '', quest: this.save.quest })
+    this.displayedHint = hint
+    this.displayedDialogue = dialogue
+    this.events.onHud(this.currentHud())
+  }
+
+  private currentHud(): GameHud {
+    const nearbyLabel = this.nearby === 'station-keeper' ? 'Talk' : this.nearby === 'station-door' ? 'Enter station' : this.nearby?.label ?? ''
+    return {
+      hint: this.displayedHint || this.hint(),
+      dialogue: this.displayedDialogue || this.dialogue(),
+      nearbyLabel: this.inStation ? '' : nearbyLabel,
+      quest: this.save.quest,
+      inStation: this.inStation,
+      coatColor: this.save.coatColor,
+    }
+  }
+
+  private enterStation(): void {
+    if (!this.save.quest.stationNameRestored) return
+    this.inStation = true
+    this.joystick.set(0, 0)
+    this.root.visible = false
+    this.ambient.visible = false
+    this.player.visible = false
+    this.stationInterior.visible = true
+    this.emitHud('The map shows the old circle reaching farther than the town remembers.', 'Choose a coat colour while the next route waits for its story.')
   }
 
   private persist(write = true): void {

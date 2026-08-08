@@ -8,6 +8,8 @@ The Last Loop is a gentle, social railway mystery set on a tiny walkable planet.
 
 The station keeper asks the player to find three fragments of the lost name. The signal box remembers **LOOP**, the market mural remembers **SUNSET**, and the hill bell confirms the route. When all three are found, the station sign returns as **SUNSET LOOP**.
 
+Restoring the name opens the station interior. Its route map introduces the later Harbour Works and Moonhill Observatory districts, while the player can choose a railway-coat colour. Those destinations remain deliberately unavailable until they have their own stories and worlds.
+
 ## Visual rules
 
 - Every model, texture and line of writing is original to this project.
