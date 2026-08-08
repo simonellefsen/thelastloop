@@ -1,11 +1,21 @@
 import { Vector3 } from 'three'
 
+export interface SphericalBlocker {
+  normal: Vector3
+  radius: number
+}
+
 export function projectToSphere(point: Vector3, radius: number): Vector3 {
   return point.clone().normalize().multiplyScalar(radius)
 }
 
 export function isWithinWalkableCap(point: Vector3, anchor: Vector3, maximumAngle: number): boolean {
   return point.clone().normalize().angleTo(anchor.clone().normalize()) <= maximumAngle
+}
+
+export function isOutsideSphericalBlockers(point: Vector3, blockers: readonly SphericalBlocker[]): boolean {
+  const normal = point.clone().normalize()
+  return blockers.every((blocker) => normal.angleTo(blocker.normal) > blocker.radius)
 }
 
 export function tangentForward(forward: Vector3, surfaceNormal: Vector3): Vector3 {

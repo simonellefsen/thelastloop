@@ -27,13 +27,14 @@ import {
   WebGLRenderer,
 } from 'three'
 import { entryCameraProfile } from './camera'
-import { isWithinWalkableCap, tangentForward } from './math'
+import { isOutsideSphericalBlockers, isWithinWalkableCap, tangentForward } from './math'
 import { nextPassengerIdentity } from './presence'
 import { animationTime, shouldRender } from './runtime'
 import { advanceSideQuest, defaultQuest, resolveClue, unlockHarbour, unlockObservatory } from './quest'
 import { coatColors, nextCoatColor } from './style'
 import { Soundscape, soundscapeProfile } from './soundscape'
 import { readSave, writeSave } from './storage'
+import type { SphericalBlocker } from './math'
 import type { ClueId, DistrictId, GameHud, GameSave, PlayerController, SideQuestId, WorldInteractable } from './types'
 
 const UP = new Vector3(0, 1, 0)
@@ -81,6 +82,7 @@ export class GameWorld implements PlayerController {
   private readonly keys = new Set<string>()
   private readonly clues: Clue[] = []
   private readonly sideMarkers: SideMarker[] = []
+  private readonly blockersByDistrict: Record<DistrictId, SphericalBlocker[]> = { hillside: [], harbour: [], observatory: [] }
   private readonly ambient = new Group()
   private readonly harbourAmbient = new Group()
   private readonly resizeObserver: ResizeObserver
@@ -379,6 +381,7 @@ export class GameWorld implements PlayerController {
     dome.add(sign)
     this.placeOnPlanet(dome, 0.45, -0.02, 0.1)
     this.observatoryWorld.add(dome)
+    this.addBlocker('observatory', 0.45, -0.02, 0.23)
     const telescope = new Group()
     const pedestal = new Mesh(new CylinderGeometry(0.26, 0.42, 1.15, 6), new MeshLambertMaterial({ color: '#7e6a9f', flatShading: true }))
     pedestal.position.y = 0.56
@@ -449,6 +452,7 @@ export class GameWorld implements PlayerController {
     warehouse.add(sign)
     this.placeOnPlanet(warehouse, 0.43, -0.08, 0.1)
     this.harbourWorld.add(warehouse)
+    this.addBlocker('harbour', 0.43, -0.08, 0.21)
   }
 
   private addCrane(): void {
@@ -555,9 +559,9 @@ export class GameWorld implements PlayerController {
     this.addSteps(0.47, 0.42)
     this.addTrees()
     this.addStationKeeper()
-    this.addClue('signal', 'Signal box', 0.56, -0.52, 'The brass plate reads: “Every last train returns in a LOOP.”')
-    this.addClue('mural', 'Market mural', 0.43, 0.22, 'A faded market mural shows the town under a gold SUNSET.')
-    this.addClue('bell', 'Hill bell', 0.27, 0.72, 'The hill bell rings once: the old sign needs the last word—LOOP.')
+    this.addClue('signal', 'Signal box', 0.78, -0.2, 'The brass plate reads: “Every last train returns in a LOOP.”')
+    this.addClue('mural', 'Market mural', 0.7, 0.38, 'A faded market mural shows the town under a gold SUNSET.')
+    this.addClue('bell', 'Hill bell', 0.04, 0.52, 'The hill bell rings once: the old sign needs the last word—LOOP.')
     this.addSideQuestLandmarks()
     this.setStationSign(this.save.quest.stationNameRestored ? 'SUNSET LOOP' : '____ ____', this.save.quest.stationNameRestored ? '#f8d34e' : '#efeee2')
   }
@@ -694,6 +698,7 @@ export class GameWorld implements PlayerController {
     }
     this.placeOnPlanet(building, latitude, longitude, heading)
     this.root.add(building)
+    this.addBlocker('hillside', latitude, longitude, 0.19)
     if (label === 'STATION') {
       const door = new Mesh(new PlaneGeometry(0.5, 0.83), new MeshLambertMaterial({ color: '#3b7680', side: DoubleSide }))
       door.position.set(0, 0.47, 0.86)
@@ -752,12 +757,15 @@ export class GameWorld implements PlayerController {
     const base = new Mesh(new CylinderGeometry(0.24, 0.28, 0.4, 5), new MeshLambertMaterial({ color: '#de9348', flatShading: true }))
     base.position.y = 0.2
     marker.add(base)
-    const glow = new Mesh(new SphereGeometry(0.16, 8, 6), new MeshLambertMaterial({ color: '#f8dc69', emissive: new Color('#f3b34c'), emissiveIntensity: 0.8, flatShading: true }))
-    glow.position.y = 0.58
+    const beacon = new Mesh(new CylinderGeometry(0.045, 0.065, 0.76, 5), new MeshLambertMaterial({ color: '#c9793d', flatShading: true }))
+    beacon.position.y = 0.62
+    marker.add(beacon)
+    const glow = new Mesh(new SphereGeometry(0.22, 8, 6), new MeshLambertMaterial({ color: '#f8dc69', emissive: new Color('#f3b34c'), emissiveIntensity: 1, flatShading: true }))
+    glow.position.y = 1.08
     marker.add(glow)
     const labelSprite = this.createSign(label, '#fff5d8', 256, 72)
     labelSprite.scale.set(1.45, 0.4, 1)
-    labelSprite.position.y = 1.06
+    labelSprite.position.y = 1.58
     marker.add(labelSprite)
     this.placeOnPlanet(marker, latitude, longitude, 0)
     this.root.add(marker)
@@ -768,10 +776,10 @@ export class GameWorld implements PlayerController {
   private addSideQuestLandmarks(): void {
     this.addSignalTower()
     this.addBellLandmark()
-    this.addSideMarker('lens-cache', 'Depot lens', 'lantern', 0.65, -0.82, 'A warm brass lens waits in the depot crate. Take it back to the signal.', 'first')
-    this.addSideMarker('signal-repair', 'Fit lens', 'lantern', 0.56, -0.52, 'The signal wakes green. One more corner of the loop feels safe after dusk.', 'second')
-    this.addSideMarker('tune-card', 'Tune card', 'chorus', 0.45, 0.36, 'A small tune card reads: “Three notes for the hill bell.”', 'first')
-    this.addSideMarker('bell-chime', 'Ring bell', 'chorus', 0.27, 0.72, 'The hill bell answers the tune. Birds lift from the rooftops in reply.', 'second')
+    this.addSideMarker('lens-cache', 'Depot lens', 'lantern', 0.8, -0.35, 'A warm brass lens waits in the depot crate. Take it back to the signal.', 'first')
+    this.addSideMarker('signal-repair', 'Fit lens', 'lantern', 0.78, -0.2, 'The signal wakes green. One more corner of the loop feels safe after dusk.', 'second')
+    this.addSideMarker('tune-card', 'Tune card', 'chorus', 0.1, -0.1, 'A small tune card reads: “Three notes for the hill bell.”', 'first')
+    this.addSideMarker('bell-chime', 'Ring bell', 'chorus', 0.04, 0.52, 'The hill bell answers the tune. Birds lift from the rooftops in reply.', 'second')
     for (let index = 0; index < 16; index += 1) {
       const firefly = new Mesh(new SphereGeometry(0.05, 6, 5), new MeshLambertMaterial({ color: '#f8db68', emissive: new Color('#efb648'), emissiveIntensity: 0.8 }))
       firefly.userData.phase = index / 16 * Math.PI * 2
@@ -791,7 +799,7 @@ export class GameWorld implements PlayerController {
     const bulb = new Mesh(new SphereGeometry(0.16, 8, 6), this.signalBulb)
     bulb.position.y = 1.25
     tower.add(bulb)
-    this.placeOnPlanet(tower, 0.56, -0.52, 0)
+    this.placeOnPlanet(tower, 0.78, -0.26, 0)
     this.root.add(tower)
   }
 
@@ -804,7 +812,7 @@ export class GameWorld implements PlayerController {
     bellBody.rotation.x = Math.PI
     bellBody.position.y = 0.68
     bell.add(bellBody)
-    this.placeOnPlanet(bell, 0.27, 0.72, 0.4)
+    this.placeOnPlanet(bell, 0.04, 0.59, 0.4)
     this.root.add(bell)
   }
 
@@ -957,6 +965,10 @@ export class GameWorld implements PlayerController {
     return new Vector3(Math.sin(latitude) * Math.cos(longitude), Math.cos(latitude), Math.sin(latitude) * Math.sin(longitude))
   }
 
+  private addBlocker(district: DistrictId, latitude: number, longitude: number, radius: number): void {
+    this.blockersByDistrict[district].push({ normal: this.normalAt(latitude, longitude), radius })
+  }
+
   private createSign(text: string, color: string, width = 350, height = 96): Sprite {
     const canvas = document.createElement('canvas')
     canvas.width = width
@@ -1016,7 +1028,7 @@ export class GameWorld implements PlayerController {
       const cameraRight = new Vector3().crossVectors(cameraForward, this.currentNormal).normalize()
       const direction = cameraForward.multiplyScalar(input.y).add(cameraRight.multiplyScalar(input.x)).normalize()
       const candidateNormal = this.currentNormal.clone().addScaledVector(direction, delta * 0.36).normalize()
-      if (isWithinWalkableCap(candidateNormal, WALKABLE_ANCHOR, WALKABLE_ANGLE)) {
+      if (isWithinWalkableCap(candidateNormal, WALKABLE_ANCHOR, WALKABLE_ANGLE) && isOutsideSphericalBlockers(candidateNormal, this.blockersByDistrict[this.save.district])) {
         this.raycaster.set(candidateNormal.clone().multiplyScalar(PLANET_RADIUS + 2), candidateNormal.clone().negate())
         const activeGround = this.save.district === 'harbour' ? this.harbourGround ?? this.ground : this.save.district === 'observatory' ? this.observatoryGround ?? this.ground : this.ground
         const hit = this.raycaster.intersectObject(activeGround, false)[0]

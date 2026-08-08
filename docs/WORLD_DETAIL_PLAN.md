@@ -17,7 +17,7 @@ The title should read as a small spherical planet. Once the player enters, the c
 
 The title remains a spherical overview. On entering, the camera now zooms over about one second into a lower, tighter 40-degree street view. This immediately reduces the visible curvature and makes the player and landmarks legible at human scale.
 
-The hillside also now has the first visual L2 kit: a marked station road, kerbs, two pedestrian paths, a retaining wall, bakery frontage, benches, lamps and planted boxes. These pieces are deliberately tangent to their local globe caps, so the player sees street-scale surfaces before the underlying collision terrain is replaced.
+The hillside also now has the first visual L2 kit: a marked station road, kerbs, two pedestrian paths, a retaining wall, bakery frontage, benches, lamps and planted boxes. These pieces are deliberately tangent to their local globe caps, so the player sees street-scale surfaces before the underlying collision terrain is replaced. Buildings use conservative local exclusion zones now; the future terrain mesh will replace these simple circular blockers with authored walls, doors and kerbs.
 
 ## Next terrain foundation
 
