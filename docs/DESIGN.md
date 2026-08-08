@@ -4,6 +4,8 @@
 
 The Last Loop is a gentle, social railway mystery set on a tiny walkable planet. The old circular line is silent and its hillside station has forgotten its name. The player restores a place by walking its paths and noticing the stories held by ordinary objects.
 
+The title screen is also a world showcase: it can switch between the actual 3D hillside, harbour and observatory globes before the story begins. This makes the scope visible immediately without bypassing the hillside narrative.
+
 ## V1 story
 
 The station keeper asks the player to find three fragments of the lost name. The signal box remembers **LOOP**, the market mural remembers **SUNSET**, and the hill bell confirms the route. When all three are found, the station sign returns as **SUNSET LOOP**.

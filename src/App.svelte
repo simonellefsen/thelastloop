@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { GameWorld } from './lib/game/GameWorld'
-  import type { GameHud, QuestState } from './lib/game/types'
+  import type { DistrictId, GameHud, QuestState } from './lib/game/types'
   import { sideQuestLabel } from './lib/game/quest'
 
   let gameHost: HTMLDivElement
@@ -9,6 +9,7 @@
   let started = false
   let soundEnabled = true
   let error = ''
+  let titleDistrict: DistrictId = 'hillside'
   let hud: GameHud = {
     hint: 'Enter the town when you are ready.',
     dialogue: 'A small world remembers every path.',
@@ -24,6 +25,12 @@
     signal: 'Signal box',
     mural: 'Market mural',
     bell: 'Hill bell',
+  }
+
+  const titleWorlds: Record<DistrictId, { label: string; copy: string }> = {
+    hillside: { label: 'Sunset Loop', copy: 'Hillside paths, the forgotten station, and the first story.' },
+    harbour: { label: 'Harbour Works', copy: 'A dockside repair world of cranes, boats, and tide clocks.' },
+    observatory: { label: 'Moonhill', copy: 'A twilight observatory world of starlight and a listening telescope.' },
   }
 
   onMount(() => {
@@ -44,6 +51,11 @@
   function enterWorld() {
     game?.start()
     started = true
+  }
+
+  function previewWorld(district: DistrictId) {
+    titleDistrict = district
+    game?.setTitlePreview(district)
   }
 
   function interact() {
@@ -123,9 +135,14 @@
     <section class="title-screen" aria-label="Start The Last Loop">
       <p class="eyebrow">A TINY RAILWAY WORLD</p>
       <h1><span>THE</span> LAST <span>LOOP</span></h1>
-      <p class="title-copy">The last train is waiting. Its station has forgotten its name.</p>
-      <button class="enter-button" onclick={enterWorld}>Enter the loop</button>
-      <p class="title-tip">iPhone landscape · headphones optional</p>
+      <p class="title-copy">{titleWorlds[titleDistrict].copy}</p>
+      <div class="world-picker" role="group" aria-label="Preview the worlds of The Last Loop">
+        {#each (['hillside', 'harbour', 'observatory'] as DistrictId[]) as district}
+          <button class:active={titleDistrict === district} onclick={() => previewWorld(district)}>{titleWorlds[district].label}</button>
+        {/each}
+      </div>
+      <button class="enter-button" onclick={enterWorld}>Begin the story</button>
+      <p class="title-tip">Preview all three worlds above · iPhone landscape · headphones optional</p>
     </section>
   {:else}
     <section class="hud" aria-live="polite">

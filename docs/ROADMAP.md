@@ -16,6 +16,7 @@
 - ✅ Build Moonhill Observatory as a third compact globe district with a telescope-alignment story.
 - ✅ Harden mobile rendering: background-tab pause, reduced-motion renderer support, and visible keyboard focus.
 - ✅ Add a small original procedural dusk motif to the adaptive soundscape.
+- ✅ Turn the title into an interactive showcase of all three playable globe districts.
 - Add recorded ambience and music after an original audio session.
 
 ## Later: shared loop

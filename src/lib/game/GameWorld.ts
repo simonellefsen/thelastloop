@@ -146,6 +146,15 @@ export class GameWorld implements PlayerController {
     return this.save.soundEnabled
   }
 
+  setTitlePreview(district: DistrictId): void {
+    if (this.started) return
+    this.root.visible = district === 'hillside'
+    this.ambient.visible = district === 'hillside'
+    this.harbourWorld.visible = district === 'harbour'
+    this.harbourAmbient.visible = district === 'harbour'
+    this.observatoryWorld.visible = district === 'observatory'
+  }
+
   start(): void {
     this.started = true
     this.save.quest.introductionSeen = true
