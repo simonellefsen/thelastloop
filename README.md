@@ -1,6 +1,6 @@
 # The Last Loop
 
-A tiny, original railway world built for iPhone landscape and the browser. Walk a hillside station town, recover its forgotten name, restore the first route, complete two local side stories, travel to Harbour Works for a dockside repair shift, and hear an adaptive original soundscape.
+A tiny, original railway world built for iPhone landscape and the browser. Walk a hillside station town, recover its forgotten name, restore the first route, complete two local side stories, and travel to Harbour Works or Moonhill Observatory for compact repair journeys.
 
 ## Development
 

@@ -13,8 +13,8 @@
 - ✅ Add two self-contained hillside quests: Green Light Home and The Morning Chorus.
 - ✅ Add an original adaptive Web Audio soundscape: wind, a restored rail hum, interior room tone, and chorus chirps.
 - ✅ Build Harbour Works as a second compact globe district with a dockside repair story.
+- ✅ Build Moonhill Observatory as a third compact globe district with a telescope-alignment story.
 - Add recorded ambience and music after an original audio session.
-- Build Moonhill Observatory as the next distinct globe district.
 
 ## Later: shared loop
 

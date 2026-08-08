@@ -27,7 +27,7 @@ import {
   WebGLRenderer,
 } from 'three'
 import { isWithinWalkableCap, tangentForward } from './math'
-import { advanceSideQuest, defaultQuest, resolveClue, unlockHarbour } from './quest'
+import { advanceSideQuest, defaultQuest, resolveClue, unlockHarbour, unlockObservatory } from './quest'
 import { coatColors, nextCoatColor } from './style'
 import { Soundscape, soundscapeProfile } from './soundscape'
 import { readSave, writeSave } from './storage'
@@ -50,7 +50,7 @@ interface Clue extends WorldInteractable {
   mesh: Object3D
 }
 
-type SideMarkerId = 'lens-cache' | 'signal-repair' | 'tune-card' | 'bell-chime' | 'harbour-valve' | 'harbour-pump'
+type SideMarkerId = 'lens-cache' | 'signal-repair' | 'tune-card' | 'bell-chime' | 'harbour-valve' | 'harbour-pump' | 'observatory-lens' | 'observatory-scope'
 
 interface SideMarker extends WorldInteractable {
   id: SideMarkerId
@@ -67,10 +67,12 @@ export class GameWorld implements PlayerController {
   private readonly camera = new PerspectiveCamera(48, 1, 0.1, 120)
   private readonly root = new Group()
   private readonly harbourWorld = new Group()
+  private readonly observatoryWorld = new Group()
   private readonly player = new Group()
   private readonly stationInterior = new Group()
   private readonly ground: Mesh
   private harbourGround: Mesh | undefined
+  private observatoryGround: Mesh | undefined
   private readonly raycaster = new Raycaster()
   private readonly clock = { last: performance.now(), elapsed: 0 }
   private readonly keys = new Set<string>()
@@ -93,6 +95,7 @@ export class GameWorld implements PlayerController {
   private playerCoat: MeshLambertMaterial | undefined
   private signalBulb: MeshLambertMaterial | undefined
   private harbourBeacon: MeshLambertMaterial | undefined
+  private observatoryBeacon: MeshLambertMaterial | undefined
   private readonly chorusFireflies = new Group()
   private save: GameSave
   private soundscape: Soundscape
@@ -123,6 +126,7 @@ export class GameWorld implements PlayerController {
     this.ground = this.createWorld()
     this.createPlayer()
     this.createHarbourWorld()
+    this.createObservatoryWorld()
     this.createStationInterior()
     this.createAmbientLife()
     this.resize()
@@ -146,6 +150,11 @@ export class GameWorld implements PlayerController {
     if (this.save.district === 'harbour') {
       this.showHarbour(false)
       this.emitHud('The tide clock is still waiting at Harbour Works.', 'Find the blue valve, then return it to the dock pump.')
+      return
+    }
+    if (this.save.district === 'observatory') {
+      this.showObservatory(false)
+      this.emitHud('Moonhill is quiet beneath the stars.', 'Find the starlight lens, then align the telescope.')
       return
     }
     this.emitHud('Find three fragments of the station name.', 'Walk to the glowing amber markers.')
@@ -232,12 +241,24 @@ export class GameWorld implements PlayerController {
     this.emitHud(firstVisit ? 'The old loop carries you down to Harbour Works. The tide clock has stopped.' : 'Harbour Works is waiting by the water.', firstVisit ? 'Find the blue valve, then return it to the dock pump.' : 'Follow the blue marker if the tide clock still needs help.')
   }
 
+  travelToObservatory(): void {
+    if (!this.inStation || !this.save.quest.stationNameRestored) return
+    const firstVisit = this.save.quest.observatory === 'locked'
+    this.save.quest = unlockObservatory(this.save.quest)
+    this.showObservatory(firstVisit)
+    this.persist()
+    this.playTone(622)
+    this.emitHud(firstVisit ? 'The loop climbs to Moonhill. Its telescope has lost the moon signal.' : 'Moonhill Observatory is still listening for the signal.', firstVisit ? 'Find the starlight lens, then align the telescope.' : 'Follow the violet marker if the telescope still needs help.')
+  }
+
   returnToStation(): void {
-    if (this.save.district !== 'harbour') return
-    this.harbourWorld.remove(this.player)
+    if (this.save.district === 'hillside') return
+    const leavingObservatory = this.save.district === 'observatory'
+    ;(leavingObservatory ? this.observatoryWorld : this.harbourWorld).remove(this.player)
     this.root.add(this.player)
     this.harbourWorld.visible = false
     this.harbourAmbient.visible = false
+    this.observatoryWorld.visible = false
     this.root.visible = false
     this.ambient.visible = false
     this.player.visible = false
@@ -247,7 +268,7 @@ export class GameWorld implements PlayerController {
     this.currentNormal.copy(this.normalAt(0.38, -0.42))
     this.soundscape.setProfile(soundscapeProfile(this.save.quest, true))
     this.persist()
-    this.emitHud('The little train returns you to Sunset Loop.', 'Harbour Works will keep its tide clock moving while Moonhill waits ahead.')
+    this.emitHud('The little train returns you to Sunset Loop.', 'Harbour Works and Moonhill are now part of the same small circle.')
   }
 
   dispose(): void {
@@ -308,6 +329,54 @@ export class GameWorld implements PlayerController {
     this.addHarbourDistrict()
     this.scene.add(this.harbourWorld)
     this.createHarbourAmbient()
+  }
+
+  private createObservatoryWorld(): void {
+    this.observatoryWorld.visible = false
+    const ocean = new Mesh(new SphereGeometry(PLANET_RADIUS - 0.2, 40, 28), new MeshStandardMaterial({ color: '#263d72', roughness: 0.92, metalness: 0 }))
+    this.observatoryWorld.add(ocean)
+    this.observatoryGround = new Mesh(new SphereGeometry(PLANET_RADIUS, 40, 28, 0, Math.PI * 2, 0, 1.7), new MeshLambertMaterial({ color: '#627a8b', flatShading: true }))
+    this.observatoryWorld.add(this.observatoryGround)
+    const rim = new Mesh(new TorusGeometry(8.35, 0.14, 6, 72), new MeshLambertMaterial({ color: '#3a466d', flatShading: true }))
+    rim.rotation.x = Math.PI / 2
+    rim.position.y = -0.7
+    this.observatoryWorld.add(rim)
+    const dome = new Group()
+    const base = new Mesh(new CylinderGeometry(1.7, 1.9, 1.35, 8), new MeshLambertMaterial({ color: '#e5dfca', flatShading: true }))
+    base.position.y = 0.67
+    dome.add(base)
+    const roof = new Mesh(new SphereGeometry(1.72, 12, 7, 0, Math.PI * 2, 0, Math.PI / 2), new MeshLambertMaterial({ color: '#48517d', flatShading: true }))
+    roof.position.y = 1.35
+    dome.add(roof)
+    const sign = this.createSign('MOONHILL', '#f0dc83', 320, 72)
+    sign.scale.set(2.5, 0.54, 1)
+    sign.position.set(0, 2.65, 1.1)
+    dome.add(sign)
+    this.placeOnPlanet(dome, 0.45, -0.02, 0.1)
+    this.observatoryWorld.add(dome)
+    const telescope = new Group()
+    const pedestal = new Mesh(new CylinderGeometry(0.26, 0.42, 1.15, 6), new MeshLambertMaterial({ color: '#7e6a9f', flatShading: true }))
+    pedestal.position.y = 0.56
+    telescope.add(pedestal)
+    const tube = new Mesh(new CylinderGeometry(0.18, 0.27, 2.35, 8), new MeshLambertMaterial({ color: '#d4c6e8', flatShading: true }))
+    tube.rotation.z = Math.PI / 2.9
+    tube.position.set(0.72, 1.45, 0)
+    telescope.add(tube)
+    this.observatoryBeacon = new MeshLambertMaterial({ color: this.save.quest.observatory === 'complete' ? '#9ce0ce' : '#8975bc', emissive: new Color(this.save.quest.observatory === 'complete' ? '#4a9f8c' : '#4d3d83'), emissiveIntensity: 0.8 })
+    const lens = new Mesh(new SphereGeometry(0.22, 8, 6), this.observatoryBeacon)
+    lens.position.set(1.35, 1.9, 0)
+    telescope.add(lens)
+    this.placeOnPlanet(telescope, 0.31, 0.42, -0.3)
+    this.observatoryWorld.add(telescope)
+    for (let index = 0; index < 12; index += 1) {
+      const star = new Mesh(new SphereGeometry(0.05, 5, 4), new MeshLambertMaterial({ color: '#f6e9a8', emissive: new Color('#d8b756'), emissiveIntensity: 0.8 }))
+      star.position.set(Math.cos(index * 1.8) * (6 + index % 3), 5.5 + index % 4, Math.sin(index * 1.8) * (6 + index % 3))
+      this.observatoryWorld.add(star)
+    }
+    this.addSideMarker('observatory-lens', 'Starlight lens', 'observatory', 0.53, -0.5, 'A small starlight lens glows in the grass. The telescope can see again.', 'first', 'observatory')
+    this.addSideMarker('observatory-scope', 'Align scope', 'observatory', 0.31, 0.42, 'The moon signal crosses the glass. Every faraway station gets one clear night.', 'second', 'observatory')
+    this.updateSideQuestMarkers()
+    this.scene.add(this.observatoryWorld)
   }
 
   private addHarbourRail(): void {
@@ -717,6 +786,24 @@ export class GameWorld implements PlayerController {
     this.soundscape.setProfile(soundscapeProfile(this.save.quest))
   }
 
+  private showObservatory(resetPosition: boolean): void {
+    this.stationInterior.visible = false
+    this.inStation = false
+    this.root.visible = false
+    this.ambient.visible = false
+    this.harbourWorld.visible = false
+    this.harbourAmbient.visible = false
+    this.root.remove(this.player)
+    this.harbourWorld.remove(this.player)
+    this.observatoryWorld.add(this.player)
+    this.observatoryWorld.visible = true
+    this.player.visible = true
+    this.save.district = 'observatory'
+    if (resetPosition) this.currentNormal.copy(this.normalAt(0.34, -0.3))
+    this.updateSideQuestMarkers()
+    this.soundscape.setProfile(soundscapeProfile(this.save.quest))
+  }
+
   private placeOnPlanet(object: Object3D, latitude: number, longitude: number, heading: number): void {
     const normal = this.normalAt(latitude, longitude)
     object.position.copy(normal.multiplyScalar(PLANET_RADIUS))
@@ -786,7 +873,7 @@ export class GameWorld implements PlayerController {
       const candidateNormal = this.currentNormal.clone().addScaledVector(direction, delta * 0.36).normalize()
       if (isWithinWalkableCap(candidateNormal, WALKABLE_ANCHOR, WALKABLE_ANGLE)) {
         this.raycaster.set(candidateNormal.clone().multiplyScalar(PLANET_RADIUS + 2), candidateNormal.clone().negate())
-        const activeGround = this.save.district === 'harbour' ? this.harbourGround ?? this.ground : this.ground
+        const activeGround = this.save.district === 'harbour' ? this.harbourGround ?? this.ground : this.save.district === 'observatory' ? this.observatoryGround ?? this.ground : this.ground
         const hit = this.raycaster.intersectObject(activeGround, false)[0]
         if (hit) this.currentNormal.copy(hit.point).normalize()
         this.playerForward.lerp(direction, 0.16).normalize()
@@ -921,6 +1008,11 @@ export class GameWorld implements PlayerController {
       this.harbourBeacon?.color.set('#74c888')
       this.harbourBeacon?.emissive.set('#4c9b67')
       this.playTone(740)
+    }
+    if (marker.id === 'observatory-scope') {
+      this.observatoryBeacon?.color.set('#9ce0ce')
+      this.observatoryBeacon?.emissive.set('#4a9f8c')
+      this.playTone(932)
     }
     this.updateSideQuestMarkers()
     this.soundscape.setProfile(soundscapeProfile(this.save.quest))

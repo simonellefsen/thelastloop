@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { advanceSideQuest, defaultQuest, resolveClue, sideQuestLabel, unlockHarbour } from './quest'
+import { advanceSideQuest, defaultQuest, resolveClue, sideQuestLabel, unlockHarbour, unlockObservatory } from './quest'
 
 describe('station-name quest', () => {
   it('restores the station after three distinct clues', () => {
@@ -32,5 +32,13 @@ describe('station-name quest', () => {
     expect(valveFound.harbour).toBe('second')
     expect(advanceSideQuest(valveFound, 'harbour').harbour).toBe('complete')
     expect(sideQuestLabel('harbour', 'first')).toBe('Find the tide valve')
+  })
+
+  it('unlocks and resolves the Moonhill telescope route separately', () => {
+    const restored = { ...defaultQuest(), stationNameRestored: true }
+    const lensFound = advanceSideQuest(unlockObservatory(restored), 'observatory')
+    expect(lensFound.observatory).toBe('second')
+    expect(advanceSideQuest(lensFound, 'observatory').observatory).toBe('complete')
+    expect(sideQuestLabel('observatory', 'second')).toBe('Align the telescope')
   })
 })

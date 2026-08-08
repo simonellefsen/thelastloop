@@ -10,7 +10,7 @@ export interface StorageLike {
 
 export function defaultSave(): GameSave {
   return {
-    version: 2,
+    version: 3,
     soundEnabled: true,
     coatColor: 'gold',
     district: 'hillside',
@@ -23,9 +23,9 @@ export function readSave(storage: StorageLike): GameSave {
   const fallback = defaultSave()
   try {
     const parsed = JSON.parse(storage.getItem(SAVE_KEY) ?? '') as Omit<Partial<GameSave>, 'version'> & { version?: number }
-    if ((parsed.version !== 1 && parsed.version !== 2) || !Array.isArray(parsed.playerNormal) || parsed.playerNormal.length !== 3 || !parsed.quest) return fallback
+    if ((parsed.version !== 1 && parsed.version !== 2 && parsed.version !== 3) || !Array.isArray(parsed.playerNormal) || parsed.playerNormal.length !== 3 || !parsed.quest) return fallback
     return {
-      version: 2,
+      version: 3,
       soundEnabled: typeof parsed.soundEnabled === 'boolean' ? parsed.soundEnabled : fallback.soundEnabled,
       coatColor: isCoatColor(parsed.coatColor) ? parsed.coatColor : fallback.coatColor,
       district: isDistrict(parsed.district) ? parsed.district : fallback.district,
@@ -46,6 +46,7 @@ function hydrateQuest(quest: Partial<QuestState>): QuestState {
     lantern: normaliseSideQuestStage(quest.lantern, stationNameRestored),
     chorus: normaliseSideQuestStage(quest.chorus, stationNameRestored),
     harbour: normaliseSideQuestStage(quest.harbour, false),
+    observatory: normaliseSideQuestStage(quest.observatory, false),
   }
 }
 
@@ -59,7 +60,7 @@ function isCoatColor(value: unknown): value is CoatColor {
 }
 
 function isDistrict(value: unknown): value is DistrictId {
-  return value === 'hillside' || value === 'harbour'
+  return value === 'hillside' || value === 'harbour' || value === 'observatory'
 }
 
 export function writeSave(storage: StorageLike, save: GameSave): void {
