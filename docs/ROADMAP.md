@@ -17,6 +17,9 @@
 - ✅ Harden mobile rendering: background-tab pause, reduced-motion renderer support, and visible keyboard focus.
 - ✅ Add a small original procedural dusk motif to the adaptive soundscape.
 - ✅ Turn the title into an interactive showcase of all three playable globe districts.
+- ✅ Add a street-level entry zoom and a staged world-detail/terrain plan.
+- Replace each visible curved play cap with a district-local tangent terrain mesh: roads, pavements, paths, stairs and authored collision.
+- Build L2/L3 street modules for the hillside first: kerbs, retaining walls, shop fronts, rail hardware and dense interaction pockets.
 - Add recorded ambience and music after an original audio session.
 
 ## Later: shared loop

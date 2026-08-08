@@ -26,6 +26,7 @@ import {
   Vector3,
   WebGLRenderer,
 } from 'three'
+import { entryCameraProfile } from './camera'
 import { isWithinWalkableCap, tangentForward } from './math'
 import { nextPassengerIdentity } from './presence'
 import { animationTime, shouldRender } from './runtime'
@@ -66,7 +67,7 @@ interface SideMarker extends WorldInteractable {
 export class GameWorld implements PlayerController {
   private readonly renderer: WebGLRenderer
   private readonly scene = new Scene()
-  private readonly camera = new PerspectiveCamera(48, 1, 0.1, 120)
+  private readonly camera = new PerspectiveCamera(40, 1, 0.1, 120)
   private readonly root = new Group()
   private readonly harbourWorld = new Group()
   private readonly observatoryWorld = new Group()
@@ -92,6 +93,7 @@ export class GameWorld implements PlayerController {
   private joystick = new Vector2()
   private started = false
   private animationFrame = 0
+  private entryCameraProgress = 1
   private nearby: Clue | SideMarker | 'station-keeper' | 'station-door' | undefined
   private stationSign: Sprite | undefined
   private stationDoorPosition = new Vector3()
@@ -158,6 +160,7 @@ export class GameWorld implements PlayerController {
   start(): void {
     this.setTitlePreview(this.save.district)
     this.started = true
+    this.entryCameraProgress = 0
     this.save.quest.introductionSeen = true
     this.persist()
     this.soundscape.start(soundscapeProfile(this.save.quest))
@@ -884,6 +887,7 @@ export class GameWorld implements PlayerController {
   }
 
   private updatePlayer(delta: number): void {
+    this.entryCameraProgress = Math.min(1, this.entryCameraProgress + delta / 1.05)
     const keyboard = new Vector2(
       (this.keys.has('d') || this.keys.has('arrowright') ? 1 : 0) - (this.keys.has('a') || this.keys.has('arrowleft') ? 1 : 0),
       (this.keys.has('w') || this.keys.has('arrowup') ? 1 : 0) - (this.keys.has('s') || this.keys.has('arrowdown') ? 1 : 0),
@@ -911,10 +915,11 @@ export class GameWorld implements PlayerController {
     this.player.lookAt(playerPosition.clone().add(facing))
     this.player.rotateY(Math.PI)
 
-    const cameraPosition = playerPosition.clone().addScaledVector(this.currentNormal, 3.8).addScaledVector(facing, -6.7)
-    this.camera.position.lerp(cameraPosition, 0.09)
+    const profile = entryCameraProfile(this.entryCameraProgress)
+    const cameraPosition = playerPosition.clone().addScaledVector(this.currentNormal, profile.height).addScaledVector(facing, -profile.followDistance)
+    this.camera.position.lerp(cameraPosition, 0.13)
     this.camera.up.copy(this.currentNormal)
-    this.camera.lookAt(playerPosition.clone().addScaledVector(facing, 2.1).addScaledVector(this.currentNormal, 0.85))
+    this.camera.lookAt(playerPosition.clone().addScaledVector(facing, profile.lookAhead).addScaledVector(this.currentNormal, 0.42))
     this.findNearby(playerPosition)
   }
 

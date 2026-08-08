@@ -37,6 +37,7 @@ The current soundscape is generated with browser-native Web Audio, not borrowed 
 - Small, hand-made-feeling forms: low polygon geometry, warm painted colours, imperfect signs, clear silhouettes.
 - Each globe is readable at a glance: rail loop, compact district, visible landmarks, paths and steps.
 - The world is small enough to become familiar, never a procedurally generated open world.
+- The title preserves the mini-globe silhouette; entry zooms into a lower street-level camera. See the [world detail plan](WORLD_DETAIL_PLAN.md) for the local terrain and detail-level path.
 
 ## Controls
 
