@@ -32,6 +32,7 @@
 - ✅ Build Bell Rise around the bell clue: paved terrace, original brick bell tower, visible bell and rope, railings and a resting bench.
 - ✅ Build Station Gate as the railway anchor: platform edge and rails, timetable board, luggage cart, benches and bollards.
 - ✅ Turn the station rails into a readable, collision-aware route: timber pedestrian crossing, warning posts and a single open way toward Bell Rise.
+- ✅ Add a parked Ravnbro shunter, platform cargo and physical rail-side clearance to complete the first L3 station rail pocket.
 - ✅ Add mobile-safe local Ravnbro street life: two decorative walking townsfolk, a small bird flight and butterflies around the planted route.
 - Extend L2/L3 with rail hardware, dense interaction pockets and collision-aware terrain.
 - Add recorded ambience and music after an original audio session.

@@ -379,6 +379,7 @@ export class GameWorld implements PlayerController {
     this.addFlatBuilding(0, -1.7, '#a4493b', '#303f46', 'STATION')
     this.addStationGate()
     this.addStationRailCrossing()
+    this.addStationShunter()
     this.addFlatBuilding(6.8, -4.7, '#d8d4c5', '#be7654', 'BAKERY')
     this.addFlatBuilding(-6.8, -7.3, '#e2c971', '#4e6970', 'HOME')
     this.addFlatBuilding(-7.1, 5.3, '#c9ded6', '#50666a', 'DEPOT')
@@ -925,6 +926,58 @@ export class GameWorld implements PlayerController {
     for (let x = -4.4; x <= 4.4; x += 1.08) {
       if (Math.abs(x) > 1.2) this.addStreetBlocker(x, crossingZ, 0.48)
     }
+  }
+
+  /** A compact parked shunter makes the platform feel like an active railway, not a rail-shaped border. */
+  private addStationShunter(): void {
+    const shunterX = 3.16
+    const shunterZ = -4.46
+    const shunter = new Group()
+    const charcoal = new MeshLambertMaterial({ color: '#2c4b50', flatShading: true })
+    const railBlue = new MeshLambertMaterial({ color: '#3d7280', flatShading: true })
+    const warmMetal = new MeshLambertMaterial({ color: '#c78545', flatShading: true })
+    const windowMaterial = new MeshLambertMaterial({ color: '#d3e3db', side: DoubleSide })
+    const chassis = new Mesh(new BoxGeometry(2.34, 0.22, 0.82), charcoal)
+    chassis.position.y = 0.48
+    shunter.add(chassis)
+    const body = new Mesh(new BoxGeometry(1.34, 0.7, 0.74), railBlue)
+    body.position.set(-0.36, 0.84, 0)
+    shunter.add(body)
+    const cabin = new Mesh(new BoxGeometry(0.72, 0.92, 0.74), warmMetal)
+    cabin.position.set(0.72, 1.0, 0)
+    shunter.add(cabin)
+    const roof = new Mesh(new BoxGeometry(0.88, 0.12, 0.92), charcoal)
+    roof.position.set(0.72, 1.51, 0)
+    shunter.add(roof)
+    for (const zOffset of [-0.376, 0.376]) {
+      const cabinWindow = new Mesh(new PlaneGeometry(0.43, 0.45), windowMaterial)
+      cabinWindow.rotation.y = Math.PI / 2
+      cabinWindow.position.set(1.086, 1.1, zOffset)
+      shunter.add(cabinWindow)
+    }
+    for (const xOffset of [-0.74, 0.74]) {
+      for (const zOffset of [-0.46, 0.46]) {
+        const wheel = new Mesh(new CylinderGeometry(0.18, 0.18, 0.1, 7), charcoal)
+        wheel.rotation.x = Math.PI / 2
+        wheel.position.set(xOffset, 0.28, zOffset)
+        shunter.add(wheel)
+      }
+    }
+    const lamp = new Mesh(new SphereGeometry(0.11, 7, 5), new MeshLambertMaterial({ color: '#ffe18a', emissive: new Color('#d6933f'), emissiveIntensity: 0.72, flatShading: true }))
+    lamp.position.set(-1.19, 0.79, 0)
+    shunter.add(lamp)
+    const loopMark = this.createSign('03', '#f2ecd1', 54, 42)
+    loopMark.scale.set(0.33, 0.26, 1)
+    loopMark.position.set(-0.26, 0.92, 0.382)
+    shunter.add(loopMark)
+    shunter.position.set(shunterX, gentleStreetHeight(shunterX, shunterZ), shunterZ)
+    this.hillsideStreet.add(shunter)
+
+    const cargo = new Mesh(new BoxGeometry(0.62, 0.42, 0.5), new MeshLambertMaterial({ color: '#a96d43', flatShading: true }))
+    cargo.position.set(4.7, gentleStreetHeight(4.7, -5.25) + 0.21, -5.25)
+    this.hillsideStreet.add(cargo)
+    this.addStreetBlocker(shunterX, shunterZ, 1.3)
+    this.addStreetBlocker(4.7, -5.25, 0.42)
   }
 
   private createRollingStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number): Mesh {
