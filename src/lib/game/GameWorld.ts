@@ -589,6 +589,7 @@ export class GameWorld implements PlayerController {
     this.addHillsideTraversalDetail()
     this.addBellRise()
     this.addReedwaterEdge()
+    this.addRiverTradeLane()
     this.addFlatSideRouteLandmarks()
     this.addStreetBlocker(0, -1.7, 2.25)
     this.addStreetBlocker(6.8, -4.7, 1.75)
@@ -794,6 +795,69 @@ export class GameWorld implements PlayerController {
     landingSign.scale.set(1.28, 0.28, 1)
     landingSign.position.set(bridgeX, gentleStreetHeight(bridgeX, -13.98) + 1.26, -13.98)
     this.hillsideStreet.add(landingSign)
+  }
+
+  /** A continuous trade lane turns the southern river edge into part of Ravnbro's town fabric. */
+  private addRiverTradeLane(): void {
+    const lane = this.createRollingStreetSurface(3.05, 6.9, -6.25, -10.35, '#c8b68c', 0.11)
+    this.hillsideStreet.add(lane)
+    const stone = new MeshLambertMaterial({ color: '#a99370', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#765440', flatShading: true })
+    const darkTimber = new MeshLambertMaterial({ color: '#4f4139', flatShading: true })
+    const canvas = new MeshLambertMaterial({ color: '#d7cfb0', flatShading: true })
+    for (let z = -7.45; z >= -13.1; z -= 0.45) {
+      const cobble = new Mesh(new BoxGeometry(2.72, 0.055, 0.29), stone)
+      cobble.position.set(-6.25, gentleStreetHeight(-6.25, z) + 0.16, z)
+      this.hillsideStreet.add(cobble)
+    }
+
+    const goodsHoist = new Group()
+    for (const xOffset of [-0.52, 0.52]) {
+      const post = new Mesh(new BoxGeometry(0.12, 1.48, 0.12), darkTimber)
+      post.position.set(xOffset, 0.74, 0)
+      goodsHoist.add(post)
+    }
+    const beam = new Mesh(new BoxGeometry(1.28, 0.14, 0.14), darkTimber)
+    beam.position.set(0, 1.36, 0)
+    goodsHoist.add(beam)
+    const rope = new Mesh(new CylinderGeometry(0.025, 0.025, 0.68, 5), new MeshLambertMaterial({ color: '#c6b184', flatShading: true }))
+    rope.position.set(0.26, 0.99, 0.05)
+    goodsHoist.add(rope)
+    const hook = new Mesh(new TorusGeometry(0.12, 0.03, 5, 8, Math.PI), new MeshLambertMaterial({ color: '#45595c', flatShading: true }))
+    hook.rotation.z = Math.PI
+    hook.position.set(0.26, 0.6, 0.05)
+    goodsHoist.add(hook)
+    goodsHoist.position.set(-7.85, gentleStreetHeight(-7.85, -10.1), -10.1)
+    this.hillsideStreet.add(goodsHoist)
+    this.addStreetBlocker(-7.85, -10.1, 0.82)
+
+    const stall = new Group()
+    const counter = new Mesh(new BoxGeometry(1.24, 0.66, 0.62), timber)
+    counter.position.y = 0.33
+    stall.add(counter)
+    const canopy = new Mesh(new ConeGeometry(0.94, 0.46, 4), canvas)
+    canopy.rotation.y = Math.PI / 4
+    canopy.position.y = 1.12
+    stall.add(canopy)
+    for (const xOffset of [-0.28, 0.28]) {
+      const basket = new Mesh(new CylinderGeometry(0.13, 0.16, 0.14, 6), new MeshLambertMaterial({ color: '#d18b4c', flatShading: true }))
+      basket.position.set(xOffset, 0.73, 0.05)
+      stall.add(basket)
+    }
+    stall.position.set(-4.55, gentleStreetHeight(-4.55, -11.2), -11.2)
+    this.hillsideStreet.add(stall)
+    this.addStreetBlocker(-4.55, -11.2, 0.82)
+
+    for (const z of [-8.25, -10.2, -12.2]) {
+      const bollard = new Mesh(new CylinderGeometry(0.09, 0.12, 0.7, 6), darkTimber)
+      bollard.position.set(-7.72, gentleStreetHeight(-7.72, z) + 0.35, z)
+      this.hillsideStreet.add(bollard)
+      this.addStreetBlocker(-7.72, z, 0.18)
+    }
+    const laneSign = this.createSign('RIVER TRADE LANE', '#eef0d7', 250, 48)
+    laneSign.scale.set(1.22, 0.28, 1)
+    laneSign.position.set(-5.65, gentleStreetHeight(-5.65, -8.0) + 1.18, -8.0)
+    this.hillsideStreet.add(laneSign)
   }
 
   /** A dense, open-ended pocket that makes the mural clue a place to discover. */

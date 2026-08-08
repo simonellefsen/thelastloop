@@ -35,6 +35,7 @@
 - ✅ Expand Moonhill with the collision-aware Wind Lookout: shelter, star-chart table, fire bowl, boundary parapet and mossy viewpoint edge.
 - ✅ Connect Moonhill's starlight lens to the observatory road with Lens Path: a paved branch, low handrails, sightline-clearing tree move and a small lens dais make the first violet marker clear and reachable.
 - ✅ Complete Ravnbro's bridge route with Reedwater Landing: plank deck, shelter, skiff and a safe physical water edge.
+- ✅ Connect Ravnbro's southern route into a River Trade Lane: cobbles, goods hoist, covered stall and edge bollards turn the walk to Reedwater Landing into a continuous town street.
 - ✅ Give the two newer districts their own lightweight ambient life: Harbour Works runs dock gulls and water ripples, while Moonhill has swifts and fireflies only while those local worlds are active.
 - ✅ Build the first visible L2 hillside street kit: marked road, kerbs, paths, retaining wall, shop front, benches, lamps and planted boxes.
 - ✅ Reframe Hillside as Ravnbro, an original old Danish river-town-inspired rail district: connected frontage groups, timber-and-brick modules, the Market Courtyard and the bell-and-signal landmark.

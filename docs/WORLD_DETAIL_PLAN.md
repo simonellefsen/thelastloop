@@ -43,6 +43,8 @@ Lens Path is Moonhill's westward branch from the observatory road. Low handrails
 
 Ravnbro's bridge now reaches Reedwater Landing rather than stopping at a collision wall. A plank deck, tiny shelter, moored skiff and boundary posts make its river edge a deliberate, safe walkable destination.
 
+River Trade Lane completes that southern approach: a cobbled branch runs from the older home frontage down to Reedwater, with a goods hoist, covered produce stall and a protected line of mooring bollards. It is a fictional Ravnbro trade route, not an interpretation of a real street.
+
 Ambient life belongs to each local district rather than a global simulation: Harbour Works uses a small flight of dock gulls and slow water ripples, while Moonhill has three high swifts and a few fireflies around the lookout. These meshes animate only while their district is visible, have no collision or save state, and remain a mobile-safe visual layer rather than networked actors.
 
 ## Next terrain foundation
