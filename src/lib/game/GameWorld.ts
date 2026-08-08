@@ -546,6 +546,7 @@ export class GameWorld implements PlayerController {
   }
 
   private addDistrict(): void {
+    this.addStreetZone()
     this.addBuilding(0.38, -0.42, 0.1, '#e7dbbc', '#36565b', 'STATION')
     this.addBuilding(0.52, 0.12, -0.22, '#d8d4c5', '#be7654', 'BAKERY')
     this.addBuilding(0.31, 0.6, 0.45, '#e2c971', '#4e6970', 'HOME')
@@ -559,6 +560,122 @@ export class GameWorld implements PlayerController {
     this.addClue('bell', 'Hill bell', 0.27, 0.72, 'The hill bell rings once: the old sign needs the last word—LOOP.')
     this.addSideQuestLandmarks()
     this.setStationSign(this.save.quest.stationNameRestored ? 'SUNSET LOOP' : '____ ____', this.save.quest.stationNameRestored ? '#f8d34e' : '#efeee2')
+  }
+
+  private addStreetZone(): void {
+    this.addStreetSegment(0.4, -0.24, 0.62, 5.8, 2.15, '#587277', true)
+    this.addStreetSegment(0.49, 0.16, -0.28, 3.75, 1.45, '#d9d5b9', false)
+    this.addStreetSegment(0.32, 0.54, 0.28, 3.25, 1.05, '#c7b88b', false)
+    this.addRetainingWall(0.45, -0.03, 0.45, 2.7)
+    this.addShopFront(0.52, 0.12, -0.22)
+    this.addBench(0.43, 0.03, 0.15)
+    this.addBench(0.31, 0.47, -0.35)
+    this.addLamp(0.44, -0.35, 0.18)
+    this.addLamp(0.48, 0.24, -0.4)
+    this.addPlanter(0.51, -0.08, 0.2)
+    this.addPlanter(0.35, 0.38, -0.22)
+  }
+
+  private addStreetSegment(latitude: number, longitude: number, heading: number, length: number, width: number, color: string, centreLine: boolean): void {
+    const street = new Group()
+    const surface = new Mesh(new BoxGeometry(width, 0.12, length), new MeshLambertMaterial({ color, flatShading: true }))
+    surface.position.y = 0.07
+    street.add(surface)
+    const kerbMaterial = new MeshLambertMaterial({ color: '#ece6c8', flatShading: true })
+    for (const side of [-1, 1]) {
+      const kerb = new Mesh(new BoxGeometry(0.15, 0.16, length + 0.12), kerbMaterial)
+      kerb.position.set(side * (width / 2 + 0.08), 0.1, 0)
+      street.add(kerb)
+    }
+    if (centreLine) {
+      const paint = new MeshLambertMaterial({ color: '#efe6bd', flatShading: true })
+      for (let index = -2; index <= 2; index += 1) {
+        const dash = new Mesh(new BoxGeometry(0.08, 0.025, 0.48), paint)
+        dash.position.set(0, 0.145, index * 1.05)
+        street.add(dash)
+      }
+    }
+    this.placeOnPlanet(street, latitude, longitude, heading)
+    this.root.add(street)
+  }
+
+  private addRetainingWall(latitude: number, longitude: number, heading: number, length: number): void {
+    const wall = new Group()
+    const base = new Mesh(new BoxGeometry(length, 0.7, 0.22), new MeshLambertMaterial({ color: '#81918a', flatShading: true }))
+    base.position.y = 0.35
+    wall.add(base)
+    for (let index = 0; index < 4; index += 1) {
+      const cap = new Mesh(new BoxGeometry(0.52, 0.08, 0.31), new MeshLambertMaterial({ color: '#d4d4b9', flatShading: true }))
+      cap.position.set(-1.02 + index * 0.68, 0.73, 0)
+      wall.add(cap)
+    }
+    this.placeOnPlanet(wall, latitude, longitude, heading)
+    this.root.add(wall)
+  }
+
+  private addShopFront(latitude: number, longitude: number, heading: number): void {
+    const shop = new Group()
+    const front = new Mesh(new BoxGeometry(1.7, 0.82, 0.16), new MeshLambertMaterial({ color: '#e7d7a5', flatShading: true }))
+    front.position.set(0, 0.48, 0.94)
+    shop.add(front)
+    const window = new Mesh(new PlaneGeometry(0.68, 0.48), new MeshLambertMaterial({ color: '#3f767b', side: DoubleSide }))
+    window.position.set(-0.38, 0.57, 1.03)
+    shop.add(window)
+    const door = new Mesh(new PlaneGeometry(0.34, 0.66), new MeshLambertMaterial({ color: '#bd7650', side: DoubleSide }))
+    door.position.set(0.45, 0.42, 1.03)
+    shop.add(door)
+    const awning = new Mesh(new BoxGeometry(1.9, 0.14, 0.62), new MeshLambertMaterial({ color: '#d58b52', flatShading: true }))
+    awning.position.set(0, 1.13, 1.12)
+    shop.add(awning)
+    this.placeOnPlanet(shop, latitude, longitude, heading)
+    this.root.add(shop)
+  }
+
+  private addBench(latitude: number, longitude: number, heading: number): void {
+    const bench = new Group()
+    const wood = new MeshLambertMaterial({ color: '#805a43', flatShading: true })
+    const seat = new Mesh(new BoxGeometry(0.95, 0.12, 0.32), wood)
+    seat.position.y = 0.38
+    bench.add(seat)
+    const back = new Mesh(new BoxGeometry(0.95, 0.32, 0.09), wood)
+    back.position.set(0, 0.58, 0.12)
+    bench.add(back)
+    for (const x of [-0.33, 0.33]) {
+      const leg = new Mesh(new BoxGeometry(0.1, 0.36, 0.12), new MeshLambertMaterial({ color: '#3a5556', flatShading: true }))
+      leg.position.set(x, 0.18, 0)
+      bench.add(leg)
+    }
+    this.placeOnPlanet(bench, latitude, longitude, heading)
+    this.root.add(bench)
+  }
+
+  private addLamp(latitude: number, longitude: number, heading: number): void {
+    const lamp = new Group()
+    const pole = new Mesh(new CylinderGeometry(0.055, 0.08, 1.75, 6), new MeshLambertMaterial({ color: '#36535a', flatShading: true }))
+    pole.position.y = 0.88
+    lamp.add(pole)
+    const shade = new Mesh(new ConeGeometry(0.2, 0.18, 6), new MeshLambertMaterial({ color: '#28434a', flatShading: true }))
+    shade.position.y = 1.74
+    lamp.add(shade)
+    const bulb = new Mesh(new SphereGeometry(0.11, 7, 5), new MeshLambertMaterial({ color: '#ffe38c', emissive: new Color('#d89b48'), emissiveIntensity: 0.72, flatShading: true }))
+    bulb.position.y = 1.63
+    lamp.add(bulb)
+    this.placeOnPlanet(lamp, latitude, longitude, heading)
+    this.root.add(lamp)
+  }
+
+  private addPlanter(latitude: number, longitude: number, heading: number): void {
+    const planter = new Group()
+    const box = new Mesh(new BoxGeometry(0.58, 0.3, 0.52), new MeshLambertMaterial({ color: '#a76d4b', flatShading: true }))
+    box.position.y = 0.16
+    planter.add(box)
+    for (const x of [-0.14, 0.12]) {
+      const leaf = new Mesh(new ConeGeometry(0.18, 0.55, 5), new MeshLambertMaterial({ color: '#3e815e', flatShading: true }))
+      leaf.position.set(x, 0.52, 0)
+      planter.add(leaf)
+    }
+    this.placeOnPlanet(planter, latitude, longitude, heading)
+    this.root.add(planter)
   }
 
   private addBuilding(latitude: number, longitude: number, heading: number, wall: string, roofColor: string, label: string): void {

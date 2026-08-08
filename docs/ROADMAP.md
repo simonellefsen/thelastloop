@@ -19,7 +19,8 @@
 - ✅ Turn the title into an interactive showcase of all three playable globe districts.
 - ✅ Add a street-level entry zoom and a staged world-detail/terrain plan.
 - Replace each visible curved play cap with a district-local tangent terrain mesh: roads, pavements, paths, stairs and authored collision.
-- Build L2/L3 street modules for the hillside first: kerbs, retaining walls, shop fronts, rail hardware and dense interaction pockets.
+- ✅ Build the first visible L2 hillside street kit: marked road, kerbs, paths, retaining wall, shop front, benches, lamps and planted boxes.
+- Extend L2/L3 with rail hardware, dense interaction pockets and collision-aware terrain.
 - Add recorded ambience and music after an original audio session.
 
 ## Later: shared loop

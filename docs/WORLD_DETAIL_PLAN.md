@@ -17,12 +17,14 @@ The title should read as a small spherical planet. Once the player enters, the c
 
 The title remains a spherical overview. On entering, the camera now zooms over about one second into a lower, tighter 40-degree street view. This immediately reduces the visible curvature and makes the player and landmarks legible at human scale.
 
+The hillside also now has the first visual L2 kit: a marked station road, kerbs, two pedestrian paths, a retaining wall, bakery frontage, benches, lamps and planted boxes. These pieces are deliberately tangent to their local globe caps, so the player sees street-scale surfaces before the underlying collision terrain is replaced.
+
 ## Next terrain foundation
 
 1. Give each district a named local coordinate frame anchored to its globe cap.
 2. Build a high-density tangent terrain mesh for that frame, including road, pavement, path, slope and stair surfaces.
 3. Move player ground following from the broad sphere to the active local mesh; retain the globe only as a macro silhouette.
-4. Add authored curb, retaining-wall, rail, plant and building-front modules to the street zone.
+4. Extend the authored kerb, retaining-wall, rail, plant and building-front modules into the collision-aware street zone.
 5. Transition L0 → L1 → L2 without a loading screen; fade or occlude the macro sphere beyond the local horizon.
 
 This keeps the miniature-world identity at a distance while allowing the close-up feel shown in the reference target: a district is a place to walk through, not a visibly curved ball under the player.
