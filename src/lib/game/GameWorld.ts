@@ -2110,11 +2110,14 @@ export class GameWorld implements PlayerController {
   private updateTitleCamera(): void {
     const angle = animationTime(this.clock.elapsed, window.matchMedia('(prefers-reduced-motion: reduce)').matches) * 0.14
     const compactPhone = this.camera.aspect < 0.82
-    const distance = compactPhone ? 29 : 20
-    const height = compactPhone ? 15.5 : 13
-    this.camera.position.set(Math.cos(angle) * distance, height + Math.sin(angle * 1.7) * 2, Math.sin(angle) * distance)
+    // The title is a map-like overview, not the street camera pulled back. A
+    // high orbit makes the complete tiny world and its water silhouette visible
+    // before the player drops into the local, lower exploration view.
+    const orbitRadius = compactPhone ? 5.8 : 8.2
+    const height = compactPhone ? 34 : 29
+    this.camera.position.set(Math.cos(angle) * orbitRadius, height + Math.sin(angle * 1.7) * 0.8, Math.sin(angle) * orbitRadius)
     this.camera.up.copy(UP)
-    this.camera.lookAt(0, compactPhone ? 0.5 : 1.3, 0)
+    this.camera.lookAt(0, 0.2, 0)
   }
 
   private updateStation(): void {
