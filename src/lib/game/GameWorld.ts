@@ -1256,7 +1256,7 @@ export class GameWorld implements PlayerController {
       const clearOfBuildings = this.streetBlockers.every((blocker) => candidate.distanceTo(blocker.center) > blocker.radius)
       if (inBounds && clearOfBuildings) {
         this.streetPosition.copy(candidate)
-        this.streetForward.lerp(direction, 0.22).normalize()
+        this.streetForward.copy(direction)
       }
     }
     const playerPosition = this.streetPosition.clone().setY(gentleStreetHeight(this.streetPosition.x, this.streetPosition.z) + 0.04)
@@ -1264,10 +1264,10 @@ export class GameWorld implements PlayerController {
     this.player.quaternion.identity()
     this.player.rotation.y = Math.atan2(this.streetForward.x, this.streetForward.z)
 
-    const cameraPosition = playerPosition.clone().addScaledVector(this.streetForward, -6.8).add(new Vector3(0, 4.2, 0))
+    const cameraPosition = playerPosition.clone().add(new Vector3(0, 4.2, 6.8))
     this.camera.position.lerp(cameraPosition, 0.16)
     this.camera.up.copy(UP)
-    this.camera.lookAt(playerPosition.clone().addScaledVector(this.streetForward, 3.2).add(new Vector3(0, 0.95, 0)))
+    this.camera.lookAt(playerPosition.clone().add(new Vector3(0, 0.95, -3.2)))
     this.findNearby(playerPosition)
   }
 

@@ -234,7 +234,7 @@
         <span>↗</span>
         {hud.nearbyLabel || 'Explore'}
       </button>
-      <p class="controls-tip">Move with the left thumb. When the gold button says Investigate, tap it to collect the clue.</p>{/if}
+      <p class="controls-tip">Arrow keys and the left thumb move in the matching screen direction. Tap Investigate to collect a clue.</p>{/if}
     </section>
   {/if}
 </main>
