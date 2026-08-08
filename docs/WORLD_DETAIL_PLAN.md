@@ -40,7 +40,7 @@ The first gameplay pass keeps the present route footprint. It now has the first 
 3. ✅ Move existing Hillside side-route props into the playable district: depot lens/signal and tune card/hill bell routes.
 4. Extend the authored kerb, retaining-wall, rail, plant and building-front modules into the collision-aware street zone.
 5. Build the Ravnbro frontage kit: timber-frame beams, brick plinths, tiled gables, covered passages, drainage channels and small yard gates.
-6. Add the Reedwater Edge as a visual boundary and future route hand-off, without making the opening district materially larger.
+6. ✅ Add Reedwater Edge as a collision-aware visual boundary and future route hand-off, without making the opening district materially larger.
 7. Transition L0 → L1 → L2 without a loading screen; fade or occlude the macro sphere beyond the local horizon.
 
 This keeps the miniature-world identity at a distance while allowing the close-up feel shown in the reference target: a district is a place to walk through, not a visibly curved ball under the player.

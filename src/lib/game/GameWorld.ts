@@ -385,6 +385,7 @@ export class GameWorld implements PlayerController {
     this.addFlatClue('mural', 'Market mural', 7.2, -1.7, 'A faded market mural shows the town under a gold SUNSET.')
     this.addFlatClue('bell', 'Hill bell', 0, -11.2, 'The hill bell rings once: the old sign needs the last word—LOOP.')
     this.addHillsideTraversalDetail()
+    this.addReedwaterEdge()
     this.addFlatSideRouteLandmarks()
     this.addStreetBlocker(0, -1.7, 2.25)
     this.addStreetBlocker(6.8, -4.7, 1.75)
@@ -448,6 +449,93 @@ export class GameWorld implements PlayerController {
       this.hillsideStreet.add(planter)
       this.addStreetBlocker(x, z, 0.68)
     }
+  }
+
+  /**
+   * Ravnbro ends at a small, protected stretch of reedwater. It gives the
+   * opening district a marsh-town horizon while a gap at the bridge remains a
+   * readable destination rather than an invisible world boundary.
+   */
+  private addReedwaterEdge(): void {
+    const water = this.createRollingStreetSurface(40, 4.8, 0, -16.45, '#4d9a9a', 0.1)
+    this.hillsideStreet.add(water)
+    const shore = this.createRollingStreetSurface(40, 0.52, 0, -14.08, '#b9af77', 0.14)
+    this.hillsideStreet.add(shore)
+
+    const timber = new MeshLambertMaterial({ color: '#694d3c', flatShading: true })
+    const bridgeX = -7
+    const bridgeStart = -11.45
+    const bridgeLength = 3.95
+    const bridgeDeck = this.createRollingStreetSurface(1.75, bridgeLength, bridgeX, bridgeStart - bridgeLength / 2, '#765942', 0.17)
+    this.hillsideStreet.add(bridgeDeck)
+    for (let index = 0; index < 9; index += 1) {
+      const z = bridgeStart - index * 0.43
+      const plank = new Mesh(new BoxGeometry(1.85, 0.07, 0.07), timber)
+      plank.position.set(bridgeX, gentleStreetHeight(bridgeX, z) + 0.23, z)
+      this.hillsideStreet.add(plank)
+    }
+    for (const xOffset of [-0.78, 0.78]) {
+      for (const z of [-11.6, -12.65, -13.68]) {
+        const post = new Mesh(new CylinderGeometry(0.055, 0.065, 0.76, 5), timber)
+        post.position.set(bridgeX + xOffset, gentleStreetHeight(bridgeX + xOffset, z) + 0.38, z)
+        this.hillsideStreet.add(post)
+      }
+      const rail = new Mesh(new BoxGeometry(0.07, 0.07, 2.3), timber)
+      rail.position.set(bridgeX + xOffset, gentleStreetHeight(bridgeX + xOffset, -12.65) + 0.66, -12.65)
+      this.hillsideStreet.add(rail)
+    }
+
+    const reedStem = new MeshLambertMaterial({ color: '#5d7b4f', flatShading: true })
+    const reedTip = new MeshLambertMaterial({ color: '#a98654', flatShading: true })
+    for (const [x, z, height] of [
+      [-16, -13.78, 0.85], [-13.8, -14.2, 1.08], [-11.8, -13.9, 0.72], [-4.6, -13.86, 1.1],
+      [-1.8, -14.18, 0.82], [2.6, -13.85, 1.03], [5.4, -14.14, 0.72], [8.2, -13.86, 1.12],
+      [11.3, -14.17, 0.88], [14.7, -13.84, 1.05], [17.2, -14.1, 0.76],
+    ] as Array<[number, number, number]>) {
+      const stem = new Mesh(new CylinderGeometry(0.026, 0.04, height, 4), reedStem)
+      stem.position.set(x, gentleStreetHeight(x, z) + height / 2 + 0.12, z)
+      this.hillsideStreet.add(stem)
+      const head = new Mesh(new CylinderGeometry(0.045, 0.06, height * 0.28, 4), reedTip)
+      head.position.set(x + 0.035, gentleStreetHeight(x, z) + height + 0.15, z)
+      head.rotation.z = 0.18
+      this.hillsideStreet.add(head)
+    }
+
+    for (const [x, z] of [[-8.25, -14.05], [-5.75, -14.05], [4.5, -13.94]] as Array<[number, number]>) {
+      const mooringPost = new Mesh(new CylinderGeometry(0.1, 0.13, 0.9, 6), timber)
+      mooringPost.position.set(x, gentleStreetHeight(x, z) + 0.45, z)
+      this.hillsideStreet.add(mooringPost)
+    }
+    for (let index = 0; index < 4; index += 1) {
+      const ripple = new Mesh(new TorusGeometry(0.18 + index * 0.09, 0.018, 4, 10), new MeshLambertMaterial({ color: '#a8ddd1', transparent: true, opacity: 0.7, flatShading: true }))
+      ripple.rotation.x = Math.PI / 2
+      const x = 2.2 + index * 3.3
+      const z = -16.25 + (index % 2) * 0.55
+      ripple.position.set(x, gentleStreetHeight(x, z) + 0.16, z)
+      this.hillsideStreet.add(ripple)
+    }
+
+    const markerX = 7.3
+    const markerZ = -13.55
+    const floodPost = new Mesh(new BoxGeometry(0.11, 1.45, 0.11), new MeshLambertMaterial({ color: '#49646a', flatShading: true }))
+    floodPost.position.set(markerX, gentleStreetHeight(markerX, markerZ) + 0.72, markerZ)
+    this.hillsideStreet.add(floodPost)
+    for (let index = 0; index < 3; index += 1) {
+      const stripe = new Mesh(new BoxGeometry(0.22, 0.07, 0.03), new MeshLambertMaterial({ color: index === 2 ? '#c7654c' : '#e8dcb3', flatShading: true }))
+      stripe.position.set(markerX, gentleStreetHeight(markerX, markerZ) + 0.55 + index * 0.26, markerZ + 0.065)
+      this.hillsideStreet.add(stripe)
+    }
+    const floodSign = this.createSign('REEDWATER', '#eef2dc', 170, 46)
+    floodSign.scale.set(0.95, 0.26, 1)
+    floodSign.position.set(markerX, gentleStreetHeight(markerX, markerZ) + 1.68, markerZ)
+    this.hillsideStreet.add(floodSign)
+
+    // The shore is physical except where the bridge gives a deliberate view and
+    // turn-around point. This prevents accidental walks into the water plane.
+    for (let x = -18; x <= 18; x += 2.35) {
+      if (Math.abs(x - bridgeX) > 1.65) this.addStreetBlocker(x, -14.05, 1.03)
+    }
+    this.addStreetBlocker(bridgeX, -15.05, 0.78)
   }
 
   private createRollingStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number): Mesh {
