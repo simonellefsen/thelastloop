@@ -84,6 +84,7 @@ export class GameWorld implements PlayerController {
   private readonly clues: Clue[] = []
   private readonly streetClues: Clue[] = []
   private readonly sideMarkers: SideMarker[] = []
+  private readonly streetSideMarkers: SideMarker[] = []
   private readonly blockersByDistrict: Record<DistrictId, SphericalBlocker[]> = { hillside: [], harbour: [], observatory: [] }
   private readonly streetBlockers: Array<{ center: Vector3; radius: number }> = []
   private readonly ambient = new Group()
@@ -108,9 +109,12 @@ export class GameWorld implements PlayerController {
   private streetStationDoorPosition = new Vector3(0, 0, 0.9)
   private playerCoat: MeshLambertMaterial | undefined
   private signalBulb: MeshLambertMaterial | undefined
+  private streetSignalBulb: MeshLambertMaterial | undefined
+  private streetBellGlow: MeshLambertMaterial | undefined
   private harbourBeacon: MeshLambertMaterial | undefined
   private observatoryBeacon: MeshLambertMaterial | undefined
   private readonly chorusFireflies = new Group()
+  private readonly streetChorusFireflies = new Group()
   private save: GameSave
   private soundscape: Soundscape
   private inStation = false
@@ -374,6 +378,7 @@ export class GameWorld implements PlayerController {
     this.addFlatClue('signal', 'Signal box', -7.2, -0.5, 'The brass plate reads: “Every last train returns in a LOOP.”')
     this.addFlatClue('mural', 'Market mural', 7.2, -1.7, 'A faded market mural shows the town under a gold SUNSET.')
     this.addFlatClue('bell', 'Hill bell', 0, -11.2, 'The hill bell rings once: the old sign needs the last word—LOOP.')
+    this.addFlatSideRouteLandmarks()
     this.addStreetBlocker(0, -1.7, 1.75)
     this.addStreetBlocker(6.8, -4.7, 1.75)
     this.addStreetBlocker(-6.8, -7.3, 1.75)
@@ -457,6 +462,70 @@ export class GameWorld implements PlayerController {
     marker.position.set(x, height, z)
     this.hillsideStreet.add(marker)
     this.streetClues.push({ id, label, text, mesh: marker, position: [x, height, z] })
+  }
+
+  private addFlatSideRouteLandmarks(): void {
+    this.addFlatSignalLandmark(-8.7, -0.5)
+    this.addFlatBellLandmark(0, -12.3)
+    this.addFlatSideMarker('lens-cache', 'Depot lens', 'lantern', -9.2, 4.7, 'A warm brass lens waits in the depot crate. Take it back to the signal.', 'first')
+    this.addFlatSideMarker('signal-repair', 'Fit lens', 'lantern', -7.2, -0.5, 'The signal wakes green. One more corner of the loop feels safe after dusk.', 'second')
+    this.addFlatSideMarker('tune-card', 'Tune card', 'chorus', 5.5, -8.2, 'A small tune card reads: “Three notes for the hill bell.”', 'first')
+    this.addFlatSideMarker('bell-chime', 'Ring bell', 'chorus', 0, -11.2, 'The hill bell answers the tune. Birds lift from the rooftops in reply.', 'second')
+    this.streetChorusFireflies.visible = this.save.quest.chorus === 'complete'
+    this.hillsideStreet.add(this.streetChorusFireflies)
+    this.updateSideQuestMarkers()
+  }
+
+  private addFlatSignalLandmark(x: number, z: number): void {
+    const signal = new Group()
+    const pole = new Mesh(new CylinderGeometry(0.09, 0.12, 1.75, 6), new MeshLambertMaterial({ color: '#354a4d', flatShading: true }))
+    pole.position.y = 0.88
+    signal.add(pole)
+    this.streetSignalBulb = new MeshLambertMaterial({ color: this.save.quest.lantern === 'complete' ? '#78c271' : '#ca6854', emissive: new Color(this.save.quest.lantern === 'complete' ? '#4f9e5a' : '#803f39'), emissiveIntensity: 0.7, flatShading: true })
+    const bulb = new Mesh(new SphereGeometry(0.2, 8, 6), this.streetSignalBulb)
+    bulb.position.y = 1.72
+    signal.add(bulb)
+    signal.position.set(x, gentleStreetHeight(x, z), z)
+    this.hillsideStreet.add(signal)
+  }
+
+  private addFlatBellLandmark(x: number, z: number): void {
+    const bell = new Group()
+    const frame = new Mesh(new BoxGeometry(0.78, 1.18, 0.18), new MeshLambertMaterial({ color: '#6d5948', flatShading: true }))
+    frame.position.y = 0.59
+    bell.add(frame)
+    this.streetBellGlow = new MeshLambertMaterial({ color: '#d9a94f', emissive: new Color(this.save.quest.chorus === 'complete' ? '#d8894d' : '#715640'), emissiveIntensity: this.save.quest.chorus === 'complete' ? 0.6 : 0.1, flatShading: true })
+    const bellBody = new Mesh(new ConeGeometry(0.34, 0.44, 7), this.streetBellGlow)
+    bellBody.rotation.x = Math.PI
+    bellBody.position.y = 0.8
+    bell.add(bellBody)
+    bell.position.set(x, gentleStreetHeight(x, z), z)
+    this.hillsideStreet.add(bell)
+    for (let index = 0; index < 10; index += 1) {
+      const firefly = new Mesh(new SphereGeometry(0.055, 6, 5), new MeshLambertMaterial({ color: '#f8db68', emissive: new Color('#efb648'), emissiveIntensity: 0.9 }))
+      firefly.position.set(Math.cos(index * 0.63) * (0.8 + index % 3 * 0.16), 1.5 + index % 3 * 0.27, Math.sin(index * 0.63) * (0.8 + index % 3 * 0.16))
+      this.streetChorusFireflies.add(firefly)
+    }
+    this.streetChorusFireflies.position.set(x, gentleStreetHeight(x, z), z)
+  }
+
+  private addFlatSideMarker(id: SideMarkerId, label: string, sideQuest: SideQuestId, x: number, z: number, text: string, requiredStage: 'first' | 'second'): void {
+    const marker = new Group()
+    const color = sideQuest === 'lantern' ? '#71bcb9' : '#d683a2'
+    const base = new Mesh(new CylinderGeometry(0.23, 0.28, 0.32, 5), new MeshLambertMaterial({ color, flatShading: true }))
+    base.position.y = 0.16
+    marker.add(base)
+    const glow = new Mesh(new SphereGeometry(0.17, 8, 6), new MeshLambertMaterial({ color: '#fff0a7', emissive: new Color(color), emissiveIntensity: 0.9, flatShading: true }))
+    glow.position.y = 0.55
+    marker.add(glow)
+    const labelSprite = this.createSign(label, '#fff5d8', 228, 64)
+    labelSprite.scale.set(1.35, 0.37, 1)
+    labelSprite.position.y = 1.02
+    marker.add(labelSprite)
+    const height = gentleStreetHeight(x, z)
+    marker.position.set(x, height, z)
+    this.hillsideStreet.add(marker)
+    this.streetSideMarkers.push({ id, label, sideQuest, requiredStage, district: 'hillside', text, mesh: marker, position: [x, height, z] })
   }
 
   private addStreetBlocker(x: number, z: number, radius: number): void {
@@ -1329,7 +1398,8 @@ export class GameWorld implements PlayerController {
         if (position.distanceTo(cluePosition) < 1.85) next = clue
       }
     }
-    for (const marker of this.sideMarkers) {
+    const activeSideMarkers = this.hillsideStreet.visible ? this.streetSideMarkers : this.sideMarkers
+    for (const marker of activeSideMarkers) {
       if (marker.district !== this.save.district || !marker.mesh.visible) continue
       const markerPosition = new Vector3(...marker.position)
       if (position.distanceTo(markerPosition) < 1.85) next = marker
@@ -1385,10 +1455,15 @@ export class GameWorld implements PlayerController {
     if (marker.id === 'signal-repair') {
       this.signalBulb?.color.set('#78c271')
       this.signalBulb?.emissive.set('#4f9e5a')
+      this.streetSignalBulb?.color.set('#78c271')
+      this.streetSignalBulb?.emissive.set('#4f9e5a')
       this.playTone(698)
     }
     if (marker.id === 'bell-chime') {
       this.chorusFireflies.visible = true
+      this.streetChorusFireflies.visible = true
+      this.streetBellGlow?.emissive.set('#d8894d')
+      if (this.streetBellGlow) this.streetBellGlow.emissiveIntensity = 0.6
       this.playTone(880)
     }
     if (marker.id === 'harbour-pump') {
@@ -1409,11 +1484,12 @@ export class GameWorld implements PlayerController {
   }
 
   private updateSideQuestMarkers(): void {
-    for (const marker of this.sideMarkers) {
+    for (const marker of [...this.sideMarkers, ...this.streetSideMarkers]) {
       const stage = this.save.quest[marker.sideQuest]
       marker.mesh.visible = stage === marker.requiredStage
     }
     this.chorusFireflies.visible = this.save.quest.chorus === 'complete'
+    this.streetChorusFireflies.visible = this.save.quest.chorus === 'complete'
   }
 
   private enterStation(): void {

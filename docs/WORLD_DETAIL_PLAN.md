@@ -23,7 +23,7 @@ The globe is therefore a macro preview only for Hillside. Its route objects are 
 
 1. Give Harbour Works and Moonhill their own named, flat local coordinate frames.
 2. Add high-density terrain details to Hillside: slopes, stairs, retaining walls and authored collision edges.
-3. Move existing side-route props into the flat Hillside district.
+3. ✅ Move existing Hillside side-route props into the playable district: depot lens/signal and tune card/hill bell routes.
 4. Extend the authored kerb, retaining-wall, rail, plant and building-front modules into the collision-aware street zone.
 5. Transition L0 → L1 → L2 without a loading screen; fade or occlude the macro sphere beyond the local horizon.
 
