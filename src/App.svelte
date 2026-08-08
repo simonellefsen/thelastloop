@@ -230,7 +230,7 @@
         <span>↗</span>
         {hud.nearbyLabel || 'Explore'}
       </button>
-      <p class="controls-tip">Move with the left thumb. Approach glowing markers, then interact.</p>{/if}
+      <p class="controls-tip">Move with the left thumb. When the gold button says Investigate, tap it to collect the clue.</p>{/if}
     </section>
   {/if}
 </main>

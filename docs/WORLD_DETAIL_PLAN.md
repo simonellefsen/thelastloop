@@ -15,15 +15,15 @@ The title should read as a small spherical planet. Once the player enters, the c
 
 ## Current implementation
 
-The title remains a spherical overview. On entering, the camera now zooms over about one second into a lower, tighter 40-degree street view. This immediately reduces the visible curvature and makes the player and landmarks legible at human scale.
+The title remains a spherical overview. On entering Hillside, the game now switches to a distinct, flat street district: an upright station town with a road, paths, lamps, benches, trees and purpose-built building blockers. The camera and player use world-up rather than a spherical normal, so the player, houses and props remain stable at street scale.
 
-The hillside also now has the first visual L2 kit: a marked station road, kerbs, two pedestrian paths, a retaining wall, bakery frontage, benches, lamps and planted boxes. These pieces are deliberately tangent to their local globe caps, so the player sees street-scale surfaces before the underlying collision terrain is replaced. Buildings use conservative local exclusion zones now; the future terrain mesh will replace these simple circular blockers with authored walls, doors and kerbs.
+The globe is therefore a macro preview only for Hillside. Its route objects are intentionally not reused as the playable collision layer. Amber clues are placed in the flat district and show an explicit `Investigate …` action when the player enters range.
 
 ## Next terrain foundation
 
-1. Give each district a named local coordinate frame anchored to its globe cap.
-2. Build a high-density tangent terrain mesh for that frame, including road, pavement, path, slope and stair surfaces.
-3. Move player ground following from the broad sphere to the active local mesh; retain the globe only as a macro silhouette.
+1. Give Harbour Works and Moonhill their own named, flat local coordinate frames.
+2. Add high-density terrain details to Hillside: slopes, stairs, retaining walls and authored collision edges.
+3. Move existing side-route props into the flat Hillside district.
 4. Extend the authored kerb, retaining-wall, rail, plant and building-front modules into the collision-aware street zone.
 5. Transition L0 → L1 → L2 without a loading screen; fade or occlude the macro sphere beyond the local horizon.
 

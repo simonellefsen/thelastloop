@@ -70,6 +70,7 @@ export class GameWorld implements PlayerController {
   private readonly scene = new Scene()
   private readonly camera = new PerspectiveCamera(40, 1, 0.1, 120)
   private readonly root = new Group()
+  private readonly hillsideStreet = new Group()
   private readonly harbourWorld = new Group()
   private readonly observatoryWorld = new Group()
   private readonly player = new Group()
@@ -81,8 +82,10 @@ export class GameWorld implements PlayerController {
   private readonly clock = { last: performance.now(), elapsed: 0 }
   private readonly keys = new Set<string>()
   private readonly clues: Clue[] = []
+  private readonly streetClues: Clue[] = []
   private readonly sideMarkers: SideMarker[] = []
   private readonly blockersByDistrict: Record<DistrictId, SphericalBlocker[]> = { hillside: [], harbour: [], observatory: [] }
+  private readonly streetBlockers: Array<{ center: Vector3; radius: number }> = []
   private readonly ambient = new Group()
   private readonly harbourAmbient = new Group()
   private readonly resizeObserver: ResizeObserver
@@ -91,6 +94,8 @@ export class GameWorld implements PlayerController {
   private readonly onResize = () => this.resize()
   private readonly onVisibilityChange = () => this.handleVisibilityChange()
   private currentNormal = new Vector3()
+  private streetPosition = new Vector3(0, 0, 7.4)
+  private streetForward = new Vector3(0, 0, -1)
   private playerForward = new Vector3(0, 0, -1)
   private joystick = new Vector2()
   private started = false
@@ -98,7 +103,9 @@ export class GameWorld implements PlayerController {
   private entryCameraProgress = 1
   private nearby: Clue | SideMarker | 'station-keeper' | 'station-door' | undefined
   private stationSign: Sprite | undefined
+  private streetStationSign: Sprite | undefined
   private stationDoorPosition = new Vector3()
+  private streetStationDoorPosition = new Vector3(0, 0, 0.9)
   private playerCoat: MeshLambertMaterial | undefined
   private signalBulb: MeshLambertMaterial | undefined
   private harbourBeacon: MeshLambertMaterial | undefined
@@ -131,6 +138,7 @@ export class GameWorld implements PlayerController {
     this.scene.add(sun)
 
     this.ground = this.createWorld()
+    this.createHillsideStreetWorld()
     this.createPlayer()
     this.createHarbourWorld()
     this.createObservatoryWorld()
@@ -152,6 +160,7 @@ export class GameWorld implements PlayerController {
 
   setTitlePreview(district: DistrictId): void {
     if (this.started) return
+    this.hillsideStreet.visible = false
     this.root.visible = district === 'hillside'
     this.ambient.visible = district === 'hillside'
     this.harbourWorld.visible = district === 'harbour'
@@ -176,7 +185,8 @@ export class GameWorld implements PlayerController {
       this.emitHud('Moonhill is quiet beneath the stars.', 'Find the starlight lens, then align the telescope.')
       return
     }
-    this.emitHud('Find three fragments of the station name.', 'Walk to the glowing amber markers.')
+    this.enterHillsideStreet()
+    this.emitHud('Find three fragments of the station name.', 'Follow the amber beacons and tap Investigate when the button appears.')
   }
 
   setJoystick(input: { x: number; y: number }): void {
@@ -234,9 +244,7 @@ export class GameWorld implements PlayerController {
     if (!this.inStation) return
     this.inStation = false
     this.stationInterior.visible = false
-    this.root.visible = true
-    this.ambient.visible = true
-    this.player.visible = true
+    this.enterHillsideStreet()
     this.save.district = 'hillside'
     this.soundscape.setProfile(soundscapeProfile(this.save.quest))
     this.emitHud('The route map now leads to Harbour Works.', 'Moonhill Observatory is still waiting for its story.')
@@ -331,6 +339,149 @@ export class GameWorld implements PlayerController {
     this.addRailLoop()
     this.addDistrict()
     return ground
+  }
+
+  private createHillsideStreetWorld(): void {
+    this.hillsideStreet.visible = false
+    const ground = new Mesh(new PlaneGeometry(42, 38, 16, 14), new MeshLambertMaterial({ color: '#79bd68', flatShading: true, side: DoubleSide }))
+    ground.rotation.x = -Math.PI / 2
+    this.hillsideStreet.add(ground)
+
+    const road = new Mesh(new BoxGeometry(4.2, 0.12, 28), new MeshLambertMaterial({ color: '#516d71', flatShading: true }))
+    road.position.set(0, 0.06, -1)
+    this.hillsideStreet.add(road)
+    const pathMaterial = new MeshLambertMaterial({ color: '#d8d2b2', flatShading: true })
+    for (const [x, z, width, length] of [[-6, -2, 2.2, 10], [6.2, -4.4, 2.2, 9], [0, -10, 6.5, 2.1]] as Array<[number, number, number, number]>) {
+      const path = new Mesh(new BoxGeometry(width, 0.1, length), pathMaterial)
+      path.position.set(x, 0.05, z)
+      this.hillsideStreet.add(path)
+    }
+    const paint = new MeshLambertMaterial({ color: '#f2e7b9', flatShading: true })
+    for (let z = -12; z <= 10; z += 2.2) {
+      const dash = new Mesh(new BoxGeometry(0.1, 0.03, 0.75), paint)
+      dash.position.set(0, 0.14, z)
+      this.hillsideStreet.add(dash)
+    }
+
+    this.addFlatBuilding(0, -1.7, '#e7dbbc', '#36565b', 'STATION')
+    this.addFlatBuilding(6.8, -4.7, '#d8d4c5', '#be7654', 'BAKERY')
+    this.addFlatBuilding(-6.8, -7.3, '#e2c971', '#4e6970', 'HOME')
+    this.addFlatBuilding(-7.1, 5.3, '#c9ded6', '#50666a', 'DEPOT')
+    this.addFlatKeeper(0, 2.2)
+    this.addFlatClue('signal', 'Signal box', -7.2, -0.5, 'The brass plate reads: “Every last train returns in a LOOP.”')
+    this.addFlatClue('mural', 'Market mural', 7.2, -1.7, 'A faded market mural shows the town under a gold SUNSET.')
+    this.addFlatClue('bell', 'Hill bell', 0, -11.2, 'The hill bell rings once: the old sign needs the last word—LOOP.')
+    this.addStreetBlocker(0, -1.7, 1.75)
+    this.addStreetBlocker(6.8, -4.7, 1.75)
+    this.addStreetBlocker(-6.8, -7.3, 1.75)
+    this.addStreetBlocker(-7.1, 5.3, 1.75)
+    this.addFlatStreetFurniture()
+    this.scene.add(this.hillsideStreet)
+  }
+
+  private addFlatBuilding(x: number, z: number, wall: string, roofColor: string, label: string): void {
+    const building = new Group()
+    const body = new Mesh(new BoxGeometry(2.6, 1.7, 2.05), new MeshLambertMaterial({ color: wall, flatShading: true }))
+    body.position.y = 0.85
+    building.add(body)
+    const roof = new Mesh(new ConeGeometry(1.75, 0.82, 4), new MeshLambertMaterial({ color: roofColor, flatShading: true }))
+    roof.rotation.y = Math.PI / 4
+    roof.position.y = 2.08
+    building.add(roof)
+    for (const windowX of [-0.68, 0.68]) {
+      const window = new Mesh(new PlaneGeometry(0.48, 0.48), new MeshLambertMaterial({ color: '#274a54', side: DoubleSide }))
+      window.position.set(windowX, 1.04, 1.031)
+      building.add(window)
+    }
+    building.position.set(x, 0, z)
+    this.hillsideStreet.add(building)
+    if (label === 'STATION') {
+      const door = new Mesh(new PlaneGeometry(0.58, 0.92), new MeshLambertMaterial({ color: '#3b7680', side: DoubleSide }))
+      door.position.set(0, 0.5, 1.04)
+      building.add(door)
+      const sign = this.createSign(this.save.quest.stationNameRestored ? 'SUNSET LOOP' : '____ ____', this.save.quest.stationNameRestored ? '#f8d34e' : '#efeee2')
+      sign.position.set(0, 2.56, 1.13)
+      building.add(sign)
+      this.streetStationSign = sign
+      this.streetStationDoorPosition.set(x, 0, z + 1.15)
+    }
+  }
+
+  private addFlatKeeper(x: number, z: number): void {
+    const keeper = new Group()
+    const coat = new Mesh(new CylinderGeometry(0.3, 0.37, 0.92, 6), new MeshLambertMaterial({ color: '#d25f4b', flatShading: true }))
+    coat.position.y = 0.56
+    keeper.add(coat)
+    const head = new Mesh(new SphereGeometry(0.26, 8, 6), new MeshLambertMaterial({ color: '#dca48a', flatShading: true }))
+    head.position.y = 1.2
+    keeper.add(head)
+    const hat = new Mesh(new CylinderGeometry(0.34, 0.34, 0.11, 8), new MeshLambertMaterial({ color: '#314955', flatShading: true }))
+    hat.position.y = 1.44
+    keeper.add(hat)
+    keeper.position.set(x, 0, z)
+    this.hillsideStreet.add(keeper)
+  }
+
+  private addFlatClue(id: ClueId, label: string, x: number, z: number, text: string): void {
+    const marker = new Group()
+    const base = new Mesh(new CylinderGeometry(0.28, 0.33, 0.42, 5), new MeshLambertMaterial({ color: '#de9348', flatShading: true }))
+    base.position.y = 0.21
+    marker.add(base)
+    const beacon = new Mesh(new CylinderGeometry(0.05, 0.07, 0.95, 5), new MeshLambertMaterial({ color: '#c9793d', flatShading: true }))
+    beacon.position.y = 0.72
+    marker.add(beacon)
+    const glow = new Mesh(new SphereGeometry(0.27, 8, 6), new MeshLambertMaterial({ color: '#f8dc69', emissive: new Color('#f3b34c'), emissiveIntensity: 1, flatShading: true }))
+    glow.position.y = 1.28
+    marker.add(glow)
+    const labelSprite = this.createSign(label, '#fff5d8', 256, 72)
+    labelSprite.scale.set(1.55, 0.43, 1)
+    labelSprite.position.y = 1.84
+    marker.add(labelSprite)
+    marker.position.set(x, 0, z)
+    this.hillsideStreet.add(marker)
+    this.streetClues.push({ id, label, text, mesh: marker, position: [x, 0, z] })
+  }
+
+  private addStreetBlocker(x: number, z: number, radius: number): void {
+    this.streetBlockers.push({ center: new Vector3(x, 0, z), radius })
+  }
+
+  private addFlatStreetFurniture(): void {
+    const poleMaterial = new MeshLambertMaterial({ color: '#36535a', flatShading: true })
+    for (const [x, z] of [[-2.5, 3.5], [2.5, -6.8], [-4.8, -4.6], [4.9, -1.2]]) {
+      const lamp = new Group()
+      const pole = new Mesh(new CylinderGeometry(0.055, 0.08, 1.8, 6), poleMaterial)
+      pole.position.y = 0.9
+      lamp.add(pole)
+      const bulb = new Mesh(new SphereGeometry(0.12, 7, 5), new MeshLambertMaterial({ color: '#ffe38c', emissive: new Color('#d89b48'), emissiveIntensity: 0.72, flatShading: true }))
+      bulb.position.y = 1.72
+      lamp.add(bulb)
+      lamp.position.set(x, 0, z)
+      this.hillsideStreet.add(lamp)
+    }
+    for (const [x, z] of [[-2.5, -2.2], [3.2, -8.7]]) {
+      const bench = new Group()
+      const wood = new MeshLambertMaterial({ color: '#805a43', flatShading: true })
+      const seat = new Mesh(new BoxGeometry(1.15, 0.14, 0.36), wood)
+      seat.position.y = 0.42
+      bench.add(seat)
+      const back = new Mesh(new BoxGeometry(1.15, 0.34, 0.1), wood)
+      back.position.set(0, 0.63, 0.13)
+      bench.add(back)
+      bench.position.set(x, 0, z)
+      this.hillsideStreet.add(bench)
+    }
+    for (const [x, z] of [[-3.6, 0.8], [3.8, -3.3], [-4.2, -8.5], [4.2, -8.8]]) {
+      const tree = new Group()
+      const trunk = new Mesh(new CylinderGeometry(0.1, 0.15, 1.05, 5), new MeshLambertMaterial({ color: '#6b5041', flatShading: true }))
+      trunk.position.y = 0.52
+      tree.add(trunk)
+      const crown = new Mesh(new ConeGeometry(0.95, 1.8, 6), new MeshLambertMaterial({ color: '#3e815e', flatShading: true }))
+      crown.position.y = 1.7
+      tree.add(crown)
+      tree.position.set(x, 0, z)
+      this.hillsideStreet.add(tree)
+    }
   }
 
   private createHarbourWorld(): void {
@@ -924,8 +1075,10 @@ export class GameWorld implements PlayerController {
     this.stationInterior.visible = false
     this.inStation = false
     this.root.visible = false
+    this.hillsideStreet.visible = false
     this.ambient.visible = false
     this.root.remove(this.player)
+    this.hillsideStreet.remove(this.player)
     this.harbourWorld.add(this.player)
     this.harbourWorld.visible = true
     this.harbourAmbient.visible = true
@@ -940,10 +1093,12 @@ export class GameWorld implements PlayerController {
     this.stationInterior.visible = false
     this.inStation = false
     this.root.visible = false
+    this.hillsideStreet.visible = false
     this.ambient.visible = false
     this.harbourWorld.visible = false
     this.harbourAmbient.visible = false
     this.root.remove(this.player)
+    this.hillsideStreet.remove(this.player)
     this.harbourWorld.remove(this.player)
     this.observatoryWorld.add(this.player)
     this.observatoryWorld.visible = true
@@ -990,11 +1145,14 @@ export class GameWorld implements PlayerController {
   }
 
   private setStationSign(text: string, color: string): void {
-    if (!this.stationSign) return
     const replacement = this.createSign(text, color)
-    this.stationSign.material.map?.dispose()
-    this.stationSign.material.dispose()
-    this.stationSign.material = replacement.material
+    for (const sign of [this.stationSign, this.streetStationSign]) {
+      if (!sign) continue
+      sign.material.map?.dispose()
+      sign.material.dispose()
+      sign.material = replacement.material.clone()
+    }
+    replacement.material.dispose()
   }
 
   private tick = (): void => {
@@ -1016,6 +1174,10 @@ export class GameWorld implements PlayerController {
   }
 
   private updatePlayer(delta: number): void {
+    if (this.hillsideStreet.visible) {
+      this.updateHillsideStreetPlayer(delta)
+      return
+    }
     this.entryCameraProgress = Math.min(1, this.entryCameraProgress + delta / 1.05)
     const keyboard = new Vector2(
       (this.keys.has('d') || this.keys.has('arrowright') ? 1 : 0) - (this.keys.has('a') || this.keys.has('arrowleft') ? 1 : 0),
@@ -1049,6 +1211,46 @@ export class GameWorld implements PlayerController {
     this.camera.position.lerp(cameraPosition, 0.13)
     this.camera.up.copy(this.currentNormal)
     this.camera.lookAt(playerPosition.clone().addScaledVector(facing, profile.lookAhead).addScaledVector(this.currentNormal, 0.42))
+    this.findNearby(playerPosition)
+  }
+
+  private enterHillsideStreet(): void {
+    this.root.visible = false
+    this.ambient.visible = false
+    this.hillsideStreet.visible = true
+    this.root.remove(this.player)
+    this.hillsideStreet.add(this.player)
+    this.player.visible = true
+    this.streetPosition.set(0, 0, 7.4)
+    this.streetForward.set(0, 0, -1)
+  }
+
+  private updateHillsideStreetPlayer(delta: number): void {
+    const keyboard = new Vector2(
+      (this.keys.has('d') || this.keys.has('arrowright') ? 1 : 0) - (this.keys.has('a') || this.keys.has('arrowleft') ? 1 : 0),
+      (this.keys.has('w') || this.keys.has('arrowup') ? 1 : 0) - (this.keys.has('s') || this.keys.has('arrowdown') ? 1 : 0),
+    )
+    const input = this.joystick.lengthSq() > 0.002 ? this.joystick.clone() : keyboard
+    if (input.lengthSq() > 0) {
+      input.normalize()
+      const direction = new Vector3(input.x, 0, -input.y).normalize()
+      const candidate = this.streetPosition.clone().addScaledVector(direction, delta * 4.2)
+      const inBounds = Math.abs(candidate.x) < 18.5 && candidate.z < 14.5 && candidate.z > -15.5
+      const clearOfBuildings = this.streetBlockers.every((blocker) => candidate.distanceTo(blocker.center) > blocker.radius)
+      if (inBounds && clearOfBuildings) {
+        this.streetPosition.copy(candidate)
+        this.streetForward.lerp(direction, 0.22).normalize()
+      }
+    }
+    const playerPosition = this.streetPosition.clone().setY(0.04)
+    this.player.position.copy(playerPosition)
+    this.player.quaternion.identity()
+    this.player.rotation.y = Math.atan2(this.streetForward.x, this.streetForward.z)
+
+    const cameraPosition = playerPosition.clone().addScaledVector(this.streetForward, -6.8).add(new Vector3(0, 4.2, 0))
+    this.camera.position.lerp(cameraPosition, 0.16)
+    this.camera.up.copy(UP)
+    this.camera.lookAt(playerPosition.clone().addScaledVector(this.streetForward, 3.2).add(new Vector3(0, 0.95, 0)))
     this.findNearby(playerPosition)
   }
 
@@ -1100,10 +1302,11 @@ export class GameWorld implements PlayerController {
   private findNearby(position: Vector3): void {
     let next: Clue | SideMarker | 'station-keeper' | 'station-door' | undefined
     if (this.save.district === 'hillside') {
-      const keeperPosition = this.normalAt(0.47, -0.14).multiplyScalar(PLANET_RADIUS)
+      const keeperPosition = this.hillsideStreet.visible ? new Vector3(0, 0, 2.2) : this.normalAt(0.47, -0.14).multiplyScalar(PLANET_RADIUS)
       if (position.distanceTo(keeperPosition) < 2) next = 'station-keeper'
-      if (this.save.quest.stationNameRestored && position.distanceTo(this.stationDoorPosition) < 2.45) next = 'station-door'
-      for (const clue of this.clues) {
+      const stationDoor = this.hillsideStreet.visible ? this.streetStationDoorPosition : this.stationDoorPosition
+      if (this.save.quest.stationNameRestored && position.distanceTo(stationDoor) < 2.45) next = 'station-door'
+      for (const clue of this.hillsideStreet.visible ? this.streetClues : this.clues) {
         if (!clue.mesh.visible) continue
         const cluePosition = new Vector3(...clue.position)
         if (position.distanceTo(cluePosition) < 1.85) next = clue
@@ -1137,7 +1340,7 @@ export class GameWorld implements PlayerController {
   }
 
   private currentHud(): GameHud {
-    const nearbyLabel = this.nearby === 'station-keeper' ? 'Talk' : this.nearby === 'station-door' ? 'Enter station' : this.nearby?.label ?? ''
+    const nearbyLabel = this.nearby === 'station-keeper' ? 'Talk' : this.nearby === 'station-door' ? 'Enter station' : this.nearby ? `Investigate ${this.nearby.label}` : ''
     return {
       hint: this.displayedHint || this.hint(),
       dialogue: this.displayedDialogue || this.dialogue(),
@@ -1193,6 +1396,7 @@ export class GameWorld implements PlayerController {
     this.inStation = true
     this.joystick.set(0, 0)
     this.root.visible = false
+    this.hillsideStreet.visible = false
     this.ambient.visible = false
     this.player.visible = false
     this.stationInterior.visible = true
