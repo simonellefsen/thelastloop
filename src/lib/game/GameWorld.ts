@@ -359,6 +359,11 @@ export class GameWorld implements PlayerController {
 
     const road = this.createRollingStreetSurface(4.2, 28, 0, -1, '#516d71', 0.08)
     this.hillsideStreet.add(road)
+    // A thin raised edge gives the main road a readable, walkable boundary without
+    // turning the district into a corridor. These follow the same local ground as
+    // the road so they keep the miniature rise-and-fall at street scale.
+    this.hillsideStreet.add(this.createRollingStreetSurface(0.16, 28, -2.18, -1, '#f0e8bd', 0.125))
+    this.hillsideStreet.add(this.createRollingStreetSurface(0.16, 28, 2.18, -1, '#f0e8bd', 0.125))
     for (const [x, z, width, length] of [[-6, -2, 2.2, 10], [6.2, -4.4, 2.2, 9], [0, -10, 6.5, 2.1]] as Array<[number, number, number, number]>) {
       const path = this.createRollingStreetSurface(width, length, x, z, '#d8d2b2', 0.07)
       this.hillsideStreet.add(path)
@@ -378,6 +383,7 @@ export class GameWorld implements PlayerController {
     this.addFlatClue('signal', 'Signal box', -7.2, -0.5, 'The brass plate reads: “Every last train returns in a LOOP.”')
     this.addFlatClue('mural', 'Market mural', 7.2, -1.7, 'A faded market mural shows the town under a gold SUNSET.')
     this.addFlatClue('bell', 'Hill bell', 0, -11.2, 'The hill bell rings once: the old sign needs the last word—LOOP.')
+    this.addHillsideTraversalDetail()
     this.addFlatSideRouteLandmarks()
     this.addStreetBlocker(0, -1.7, 1.75)
     this.addStreetBlocker(6.8, -4.7, 1.75)
@@ -385,6 +391,62 @@ export class GameWorld implements PlayerController {
     this.addStreetBlocker(-7.1, 5.3, 1.75)
     this.addFlatStreetFurniture()
     this.scene.add(this.hillsideStreet)
+  }
+
+  /** A first, deliberately compact authored connection from the road to the bell. */
+  private addHillsideTraversalDetail(): void {
+    const stairRun = new Group()
+    const stepMaterial = new MeshLambertMaterial({ color: '#d8d2b2', flatShading: true })
+    const riserMaterial = new MeshLambertMaterial({ color: '#b9ae8c', flatShading: true })
+    const startZ = -8.95
+    const stepDepth = 0.42
+
+    for (let index = 0; index < 6; index += 1) {
+      const z = startZ - index * stepDepth
+      const rise = index * 0.055
+      const step = new Mesh(new BoxGeometry(2.15, 0.13, stepDepth + 0.025), index % 2 === 0 ? stepMaterial : riserMaterial)
+      step.position.set(0, gentleStreetHeight(0, z) + rise + 0.065, z)
+      stairRun.add(step)
+    }
+
+    const railMaterial = new MeshLambertMaterial({ color: '#52666a', flatShading: true })
+    for (const x of [-1.18, 1.18]) {
+      const rail = new Mesh(new BoxGeometry(0.07, 0.07, 2.64), railMaterial)
+      rail.position.set(x, gentleStreetHeight(x, -10.02) + 0.58, -10.02)
+      stairRun.add(rail)
+      for (const z of [-9.05, -10.02, -10.99]) {
+        const post = new Mesh(new CylinderGeometry(0.055, 0.065, 0.72, 5), railMaterial)
+        post.position.set(x, gentleStreetHeight(x, z) + 0.36, z)
+        stairRun.add(post)
+      }
+    }
+
+    const retainingMaterial = new MeshLambertMaterial({ color: '#7a8774', flatShading: true })
+    for (const x of [-2.65, 2.65]) {
+      const wall = new Mesh(new BoxGeometry(0.24, 0.66, 3.1), retainingMaterial)
+      wall.position.set(x, gentleStreetHeight(x, -10.15) + 0.33, -10.15)
+      stairRun.add(wall)
+    }
+    this.hillsideStreet.add(stairRun)
+
+    // Small planted edges stop the broad street from reading as an empty plane and
+    // also receive local collision so the player cannot clip through them.
+    const planterMaterial = new MeshLambertMaterial({ color: '#815b43', flatShading: true })
+    const leafMaterial = new MeshLambertMaterial({ color: '#4e9361', flatShading: true })
+    for (const [x, z] of [[-3.2, -9.1], [3.2, -9.4]] as Array<[number, number]>) {
+      const planter = new Group()
+      const box = new Mesh(new BoxGeometry(1.15, 0.42, 0.52), planterMaterial)
+      box.position.y = 0.21
+      planter.add(box)
+      for (const leafX of [-0.3, 0, 0.3]) {
+        const leaf = new Mesh(new ConeGeometry(0.16, 0.52, 5), leafMaterial)
+        leaf.position.set(leafX, 0.56, 0)
+        planter.add(leaf)
+      }
+      planter.position.set(x, gentleStreetHeight(x, z), z)
+      this.hillsideStreet.add(planter)
+      this.addStreetBlocker(x, z, 0.68)
+    }
   }
 
   private createRollingStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number): Mesh {

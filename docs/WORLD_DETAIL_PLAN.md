@@ -15,14 +15,14 @@ The title should read as a small spherical planet. Once the player enters, the c
 
 ## Current implementation
 
-The title remains a spherical overview. On entering Hillside, the game now switches to a distinct, gently curved street district: an upright station town with a shallow rolling ground profile, road, paths, lamps, benches, trees and purpose-built building blockers. The camera and player use world-up rather than a spherical normal, so the player, houses and props remain stable at street scale while the ground still carries a miniature-world rise and fall.
+The title remains a spherical overview. On entering Hillside, the game now switches to a distinct, gently curved street district: an upright station town with a shallow rolling ground profile, road, paths, lamps, benches, trees and purpose-built building blockers. The first local connection is now a visible step-and-rail run toward the hill bell, with kerbed road edges, retaining walls and planted collision props. The camera and player use world-up rather than a spherical normal, so the player, houses and props remain stable at street scale while the ground still carries a miniature-world rise and fall.
 
 The globe is therefore a macro preview only for Hillside. Its route objects are intentionally not reused as the playable collision layer. Amber clues are placed in the flat district and show an explicit `Investigate …` action when the player enters range.
 
 ## Next terrain foundation
 
 1. Give Harbour Works and Moonhill their own named, flat local coordinate frames.
-2. Add high-density terrain details to Hillside: slopes, stairs, retaining walls and authored collision edges.
+2. ✅ Add the first Hillside terrain kit: steps, handrails, kerbs, retaining walls and authored planted collision edges.
 3. ✅ Move existing Hillside side-route props into the playable district: depot lens/signal and tune card/hill bell routes.
 4. Extend the authored kerb, retaining-wall, rail, plant and building-front modules into the collision-aware street zone.
 5. Transition L0 → L1 → L2 without a loading screen; fade or occlude the macro sphere beyond the local horizon.
