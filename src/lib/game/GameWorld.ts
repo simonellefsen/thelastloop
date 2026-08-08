@@ -376,6 +376,7 @@ export class GameWorld implements PlayerController {
     }
 
     this.addFlatBuilding(0, -1.7, '#a4493b', '#303f46', 'STATION')
+    this.addStationGate()
     this.addFlatBuilding(6.8, -4.7, '#d8d4c5', '#be7654', 'BAKERY')
     this.addFlatBuilding(-6.8, -7.3, '#e2c971', '#4e6970', 'HOME')
     this.addFlatBuilding(-7.1, 5.3, '#c9ded6', '#50666a', 'DEPOT')
@@ -730,6 +731,78 @@ export class GameWorld implements PlayerController {
     // The marker at x=0 remains clear at the top of the steps; only the tower
     // itself receives collision so the player cannot walk through the landmark.
     this.addStreetBlocker(towerX, towerZ, 0.94)
+  }
+
+  /** Arrival props and rail hardware make the station the town's lived-in anchor. */
+  private addStationGate(): void {
+    const platform = this.createRollingStreetSurface(8.75, 1.08, 0, -3.42, '#c7bd9d', 0.1)
+    this.hillsideStreet.add(platform)
+    const iron = new MeshLambertMaterial({ color: '#405b5e', flatShading: true })
+    const sleeperMaterial = new MeshLambertMaterial({ color: '#704f3d', flatShading: true })
+    for (const z of [-4.18, -4.72]) {
+      const rail = new Mesh(new BoxGeometry(9.1, 0.07, 0.08), iron)
+      rail.position.set(0, gentleStreetHeight(0, z) + 0.18, z)
+      this.hillsideStreet.add(rail)
+    }
+    for (let x = -4; x <= 4; x += 0.72) {
+      const sleeper = new Mesh(new BoxGeometry(0.42, 0.08, 1.0), sleeperMaterial)
+      sleeper.position.set(x, gentleStreetHeight(x, -4.45) + 0.12, -4.45)
+      this.hillsideStreet.add(sleeper)
+    }
+
+    const timetableX = 3.18
+    const timetableZ = 0.42
+    const boardFrame = new Mesh(new BoxGeometry(1.12, 1.28, 0.11), new MeshLambertMaterial({ color: '#34545a', flatShading: true }))
+    boardFrame.position.set(timetableX, gentleStreetHeight(timetableX, timetableZ) + 0.83, timetableZ)
+    this.hillsideStreet.add(boardFrame)
+    const boardFace = new Mesh(new PlaneGeometry(0.88, 0.9), new MeshLambertMaterial({ color: '#f0ead1', side: DoubleSide }))
+    boardFace.position.set(timetableX, gentleStreetHeight(timetableX, timetableZ) + 0.86, timetableZ + 0.062)
+    this.hillsideStreet.add(boardFace)
+    for (let index = 0; index < 4; index += 1) {
+      const routeLine = new Mesh(new BoxGeometry(0.58, 0.045, 0.025), new MeshLambertMaterial({ color: index === 1 ? '#c5654e' : '#6d8583', flatShading: true }))
+      routeLine.position.set(timetableX, gentleStreetHeight(timetableX, timetableZ) + 1.12 - index * 0.19, timetableZ + 0.077)
+      this.hillsideStreet.add(routeLine)
+    }
+    const timetableSign = this.createSign('LAST LOOP', '#eef1d6', 160, 42)
+    timetableSign.scale.set(0.88, 0.24, 1)
+    timetableSign.position.set(timetableX, gentleStreetHeight(timetableX, timetableZ) + 1.64, timetableZ)
+    this.hillsideStreet.add(timetableSign)
+
+    const cartX = -3.18
+    const cartZ = 0.3
+    const cartWood = new MeshLambertMaterial({ color: '#855e43', flatShading: true })
+    const cartBed = new Mesh(new BoxGeometry(1.18, 0.2, 0.72), cartWood)
+    cartBed.position.set(cartX, gentleStreetHeight(cartX, cartZ) + 0.48, cartZ)
+    this.hillsideStreet.add(cartBed)
+    for (const xOffset of [-0.42, 0.42]) {
+      const wheel = new Mesh(new TorusGeometry(0.16, 0.045, 5, 9), iron)
+      wheel.rotation.y = Math.PI / 2
+      wheel.position.set(cartX + xOffset, gentleStreetHeight(cartX + xOffset, cartZ) + 0.26, cartZ - 0.34)
+      this.hillsideStreet.add(wheel)
+    }
+    const caseOne = new Mesh(new BoxGeometry(0.45, 0.42, 0.42), new MeshLambertMaterial({ color: '#b46e45', flatShading: true }))
+    caseOne.position.set(cartX - 0.18, gentleStreetHeight(cartX, cartZ) + 0.79, cartZ)
+    this.hillsideStreet.add(caseOne)
+    const caseTwo = new Mesh(new BoxGeometry(0.38, 0.28, 0.36), new MeshLambertMaterial({ color: '#d0a257', flatShading: true }))
+    caseTwo.position.set(cartX + 0.28, gentleStreetHeight(cartX, cartZ) + 0.72, cartZ + 0.06)
+    this.hillsideStreet.add(caseTwo)
+
+    const benchMaterial = new MeshLambertMaterial({ color: '#765440', flatShading: true })
+    for (const [x, z] of [[-4.55, -0.2], [4.55, -0.45]] as Array<[number, number]>) {
+      const seat = new Mesh(new BoxGeometry(1.22, 0.14, 0.36), benchMaterial)
+      seat.position.set(x, gentleStreetHeight(x, z) + 0.42, z)
+      this.hillsideStreet.add(seat)
+      const back = new Mesh(new BoxGeometry(1.22, 0.3, 0.08), benchMaterial)
+      back.position.set(x, gentleStreetHeight(x, z) + 0.62, z + 0.14)
+      this.hillsideStreet.add(back)
+    }
+    for (const x of [-4.1, 4.1]) {
+      const bollard = new Mesh(new CylinderGeometry(0.09, 0.12, 0.74, 6), new MeshLambertMaterial({ color: '#4a6265', flatShading: true }))
+      bollard.position.set(x, gentleStreetHeight(x, 0.9) + 0.37, 0.9)
+      this.hillsideStreet.add(bollard)
+    }
+    this.addStreetBlocker(timetableX, timetableZ, 0.64)
+    this.addStreetBlocker(cartX, cartZ, 0.72)
   }
 
   private createRollingStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number): Mesh {

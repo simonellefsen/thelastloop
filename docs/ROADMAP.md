@@ -30,6 +30,7 @@
 - ✅ Build the Market Fold interaction pocket around the mural clue: paved square, original sunset mural, canopy, stalls, crates and bunting.
 - ✅ Build Signal Yard around the signal clue: brick hut, yard paving, open fence bay, switch wheel and service crate.
 - ✅ Build Bell Rise around the bell clue: paved terrace, original brick bell tower, visible bell and rope, railings and a resting bench.
+- ✅ Build Station Gate as the railway anchor: platform edge and rails, timetable board, luggage cart, benches and bollards.
 - Extend L2/L3 with rail hardware, dense interaction pockets and collision-aware terrain.
 - Add recorded ambience and music after an original audio session.
 

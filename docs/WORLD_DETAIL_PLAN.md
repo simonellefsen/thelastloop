@@ -25,13 +25,13 @@ Ravnbro is not a recreation of Ribe. It borrows a useful spatial idea from well-
 
 | Pocket | Player purpose | Detail kit | Route connection |
 | --- | --- | --- | --- |
-| Station Gate | Arrival, keeper, restored name | Station sign, timber canopy, raised pavement, luggage cart | Main street and platform stair |
+| Station Gate | Arrival, keeper, restored name | Station sign, platform edge and rails, timetable board, luggage cart, benches and bollards | Main street and platform stair |
 | Market Fold | Mural clue and tune-card side quest | Paved market square, original sunset mural, canopy, crates and bunting | Narrow lane to the east of the station |
 | Signal Yard | Lens route | Brick signal hut, open fence bay, switch wheel, green lamp and service crate | Small service alley behind the northern frontage |
 | Bell Rise | Bell clue and step route | Paved terrace, handrails, retaining wall, original bell tower, visible bell and bench | Six-step route from the road, then a sloped back path |
 | Reedwater Edge | Quiet atmosphere and future harbour transition | Low bridge, reeds, mooring posts, water shimmer and flood marker | South-west lane, visually below the station town |
 
-The first gameplay pass keeps the present route footprint. It now has the first Ravnbro frontage kit: timber-frame grids on the remaining buildings, a bakehouse awning, depot yard sign and a service-lane threshold. The Market Fold gives the mural clue a paved, collision-aware interaction pocket with original street art and market props; Signal Yard and Bell Rise now do the same for the remaining two main clues without obscuring their approaches. Future detail should join those short frontage groups into offset runs so that paths naturally reveal courtyards and landmarks. Buildings remain purpose-built abstractions: the reference informs scale, materials and circulation, not individual façades or a real map.
+The first gameplay pass keeps the present route footprint. It now has the first Ravnbro frontage kit: timber-frame grids on the remaining buildings, a bakehouse awning, depot yard sign and a service-lane threshold. Station Gate now establishes the railway anchor with platform hardware, luggage and waiting props; Market Fold, Signal Yard and Bell Rise make all three main clues clear interaction pockets without obscuring their approaches. Future detail should join those short frontage groups into offset runs so that paths naturally reveal courtyards and landmarks. Buildings remain purpose-built abstractions: the reference informs scale, materials and circulation, not individual façades or a real map.
 
 ## Next terrain foundation
 
