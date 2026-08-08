@@ -1,0 +1,68 @@
+:root {
+  font-family: ui-rounded, "Avenir Next", Avenir, "Trebuchet MS", sans-serif;
+  color: #172d33;
+  background: #143943;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #app, main { width: 100%; min-width: 100%; min-height: 100%; height: 100%; margin: 0; overflow: hidden; }
+body { overscroll-behavior: none; touch-action: none; }
+button { font: inherit; }
+
+.game-host { position: fixed; inset: 0; background: radial-gradient(circle at 50% 30%, #8edbd0, #317e89 67%, #143943); }
+.game-host canvas { display: block; width: 100%; height: 100%; }
+
+.title-screen, .unsupported { position: fixed; inset: 0; display: grid; place-content: center; text-align: center; padding: 24px; color: #fff9df; pointer-events: none; }
+.title-screen::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(9, 38, 46, .18), rgba(9, 38, 46, .38)); z-index: -1; }
+.eyebrow { margin: 0 0 8px; font-size: clamp(.62rem, 1.6vw, .78rem); font-weight: 800; letter-spacing: .18em; }
+h1 { margin: 0; max-width: 760px; color: #fff4cd; text-shadow: 3px 4px 0 #17333a, 0 0 30px rgba(255,255,255,.16); font-size: clamp(3.4rem, 12vw, 8.8rem); line-height: .76; letter-spacing: -.08em; transform: rotate(-2deg); }
+h1 span { display: inline-block; font-size: .39em; letter-spacing: -.08em; vertical-align: middle; }
+.title-copy { max-width: 370px; margin: 26px auto 18px; color: #effbdc; font-size: clamp(.95rem, 2vw, 1.2rem); line-height: 1.35; }
+.enter-button { pointer-events: auto; justify-self: center; border: 3px solid #27393e; border-radius: 7px; padding: 13px 28px; background: #f5c94d; box-shadow: 0 5px 0 #b66b2d, 0 9px 18px rgba(0,0,0,.28); color: #1d3439; cursor: pointer; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; transform: rotate(-1deg); }
+.enter-button:hover { background: #ffe075; transform: translateY(-2px) rotate(-1deg); }
+.title-tip { margin: 23px 0 0; color: rgba(255,255,255,.78); font-size: .72rem; letter-spacing: .08em; }
+
+.hud { position: fixed; inset: 0; pointer-events: none; color: #173138; }
+.hud header { position: absolute; top: max(14px, env(safe-area-inset-top)); left: max(18px, env(safe-area-inset-left)); right: max(18px, env(safe-area-inset-right)); display: flex; justify-content: space-between; align-items: center; }
+.wordmark { color: #fff5d6; font-size: clamp(.75rem, 2vw, 1rem); font-weight: 900; letter-spacing: .1em; text-shadow: 2px 2px 0 #183a42; }
+.sound-button, .interact-button { pointer-events: auto; border: 2px solid #264048; background: #fff8db; box-shadow: 2px 3px 0 rgba(20,52,59,.55); color: #193940; cursor: pointer; }
+.sound-button { width: 43px; height: 43px; border-radius: 8px; font-size: 1.3rem; font-weight: 900; }
+.quest-card { position: absolute; top: max(64px, calc(env(safe-area-inset-top) + 48px)); right: max(16px, env(safe-area-inset-right)); width: min(235px, 29vw); padding: 12px 14px; border: 2px solid #2a4b51; border-radius: 7px; background: rgba(255, 249, 222, .94); box-shadow: 3px 4px 0 rgba(26, 61, 67, .45); transform: rotate(1deg); }
+.quest-card .eyebrow { color: #b55040; font-size: .58rem; }
+.quest-card h2 { margin: 0 0 8px; font-size: clamp(.75rem, 1.6vw, 1rem); line-height: 1; }
+.quest-card ul { display: grid; gap: 4px; padding: 0; margin: 0; list-style: none; font-size: clamp(.64rem, 1.3vw, .8rem); }
+.quest-card li { color: #68777a; }
+.quest-card li span { display: inline-block; width: 16px; font-weight: 900; color: #ca7350; }
+.quest-card li.done { color: #1b4e4d; text-decoration: line-through; }
+.quest-card li.done span { color: #438161; }
+.dialogue { position: absolute; left: 50%; bottom: max(17px, env(safe-area-inset-bottom)); width: min(500px, 48vw); padding: 13px 16px; transform: translateX(-50%) rotate(-.6deg); border: 2px solid #29474e; border-radius: 5px; background: #fff9e7; box-shadow: 3px 4px 0 rgba(25,55,61,.5); }
+.dialogue.complete { background: #fff0b5; }
+.dialogue p { margin: 0; font-size: clamp(.75rem, 1.7vw, 1rem); font-weight: 800; line-height: 1.25; }
+.dialogue small { display: block; margin-top: 5px; color: #5d6c6d; font-size: clamp(.57rem, 1.2vw, .7rem); }
+.joystick { position: absolute; bottom: max(23px, env(safe-area-inset-bottom)); left: max(22px, env(safe-area-inset-left)); width: clamp(82px, 16vw, 122px); height: clamp(82px, 16vw, 122px); border: 3px solid rgba(255, 250, 221, .72); border-radius: 50%; background: rgba(16, 55, 63, .3); pointer-events: auto; touch-action: none; }
+.joystick::after { content: "MOVE"; position: absolute; inset: 50% auto auto 50%; color: rgba(255,255,255,.78); font-size: .55rem; font-weight: 900; letter-spacing: .12em; transform: translate(-50%, -50%); }
+.joystick-knob { position: absolute; top: 25%; left: 25%; width: 50%; height: 50%; border: 3px solid #25464d; border-radius: 50%; background: #f2c758; box-shadow: 2px 3px 0 rgba(0,0,0,.22); }
+.interact-button { position: absolute; right: max(20px, env(safe-area-inset-right)); bottom: max(24px, env(safe-area-inset-bottom)); min-width: 96px; min-height: 72px; padding: 8px 11px; border-radius: 11px; font-size: .66rem; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
+.interact-button span { display: block; color: #c85b46; font-size: 1.3rem; line-height: 1; }
+.interact-button:disabled { opacity: .63; cursor: default; }
+.interact-button.ready { background: #f9d65b; animation: pulse 1.4s ease-in-out infinite; }
+.controls-tip { position: absolute; left: 50%; bottom: max(7px, calc(env(safe-area-inset-bottom) - 1px)); margin: 0; transform: translateX(-50%); color: rgba(255,255,255,.76); font-size: .59rem; white-space: nowrap; text-shadow: 1px 1px 0 #183a42; }
+.unsupported { background: #193c45; }
+.unsupported h1 { font-size: clamp(2rem, 7vw, 4rem); line-height: .95; }
+
+@keyframes pulse { 50% { transform: translateY(-3px) rotate(1deg); } }
+@media (max-width: 650px) {
+  .quest-card { top: 48px; width: 170px; padding: 8px 10px; }
+  .quest-card h2 { margin-bottom: 5px; }
+  .quest-card ul { gap: 2px; }
+  .dialogue { width: 43vw; padding: 9px 10px; }
+  .controls-tip { display: none; }
+}
+@media (orientation: portrait) {
+  .title-screen::after { content: "For the best journey, turn your phone sideways."; position: fixed; bottom: 20px; left: 30px; right: 30px; color: #fff9df; font-size: .78rem; }
+  .quest-card { display: none; }
+  .dialogue { width: 62vw; bottom: 15px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }

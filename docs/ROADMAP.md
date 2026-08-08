@@ -1,0 +1,20 @@
+# Roadmap
+
+## Released vertical slice
+
+- Rotating mini-globe title scene.
+- Curved hillside town with a rail loop, paths, steps and purpose-built low-poly props.
+- iPhone landscape controls and desktop keyboard fallback.
+- Station-name quest, local save, ambient birds, butterflies, clouds and interaction chimes.
+
+## Next: richer town
+
+- Add station interiors, route map, character customisation and two more self-contained quests.
+- Expand original audio from synthesized interaction tones to recorded ambience and music.
+- Build the industrial harbour and forest observatory as distinct globe districts.
+
+## Later: shared loop
+
+- Introduce anonymous player identities and a small room directory.
+- Host a persistent WebSocket service outside Vercel and synchronise movement with interpolation.
+- Keep quests, NPCs and ambient animation local unless they need shared state.

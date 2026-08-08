@@ -1,0 +1,26 @@
+# The Last Loop
+
+A tiny, original railway world built for iPhone landscape and the browser. Walk a hillside station town, recover its forgotten name, and restore the first route.
+
+## Development
+
+```bash
+pnpm install
+pnpm dev
+pnpm check
+pnpm test
+pnpm build
+```
+
+## Deployment
+
+The frontend is a static Vite application deployed to Vercel. The production project is named `thelastloop`.
+
+```bash
+vercel link --project thelastloop
+vercel --prod
+```
+
+The required production domain is `https://thelastloop.vercel.app/`. Do not substitute a fallback hostname without an explicit product decision.
+
+See [the design brief](docs/DESIGN.md) and [the roadmap](docs/ROADMAP.md) for the story, visual rules and future multiplayer boundary.
