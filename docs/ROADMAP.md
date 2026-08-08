@@ -31,6 +31,7 @@
 - Add further authored terrain and collision edges to the three districts.
 - ✅ Expand Harbour Works with a collision-aware Outer Pier: planked dock, safety rails, cargo and a beacon tower form a walkable waterfront destination.
 - ✅ Expand Moonhill with the collision-aware Wind Lookout: shelter, star-chart table, fire bowl, boundary parapet and mossy viewpoint edge.
+- ✅ Complete Ravnbro's bridge route with Reedwater Landing: plank deck, shelter, skiff and a safe physical water edge.
 - ✅ Build the first visible L2 hillside street kit: marked road, kerbs, paths, retaining wall, shop front, benches, lamps and planted boxes.
 - ✅ Reframe Hillside as Ravnbro, an original old Danish river-town-inspired rail district: connected frontage groups, timber-and-brick modules, the Market Courtyard and the bell-and-signal landmark.
 - ✅ Replace the generic Hillside station façade with Ravnbro's original red-brick civic station kit: gable, clock, repeated windows, chimneys and a cobbled forecourt.

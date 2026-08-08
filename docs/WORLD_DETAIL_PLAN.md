@@ -37,6 +37,8 @@ Harbour Works now has an Outer Pier branching from its main dock. Planks, safety
 
 Moonhill now mirrors that depth with a Wind Lookout beyond the observatory terrace: a sheltered rest point, star-chart table, fire bowl and low parapet form a quiet outward-facing pocket while preserving a clear path to the telescope.
 
+Ravnbro's bridge now reaches Reedwater Landing rather than stopping at a collision wall. A plank deck, tiny shelter, moored skiff and boundary posts make its river edge a deliberate, safe walkable destination.
+
 ## Next terrain foundation
 
 1. Give Harbour Works and Moonhill their own named, flat local coordinate frames.

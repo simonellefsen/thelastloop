@@ -719,13 +719,67 @@ export class GameWorld implements PlayerController {
     floodSign.scale.set(0.95, 0.26, 1)
     floodSign.position.set(markerX, gentleStreetHeight(markerX, markerZ) + 1.68, markerZ)
     this.hillsideStreet.add(floodSign)
+    this.addReedwaterLanding(bridgeX)
 
     // The shore is physical except where the bridge gives a deliberate view and
     // turn-around point. This prevents accidental walks into the water plane.
     for (let x = -18; x <= 18; x += 2.35) {
       if (Math.abs(x - bridgeX) > 1.65) this.addStreetBlocker(x, -14.05, 1.03)
     }
-    this.addStreetBlocker(bridgeX, -15.05, 0.78)
+    this.addStreetBlocker(bridgeX, -15.32, 0.62)
+  }
+
+  /** Turns the old bridge's view point into a small usable landing by the reeds. */
+  private addReedwaterLanding(bridgeX: number): void {
+    const timber = new MeshLambertMaterial({ color: '#765440', flatShading: true })
+    const darkTimber = new MeshLambertMaterial({ color: '#503f38', flatShading: true })
+    const deckZ = -14.38
+    this.hillsideStreet.add(this.createRollingStreetSurface(2.7, 1.72, bridgeX, deckZ, '#846246', 0.22))
+    for (let index = 0; index < 5; index += 1) {
+      const plank = new Mesh(new BoxGeometry(2.82, 0.07, 0.22), timber)
+      const z = deckZ - 0.62 + index * 0.31
+      plank.position.set(bridgeX, gentleStreetHeight(bridgeX, z) + 0.3, z)
+      this.hillsideStreet.add(plank)
+    }
+    const shelter = new Group()
+    for (const xOffset of [-0.58, 0.58]) {
+      const post = new Mesh(new BoxGeometry(0.1, 1.35, 0.1), darkTimber)
+      post.position.set(xOffset, 0.68, 0)
+      shelter.add(post)
+    }
+    const roof = new Mesh(new ConeGeometry(1.1, 0.48, 4), new MeshLambertMaterial({ color: '#40585a', flatShading: true }))
+    roof.rotation.y = Math.PI / 4
+    roof.position.y = 1.52
+    shelter.add(roof)
+    const bench = new Mesh(new BoxGeometry(1.15, 0.14, 0.34), timber)
+    bench.position.set(0, 0.43, -0.16)
+    shelter.add(bench)
+    shelter.position.set(bridgeX + 0.62, gentleStreetHeight(bridgeX + 0.62, deckZ), deckZ)
+    this.hillsideStreet.add(shelter)
+    this.addStreetBlocker(bridgeX + 0.62, deckZ, 0.74)
+
+    const skiff = new Group()
+    const hull = new Mesh(new BoxGeometry(0.72, 0.22, 1.75), new MeshLambertMaterial({ color: '#b8754b', flatShading: true }))
+    hull.position.y = 0.1
+    skiff.add(hull)
+    const oar = new Mesh(new BoxGeometry(1.35, 0.04, 0.06), darkTimber)
+    oar.position.set(0.2, 0.27, 0)
+    oar.rotation.y = 0.52
+    skiff.add(oar)
+    skiff.position.set(bridgeX - 1.4, gentleStreetHeight(bridgeX - 1.4, -15.0) + 0.17, -15.0)
+    this.hillsideStreet.add(skiff)
+    this.addStreetBlocker(bridgeX - 1.4, -15.0, 0.64)
+
+    for (const xOffset of [-1.18, -0.2]) {
+      const post = new Mesh(new CylinderGeometry(0.08, 0.11, 1.02, 5), darkTimber)
+      post.position.set(bridgeX + xOffset, gentleStreetHeight(bridgeX + xOffset, -15.05) + 0.51, -15.05)
+      this.hillsideStreet.add(post)
+      this.addStreetBlocker(bridgeX + xOffset, -15.05, 0.2)
+    }
+    const landingSign = this.createSign('REEDWATER LANDING', '#eef1d8', 250, 48)
+    landingSign.scale.set(1.28, 0.28, 1)
+    landingSign.position.set(bridgeX, gentleStreetHeight(bridgeX, -13.98) + 1.26, -13.98)
+    this.hillsideStreet.add(landingSign)
   }
 
   /** A dense, open-ended pocket that makes the mural clue a place to discover. */
