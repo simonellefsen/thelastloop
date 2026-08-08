@@ -2290,6 +2290,7 @@ export class GameWorld implements PlayerController {
       this.addObservatoryStreetBlocker(x, z, 0.62)
     }
     this.addMoonhillLookout()
+    this.addMoonhillArchiveTerrace()
     this.addMoonhillLensPath()
     this.addMoonhillWarden(-2.55, -1.5)
     this.addObservatoryStreetMarker('observatory-lens', 'Starlight lens', 'first', -5.5, -2.2, 'A starlight lens rests beside the hill path. The telescope can see again.')
@@ -2365,6 +2366,113 @@ export class GameWorld implements PlayerController {
       this.observatoryStreet.add(rock)
       this.addObservatoryStreetBlocker(x, z, 0.38)
     }
+  }
+
+  /**
+   * The observatory's eastern shoulder becomes a quiet working terrace rather
+   * than unused grass: records, a simple orrery and a protected edge make a
+   * small destination that never blocks the telescope route.
+   */
+  private addMoonhillArchiveTerrace(): void {
+    const stone = new MeshLambertMaterial({ color: '#a9a294', flatShading: true })
+    const paleStone = new MeshLambertMaterial({ color: '#d8d4bd', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#665047', flatShading: true })
+    const slate = new MeshLambertMaterial({ color: '#404c72', flatShading: true })
+    const brass = new MeshLambertMaterial({ color: '#c8a363', emissive: new Color('#705b39'), emissiveIntensity: 0.22, flatShading: true })
+
+    this.observatoryStreet.add(this.createObservatoryStreetSurface(6.5, 3.6, 5.35, -7.65, '#aaa397', 0.15))
+    this.observatoryStreet.add(this.createObservatoryStreetSurface(2.7, 2.1, 3.0, -5.85, '#a39c91', 0.14))
+    for (let x = 2.35; x <= 8.05; x += 0.56) {
+      for (let z = -9.05; z <= -6.25; z += 0.54) {
+        const slab = new Mesh(new BoxGeometry(0.46, 0.04, 0.41), (Math.round((x - z) * 2) % 2 === 0) ? stone : paleStone)
+        slab.position.set(x, observatoryStreetHeight(x, z) + 0.2, z)
+        this.observatoryStreet.add(slab)
+      }
+    }
+
+    const archive = new Group()
+    const body = new Mesh(new BoxGeometry(1.78, 1.38, 1.44), new MeshLambertMaterial({ color: '#6e7c7a', flatShading: true }))
+    body.position.y = 0.69
+    archive.add(body)
+    const roof = new Mesh(new ConeGeometry(1.18, 0.63, 4), slate)
+    roof.rotation.y = Math.PI / 4
+    roof.position.y = 1.65
+    archive.add(roof)
+    const door = new Mesh(new PlaneGeometry(0.54, 0.86), new MeshLambertMaterial({ color: '#314f59', side: DoubleSide }))
+    door.position.set(-0.32, 0.46, 0.726)
+    archive.add(door)
+    const archiveWindow = new Mesh(new PlaneGeometry(0.41, 0.42), new MeshLambertMaterial({ color: '#d7e1d7', side: DoubleSide }))
+    archiveWindow.position.set(0.43, 0.9, 0.73)
+    archive.add(archiveWindow)
+    const archiveSign = this.createSign('STAR ARCHIVE', '#eee8d1', 190, 46)
+    archiveSign.scale.set(1.06, 0.28, 1)
+    archiveSign.position.set(0, 1.72, 0.735)
+    archive.add(archiveSign)
+    archive.position.set(7.15, observatoryStreetHeight(7.15, -8.0), -8.0)
+    this.observatoryStreet.add(archive)
+    this.addObservatoryStreetBlocker(7.15, -8.0, 1.1)
+
+    const orrery = new Group()
+    const plinth = new Mesh(new CylinderGeometry(0.46, 0.58, 0.68, 8), stone)
+    plinth.position.y = 0.34
+    orrery.add(plinth)
+    const ringOne = new Mesh(new TorusGeometry(0.72, 0.045, 6, 16), brass)
+    ringOne.rotation.x = Math.PI / 2.8
+    ringOne.position.y = 1.0
+    orrery.add(ringOne)
+    const ringTwo = new Mesh(new TorusGeometry(0.5, 0.04, 6, 14), brass)
+    ringTwo.rotation.z = Math.PI / 2.7
+    ringTwo.position.y = 1.0
+    orrery.add(ringTwo)
+    const sun = new Mesh(new SphereGeometry(0.14, 7, 6), new MeshLambertMaterial({ color: '#f0d674', emissive: new Color('#c18a3f'), emissiveIntensity: 0.65, flatShading: true }))
+    sun.position.y = 1.0
+    orrery.add(sun)
+    const moon = new Mesh(new SphereGeometry(0.08, 6, 5), new MeshLambertMaterial({ color: '#d8e3df', flatShading: true }))
+    moon.position.set(0.61, 1.14, 0)
+    orrery.add(moon)
+    orrery.position.set(4.65, observatoryStreetHeight(4.65, -7.1), -7.1)
+    this.observatoryStreet.add(orrery)
+    this.addObservatoryStreetBlocker(4.65, -7.1, 0.72)
+
+    const desk = new Group()
+    const legs = new Mesh(new CylinderGeometry(0.07, 0.09, 0.68, 5), timber)
+    legs.position.y = 0.34
+    desk.add(legs)
+    const top = new Mesh(new BoxGeometry(1.12, 0.1, 0.62), timber)
+    top.position.y = 0.72
+    desk.add(top)
+    const chart = new Mesh(new PlaneGeometry(0.62, 0.34), new MeshLambertMaterial({ color: '#e7dfc4', side: DoubleSide }))
+    chart.rotation.x = -Math.PI / 2
+    chart.position.set(-0.05, 0.775, 0)
+    desk.add(chart)
+    desk.position.set(3.55, observatoryStreetHeight(3.55, -8.25), -8.25)
+    desk.rotation.y = 0.2
+    this.observatoryStreet.add(desk)
+    this.addObservatoryStreetBlocker(3.55, -8.25, 0.6)
+
+    for (const [x, z] of [[2.55, -9.28], [4.15, -9.28], [5.75, -9.28], [7.35, -9.28], [8.0, -7.15]] as Array<[number, number]>) {
+      const parapet = new Mesh(new BoxGeometry(0.72, 0.52, 0.28), stone)
+      parapet.position.set(x, observatoryStreetHeight(x, z) + 0.26, z)
+      this.observatoryStreet.add(parapet)
+      this.addObservatoryStreetBlocker(x, z, 0.36)
+    }
+    const brassRail = new Mesh(new BoxGeometry(5.1, 0.055, 0.055), brass)
+    brassRail.position.set(5.1, observatoryStreetHeight(5.1, -9.28) + 0.7, -9.28)
+    this.observatoryStreet.add(brassRail)
+
+    const archiveLamp = new Group()
+    const post = new Mesh(new CylinderGeometry(0.05, 0.075, 1.56, 6), timber)
+    post.position.y = 0.78
+    archiveLamp.add(post)
+    const lamp = new Mesh(new SphereGeometry(0.12, 7, 5), new MeshLambertMaterial({ color: '#f3d67a', emissive: new Color('#bd8043'), emissiveIntensity: 0.72, flatShading: true }))
+    lamp.position.y = 1.54
+    archiveLamp.add(lamp)
+    archiveLamp.position.set(2.55, observatoryStreetHeight(2.55, -6.65), -6.65)
+    this.observatoryStreet.add(archiveLamp)
+    const terraceSign = this.createSign('ARCHIVE TERRACE', '#eee8d1', 215, 48)
+    terraceSign.scale.set(1.18, 0.29, 1)
+    terraceSign.position.set(5.05, observatoryStreetHeight(5.05, -5.9) + 1.12, -5.9)
+    this.observatoryStreet.add(terraceSign)
   }
 
   /** An open westward branch makes Moonhill's first marker a place to walk to. */

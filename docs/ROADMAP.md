@@ -37,6 +37,7 @@
 - ✅ Add Harbour Works' Repair Quay: an east dock extension with workshop, hauled boat, lifting gantry, cargo and protected water edge gives the tide-clock route a second collision-aware waterfront pocket.
 - ✅ Expand Moonhill with the collision-aware Wind Lookout: shelter, star-chart table, fire bowl, boundary parapet and mossy viewpoint edge.
 - ✅ Connect Moonhill's starlight lens to the observatory road with Lens Path: a paved branch, low handrails, sightline-clearing tree move and a small lens dais make the first violet marker clear and reachable.
+- ✅ Add Moonhill's Archive Terrace: an eastern observatory branch with a record shelter, brass orrery, chart desk, lamps and collision-aware parapet balances the hilltop with a second detailed destination.
 - ✅ Complete Ravnbro's bridge route with Reedwater Landing: plank deck, shelter, skiff and a safe physical water edge.
 - ✅ Connect Ravnbro's southern route into a River Trade Lane: cobbles, goods hoist, covered stall and edge bollards turn the walk to Reedwater Landing into a continuous town street.
 - ✅ Give the two newer districts their own lightweight ambient life: Harbour Works runs dock gulls and water ripples, while Moonhill has swifts and fireflies only while those local worlds are active.
