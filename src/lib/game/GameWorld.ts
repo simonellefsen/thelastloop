@@ -387,6 +387,7 @@ export class GameWorld implements PlayerController {
     this.addFlatClue('mural', 'Market mural', 7.2, -1.7, 'A faded market mural shows the town under a gold SUNSET.')
     this.addFlatClue('bell', 'Hill bell', 0, -11.2, 'The hill bell rings once: the old sign needs the last word—LOOP.')
     this.addHillsideTraversalDetail()
+    this.addBellRise()
     this.addReedwaterEdge()
     this.addFlatSideRouteLandmarks()
     this.addStreetBlocker(0, -1.7, 2.25)
@@ -670,6 +671,65 @@ export class GameWorld implements PlayerController {
     cable.rotation.z = -0.12
     this.hillsideStreet.add(cable)
     this.addStreetBlocker(hutX, hutZ, 1.06)
+  }
+
+  /** A modest civic landmark at the end of the stair route, kept beside the clue. */
+  private addBellRise(): void {
+    const terrace = this.createRollingStreetSurface(5.4, 2.45, 0, -11.65, '#d5caa6', 0.12)
+    this.hillsideStreet.add(terrace)
+    const towerX = 2.45
+    const towerZ = -11.82
+    const towerHeight = 2.22
+    const brick = new MeshLambertMaterial({ color: '#995044', flatShading: true })
+    const darkBrick = new MeshLambertMaterial({ color: '#713b35', flatShading: true })
+    const slate = new MeshLambertMaterial({ color: '#344c51', flatShading: true })
+    const tower = new Mesh(new BoxGeometry(1.32, towerHeight, 1.22), brick)
+    tower.position.set(towerX, gentleStreetHeight(towerX, towerZ) + towerHeight / 2, towerZ)
+    this.hillsideStreet.add(tower)
+    const towerRoof = new Mesh(new ConeGeometry(1.0, 0.82, 4), slate)
+    towerRoof.rotation.y = Math.PI / 4
+    towerRoof.position.set(towerX, gentleStreetHeight(towerX, towerZ) + 2.56, towerZ)
+    this.hillsideStreet.add(towerRoof)
+    const arch = new Mesh(new PlaneGeometry(0.72, 0.64), new MeshLambertMaterial({ color: '#30474d', side: DoubleSide }))
+    arch.position.set(towerX, gentleStreetHeight(towerX, towerZ) + 1.62, towerZ + 0.616)
+    this.hillsideStreet.add(arch)
+    const bell = new Mesh(new ConeGeometry(0.26, 0.37, 7), new MeshLambertMaterial({ color: '#d5a855', emissive: new Color('#926735'), emissiveIntensity: 0.25, flatShading: true }))
+    bell.rotation.x = Math.PI
+    bell.position.set(towerX, gentleStreetHeight(towerX, towerZ) + 1.63, towerZ + 0.645)
+    this.hillsideStreet.add(bell)
+    const rope = new Mesh(new CylinderGeometry(0.028, 0.035, 0.78, 5), new MeshLambertMaterial({ color: '#765343', flatShading: true }))
+    rope.position.set(towerX, gentleStreetHeight(towerX, towerZ) + 1.1, towerZ + 0.67)
+    this.hillsideStreet.add(rope)
+    for (const yOffset of [0.48, 1.05]) {
+      const band = new Mesh(new BoxGeometry(1.43, 0.09, 1.32), darkBrick)
+      band.position.set(towerX, gentleStreetHeight(towerX, towerZ) + yOffset, towerZ)
+      this.hillsideStreet.add(band)
+    }
+    const towerSign = this.createSign('BELL RISE', '#f2ecd1', 170, 45)
+    towerSign.scale.set(0.96, 0.26, 1)
+    towerSign.position.set(towerX, gentleStreetHeight(towerX, towerZ) + 3.05, towerZ)
+    this.hillsideStreet.add(towerSign)
+
+    const railMaterial = new MeshLambertMaterial({ color: '#52666a', flatShading: true })
+    for (const x of [-2.35, -1.6]) {
+      const post = new Mesh(new CylinderGeometry(0.045, 0.055, 0.68, 5), railMaterial)
+      post.position.set(x, gentleStreetHeight(x, -12.05) + 0.34, -12.05)
+      this.hillsideStreet.add(post)
+    }
+    const terraceRail = new Mesh(new BoxGeometry(0.88, 0.06, 0.06), railMaterial)
+    terraceRail.position.set(-1.98, gentleStreetHeight(-1.98, -12.05) + 0.61, -12.05)
+    this.hillsideStreet.add(terraceRail)
+    const benchMaterial = new MeshLambertMaterial({ color: '#7b5a43', flatShading: true })
+    const bench = new Mesh(new BoxGeometry(1.18, 0.14, 0.36), benchMaterial)
+    bench.position.set(-1.88, gentleStreetHeight(-1.88, -11.42) + 0.42, -11.42)
+    this.hillsideStreet.add(bench)
+    const benchBack = new Mesh(new BoxGeometry(1.18, 0.32, 0.08), benchMaterial)
+    benchBack.position.set(-1.88, gentleStreetHeight(-1.88, -11.42) + 0.62, -11.27)
+    this.hillsideStreet.add(benchBack)
+
+    // The marker at x=0 remains clear at the top of the steps; only the tower
+    // itself receives collision so the player cannot walk through the landmark.
+    this.addStreetBlocker(towerX, towerZ, 0.94)
   }
 
   private createRollingStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number): Mesh {
