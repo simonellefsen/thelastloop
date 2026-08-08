@@ -21,6 +21,7 @@
     dialogue: 'A small world remembers every path.',
     nearbyLabel: '',
     showNpcDialogue: false,
+    npcName: '',
     quest: { introductionSeen: false, completedClues: [], stationNameRestored: false, lantern: 'locked', chorus: 'locked', harbour: 'locked', observatory: 'locked' },
     inStation: false,
     coatColor: 'gold',
@@ -245,7 +246,7 @@
 
       {#if hud.showNpcDialogue}
         <div class="dialogue npc-dialogue" class:complete={isComplete(hud.quest)} aria-live="polite">
-          <p class="eyebrow">STATION KEEPER</p>
+          <p class="eyebrow">{hud.npcName}</p>
           <p>{hud.dialogue}</p>
           <small>{hud.hint}</small>
         </div>

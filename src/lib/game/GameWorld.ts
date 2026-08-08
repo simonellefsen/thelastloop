@@ -126,7 +126,7 @@ export class GameWorld implements PlayerController {
   private started = false
   private animationFrame = 0
   private entryCameraProgress = 1
-  private nearby: Clue | SideMarker | 'station-keeper' | 'station-door' | undefined
+  private nearby: Clue | SideMarker | 'station-keeper' | 'station-door' | 'harbour-keeper' | 'moon-warden' | undefined
   private stationSign: Sprite | undefined
   private streetStationSign: Sprite | undefined
   private stationDoorPosition = new Vector3()
@@ -248,6 +248,14 @@ export class GameWorld implements PlayerController {
       if (this.save.quest.stationNameRestored && (this.save.quest.lantern !== 'complete' || this.save.quest.chorus !== 'complete')) this.emitHud('Sunset Loop has a name again, but the signal is dark and the hill has forgotten its song.', 'Follow the teal and rose markers for two small side routes.')
       else if (this.save.quest.stationNameRestored) this.emitHud('The station is bright, the birds are singing, and a short train is ready for Harbour Works.', 'Walk to the blue station door to enter.')
       else this.emitHud('The old sign is blank again. The town kept its name in three little stories.', 'Look for the signal box, market mural and hill bell.')
+      return
+    }
+    if (this.nearby === 'harbour-keeper') {
+      this.emitHud('Dock keeper listened.', this.harbourKeeperDialogue())
+      return
+    }
+    if (this.nearby === 'moon-warden') {
+      this.emitHud('Moonhill warden listened.', this.moonWardenDialogue())
       return
     }
 
@@ -1756,6 +1764,7 @@ export class GameWorld implements PlayerController {
     }
     this.addHarbourOuterPier()
     this.addHarbourTideyard()
+    this.addHarbourDockKeeper(-0.9, -6.35)
     this.addHarbourStreetMarker('harbour-valve', 'Tide valve', 'first', -5.6, -3.5, 'A blue tide valve clicks free. The dock pump can hear the sea again.')
     this.addHarbourStreetMarker('harbour-pump', 'Wake clock', 'second', 1.55, -8.0, 'The tide clock turns once, then keeps time with the water. The harbour breathes again.')
     this.harbourStreetBlockers.push({ center: new Vector3(-4.05, 0, -0.7), radius: 2.05 }, { center: new Vector3(4.35, 0, -4.8), radius: 0.72 })
@@ -1862,6 +1871,26 @@ export class GameWorld implements PlayerController {
     sign.scale.set(1.02, 0.27, 1)
     sign.position.set(-5.55, harbourStreetHeight(-5.55, -2.35) + 1.02, -2.35)
     this.harbourStreet.add(sign)
+  }
+
+  /** A local person gives the dock story a voice without becoming a schedule simulation. */
+  private addHarbourDockKeeper(x: number, z: number): void {
+    const keeper = new Group()
+    const coat = new Mesh(new CylinderGeometry(0.28, 0.36, 0.9, 6), new MeshLambertMaterial({ color: '#3e7b83', flatShading: true }))
+    coat.position.y = 0.54
+    keeper.add(coat)
+    const apron = new Mesh(new BoxGeometry(0.42, 0.52, 0.08), new MeshLambertMaterial({ color: '#d7b45a', flatShading: true }))
+    apron.position.set(0, 0.48, 0.31)
+    keeper.add(apron)
+    const head = new Mesh(new SphereGeometry(0.24, 8, 6), new MeshLambertMaterial({ color: '#c88f70', flatShading: true }))
+    head.position.y = 1.15
+    keeper.add(head)
+    const cap = new Mesh(new CylinderGeometry(0.29, 0.31, 0.1, 7), new MeshLambertMaterial({ color: '#294e55', flatShading: true }))
+    cap.position.y = 1.36
+    keeper.add(cap)
+    keeper.position.set(x, harbourStreetHeight(x, z), z)
+    this.harbourStreet.add(keeper)
+    this.addHarbourStreetBlocker(x, z, 0.38)
   }
 
   private createHarbourStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number): Mesh {
@@ -2038,6 +2067,7 @@ export class GameWorld implements PlayerController {
     }
     this.addMoonhillLookout()
     this.addMoonhillLensPath()
+    this.addMoonhillWarden(-2.55, -1.5)
     this.addObservatoryStreetMarker('observatory-lens', 'Starlight lens', 'first', -5.5, -2.2, 'A starlight lens rests beside the hill path. The telescope can see again.')
     this.addObservatoryStreetMarker('observatory-scope', 'Align scope', 'second', 1.5, -3.85, 'The moon signal crosses the glass. Every faraway station gets one clear night.')
     this.updateSideQuestMarkers()
@@ -2148,6 +2178,27 @@ export class GameWorld implements PlayerController {
     sign.scale.set(1.04, 0.28, 1)
     sign.position.set(-3.05, observatoryStreetHeight(-3.05, -0.95) + 1.03, -0.95)
     this.observatoryStreet.add(sign)
+  }
+
+  /** Moonhill's quiet warden is decorative until the player enters a short talk radius. */
+  private addMoonhillWarden(x: number, z: number): void {
+    const warden = new Group()
+    const cloak = new Mesh(new ConeGeometry(0.43, 1.05, 6), new MeshLambertMaterial({ color: '#65568c', flatShading: true }))
+    cloak.position.y = 0.52
+    warden.add(cloak)
+    const head = new Mesh(new SphereGeometry(0.23, 8, 6), new MeshLambertMaterial({ color: '#d1a084', flatShading: true }))
+    head.position.y = 1.14
+    warden.add(head)
+    const hood = new Mesh(new ConeGeometry(0.31, 0.32, 6), new MeshLambertMaterial({ color: '#3f4c76', flatShading: true }))
+    hood.position.y = 1.38
+    warden.add(hood)
+    const starBook = new Mesh(new BoxGeometry(0.23, 0.32, 0.1), new MeshLambertMaterial({ color: '#d9c77b', flatShading: true }))
+    starBook.position.set(0.31, 0.62, 0.2)
+    starBook.rotation.z = -0.24
+    warden.add(starBook)
+    warden.position.set(x, observatoryStreetHeight(x, z), z)
+    this.observatoryStreet.add(warden)
+    this.addObservatoryStreetBlocker(x, z, 0.38)
   }
 
   private createObservatoryStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number): Mesh {
@@ -3089,7 +3140,7 @@ export class GameWorld implements PlayerController {
   }
 
   private findNearby(position: Vector3): void {
-    let next: Clue | SideMarker | 'station-keeper' | 'station-door' | undefined
+    let next: Clue | SideMarker | 'station-keeper' | 'station-door' | 'harbour-keeper' | 'moon-warden' | undefined
     if (this.save.district === 'hillside') {
       const keeperPosition = this.hillsideStreet.visible ? new Vector3(0, gentleStreetHeight(0, 2.2), 2.2) : this.normalAt(0.47, -0.14).multiplyScalar(PLANET_RADIUS)
       if (position.distanceTo(keeperPosition) < 2) next = 'station-keeper'
@@ -3100,6 +3151,14 @@ export class GameWorld implements PlayerController {
         const cluePosition = new Vector3(...clue.position)
         if (position.distanceTo(cluePosition) < 1.85) next = clue
       }
+    }
+    if (this.harbourStreet.visible) {
+      const keeperPosition = new Vector3(-0.9, harbourStreetHeight(-0.9, -6.35), -6.35)
+      if (position.distanceTo(keeperPosition) < 1.85) next = 'harbour-keeper'
+    }
+    if (this.observatoryStreet.visible) {
+      const wardenPosition = new Vector3(-2.55, observatoryStreetHeight(-2.55, -1.5), -1.5)
+      if (position.distanceTo(wardenPosition) < 1.85) next = 'moon-warden'
     }
     const activeSideMarkers = this.hillsideStreet.visible
       ? this.streetSideMarkers
@@ -3135,6 +3194,18 @@ export class GameWorld implements PlayerController {
     return '“The station sign has faded. Find the three amber beacons, and bring our name back.”'
   }
 
+  private harbourKeeperDialogue(): string {
+    if (this.save.quest.harbour === 'complete') return '“Hear that? The tide clock is keeping company with every hull in the bay. You set it right.”'
+    if (this.save.quest.harbour === 'second') return '“The valve has the water talking again. The dock pump is waiting at the end of the quay.”'
+    return '“The tide clock stopped at low water. Tideyard keeps the blue valve; bring its turn back to the dock.”'
+  }
+
+  private moonWardenDialogue(): string {
+    if (this.save.quest.observatory === 'complete') return '“The signal found the moon. Leave the telescope open; travellers need a bright way home.”'
+    if (this.save.quest.observatory === 'second') return '“The lens remembers the sky. Set it into the telescope, and listen for the answering light.”'
+    return '“The first clear star fell beside Lens Path. Find it, then the telescope will know where to look.”'
+  }
+
   private emitHud(hint: string, dialogue: string): void {
     this.displayedHint = hint
     this.displayedDialogue = dialogue
@@ -3142,13 +3213,16 @@ export class GameWorld implements PlayerController {
   }
 
   private currentHud(): GameHud {
-    const nearbyLabel = this.nearby === 'station-keeper' ? 'Talk' : this.nearby === 'station-door' ? 'Enter station' : this.nearby ? `Investigate ${this.nearby.label}` : ''
-    const showNpcDialogue = !this.inStation && this.nearby === 'station-keeper'
+    const npcName = this.nearby === 'station-keeper' ? 'STATION KEEPER' : this.nearby === 'harbour-keeper' ? 'DOCK KEEPER' : this.nearby === 'moon-warden' ? 'MOONHILL WARDEN' : ''
+    const nearbyLabel = npcName ? 'Talk' : this.nearby === 'station-door' ? 'Enter station' : typeof this.nearby === 'object' ? `Investigate ${this.nearby.label}` : ''
+    const showNpcDialogue = !this.inStation && npcName !== ''
+    const npcDialogue = this.nearby === 'station-keeper' ? this.stationKeeperDialogue() : this.nearby === 'harbour-keeper' ? this.harbourKeeperDialogue() : this.nearby === 'moon-warden' ? this.moonWardenDialogue() : ''
     return {
-      hint: showNpcDialogue ? 'Tap Talk to speak with the station keeper.' : this.displayedHint || this.hint(),
-      dialogue: showNpcDialogue ? this.stationKeeperDialogue() : this.displayedDialogue || this.dialogue(),
+      hint: showNpcDialogue ? 'Tap Talk to speak.' : this.displayedHint || this.hint(),
+      dialogue: showNpcDialogue ? npcDialogue : this.displayedDialogue || this.dialogue(),
       nearbyLabel: this.inStation ? '' : nearbyLabel,
       showNpcDialogue,
+      npcName,
       quest: this.save.quest,
       inStation: this.inStation,
       coatColor: this.save.coatColor,

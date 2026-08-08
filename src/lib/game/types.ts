@@ -38,7 +38,7 @@ export interface GameSave {
 }
 
 export interface WorldInteractable {
-  id: 'station-keeper' | 'station-door' | ClueId | 'lens-cache' | 'signal-repair' | 'tune-card' | 'bell-chime' | 'harbour-valve' | 'harbour-pump' | 'observatory-lens' | 'observatory-scope'
+  id: 'station-keeper' | 'station-door' | 'harbour-keeper' | 'moon-warden' | ClueId | 'lens-cache' | 'signal-repair' | 'tune-card' | 'bell-chime' | 'harbour-valve' | 'harbour-pump' | 'observatory-lens' | 'observatory-scope'
   label: string
   position: [number, number, number]
 }
@@ -61,6 +61,7 @@ export interface GameHud {
   dialogue: string
   nearbyLabel: string
   showNpcDialogue: boolean
+  npcName: string
   quest: QuestState
   inStation: boolean
   coatColor: CoatColor
