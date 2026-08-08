@@ -27,6 +27,7 @@ import {
   WebGLRenderer,
 } from 'three'
 import { isWithinWalkableCap, tangentForward } from './math'
+import { animationTime, shouldRender } from './runtime'
 import { advanceSideQuest, defaultQuest, resolveClue, unlockHarbour, unlockObservatory } from './quest'
 import { coatColors, nextCoatColor } from './style'
 import { Soundscape, soundscapeProfile } from './soundscape'
@@ -84,6 +85,7 @@ export class GameWorld implements PlayerController {
   private readonly onKeyDown = (event: KeyboardEvent) => this.keys.add(event.key.toLowerCase())
   private readonly onKeyUp = (event: KeyboardEvent) => this.keys.delete(event.key.toLowerCase())
   private readonly onResize = () => this.resize()
+  private readonly onVisibilityChange = () => this.handleVisibilityChange()
   private currentNormal = new Vector3()
   private playerForward = new Vector3(0, 0, -1)
   private joystick = new Vector2()
@@ -134,6 +136,7 @@ export class GameWorld implements PlayerController {
     this.resizeObserver.observe(container)
     window.addEventListener('keydown', this.onKeyDown)
     window.addEventListener('keyup', this.onKeyUp)
+    document.addEventListener('visibilitychange', this.onVisibilityChange)
     this.emitHud('Enter the town when you are ready.', 'A small world remembers every path.')
     this.tick()
   }
@@ -276,6 +279,7 @@ export class GameWorld implements PlayerController {
     this.resizeObserver.disconnect()
     window.removeEventListener('keydown', this.onKeyDown)
     window.removeEventListener('keyup', this.onKeyUp)
+    document.removeEventListener('visibilitychange', this.onVisibilityChange)
     this.soundscape.dispose()
     this.renderer.dispose()
     this.container.replaceChildren()
@@ -844,6 +848,8 @@ export class GameWorld implements PlayerController {
   }
 
   private tick = (): void => {
+    this.animationFrame = 0
+    if (!shouldRender(document.visibilityState)) return
     const now = performance.now()
     const delta = Math.min((now - this.clock.last) / 1000, 0.05)
     this.clock.last = now
@@ -895,7 +901,7 @@ export class GameWorld implements PlayerController {
   }
 
   private updateTitleCamera(): void {
-    const angle = this.clock.elapsed * 0.14
+    const angle = animationTime(this.clock.elapsed, window.matchMedia('(prefers-reduced-motion: reduce)').matches) * 0.14
     this.camera.position.set(Math.cos(angle) * 20, 13 + Math.sin(angle * 1.7) * 2, Math.sin(angle) * 20)
     this.camera.up.copy(UP)
     this.camera.lookAt(0, 1.3, 0)
@@ -910,7 +916,7 @@ export class GameWorld implements PlayerController {
   }
 
   private updateAmbient(): void {
-    const motion = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : this.clock.elapsed
+    const motion = animationTime(this.clock.elapsed, window.matchMedia('(prefers-reduced-motion: reduce)').matches)
     this.ambient.children.forEach((object, index) => {
       const phase = Number(object.userData.phase ?? 0)
       if (index < 8) {
@@ -1056,5 +1062,11 @@ export class GameWorld implements PlayerController {
     this.camera.aspect = width / height
     this.camera.updateProjectionMatrix()
     this.renderer.setSize(width, height, false)
+  }
+
+  private handleVisibilityChange(): void {
+    if (!shouldRender(document.visibilityState) || this.animationFrame) return
+    this.clock.last = performance.now()
+    this.tick()
   }
 }

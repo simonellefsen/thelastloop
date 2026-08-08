@@ -169,7 +169,7 @@
       <aside class="station-panel">
         <p class="eyebrow">SUNSET LOOP STATION</p>
         <h2>Route map</h2>
-        <div class="route-map" aria-label="Future railway destinations">
+        <div class="route-map" aria-label="Railway destinations">
           <div class="map-loop"></div>
           <span class="map-stop current">Sunset Loop<br /><small>here</small></span>
           <button class="map-stop harbour available" onclick={travelToHarbour}>Harbour Works<br /><small>ride now</small></button>

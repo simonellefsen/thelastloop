@@ -14,6 +14,7 @@
 - ✅ Add an original adaptive Web Audio soundscape: wind, a restored rail hum, interior room tone, and chorus chirps.
 - ✅ Build Harbour Works as a second compact globe district with a dockside repair story.
 - ✅ Build Moonhill Observatory as a third compact globe district with a telescope-alignment story.
+- ✅ Harden mobile rendering: background-tab pause, reduced-motion renderer support, and visible keyboard focus.
 - Add recorded ambience and music after an original audio session.
 
 ## Later: shared loop

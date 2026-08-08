@@ -41,6 +41,7 @@ The current soundscape is generated with browser-native Web Audio, not borrowed 
 - iPhone landscape: left-thumb joystick moves the player; the right-side action button appears near a character or clue.
 - Desktop: WASD or arrow keys move; use the action button near a marker.
 - The camera follows automatically. The first release intentionally avoids a second-thumb camera control.
+- Focus outlines remain visible for keyboard users. Decorative movement honours the device's reduced-motion preference, and rendering pauses while the page is backgrounded to conserve mobile battery.
 
 ## Multiplayer boundary
 

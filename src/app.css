@@ -10,6 +10,7 @@
 html, body, #app, main { width: 100%; min-width: 100%; min-height: 100%; height: 100%; margin: 0; overflow: hidden; }
 body { overscroll-behavior: none; touch-action: none; }
 button { font: inherit; }
+button:focus-visible, [role="application"]:focus-visible { outline: 3px solid #fff3a0; outline-offset: 3px; }
 
 .game-host { position: fixed; inset: 0; background: radial-gradient(circle at 50% 30%, #8edbd0, #317e89 67%, #143943); }
 .game-host canvas { display: block; width: 100%; height: 100%; }
@@ -83,4 +84,4 @@ h1 span { display: inline-block; font-size: .39em; letter-spacing: -.08em; verti
   .quest-card { display: none; }
   .dialogue { width: 62vw; bottom: 15px; }
 }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
