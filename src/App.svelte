@@ -13,9 +13,10 @@
     hint: 'Enter the town when you are ready.',
     dialogue: 'A small world remembers every path.',
     nearbyLabel: '',
-    quest: { introductionSeen: false, completedClues: [], stationNameRestored: false, lantern: 'locked', chorus: 'locked' },
+    quest: { introductionSeen: false, completedClues: [], stationNameRestored: false, lantern: 'locked', chorus: 'locked', harbour: 'locked' },
     inStation: false,
     coatColor: 'gold',
+    district: 'hillside',
   }
 
   const clueLabels: Record<string, string> = {
@@ -58,6 +59,14 @@
 
   function cycleCoat() {
     game?.cycleCoat()
+  }
+
+  function travelToHarbour() {
+    game?.travelToHarbour()
+  }
+
+  function returnToStation() {
+    game?.returnToStation()
   }
 
   function joystick(event: PointerEvent) {
@@ -118,7 +127,7 @@
         </button>
       </header>
 
-      {#if !hud.inStation}
+      {#if !hud.inStation && hud.district === 'hillside'}
       <aside class="quest-card">
         <p class="eyebrow">TONIGHT'S ROUTE</p>
         <h2>{isComplete(hud.quest) ? 'Sunset Loop restored' : 'Find the station name'}</h2>
@@ -138,6 +147,13 @@
           </div>
         {/if}
       </aside>
+      {:else if !hud.inStation}
+      <aside class="quest-card harbour-card">
+        <p class="eyebrow">HARBOUR WORKS</p>
+        <h2>{hud.quest.harbour === 'complete' ? 'Tide clock restored' : 'Wake the tide clock'}</h2>
+        <p class:done={hud.quest.harbour === 'complete'}><span>{hud.quest.harbour === 'complete' ? '✓' : '○'}</span>{sideQuestLabel('harbour', hud.quest.harbour)}</p>
+        <button class="return-button" onclick={returnToStation}>Return to station</button>
+      </aside>
       {:else}
       <aside class="station-panel">
         <p class="eyebrow">SUNSET LOOP STATION</p>
@@ -145,10 +161,10 @@
         <div class="route-map" aria-label="Future railway destinations">
           <div class="map-loop"></div>
           <span class="map-stop current">Sunset Loop<br /><small>here</small></span>
-          <span class="map-stop harbour">Harbour Works<br /><small>coming soon</small></span>
+          <button class="map-stop harbour available" onclick={travelToHarbour}>Harbour Works<br /><small>ride now</small></button>
           <span class="map-stop observatory">Moonhill Observatory<br /><small>coming soon</small></span>
         </div>
-        <p class="station-copy">The restored line now points towards two places still waiting for their stories.</p>
+        <p class="station-copy">Harbour Works is ready for a short repair shift. Moonhill still waits for its story.</p>
         <button class="coat-button" onclick={cycleCoat}>Railway coat: {hud.coatColor} ↻</button>
         <button class="leave-button" onclick={leaveStation}>Back to town</button>
       </aside>

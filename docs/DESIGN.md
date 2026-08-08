@@ -8,12 +8,18 @@ The Last Loop is a gentle, social railway mystery set on a tiny walkable planet.
 
 The station keeper asks the player to find three fragments of the lost name. The signal box remembers **LOOP**, the market mural remembers **SUNSET**, and the hill bell confirms the route. When all three are found, the station sign returns as **SUNSET LOOP**.
 
-Restoring the name opens the station interior. Its route map introduces the later Harbour Works and Moonhill Observatory districts, while the player can choose a railway-coat colour. Those destinations remain deliberately unavailable until they have their own stories and worlds.
+Restoring the name opens the station interior. Its route map leads to Harbour Works and introduces the later Moonhill Observatory district, while the player can choose a railway-coat colour.
 
 ## Hillside side routes
 
 - **Green Light Home:** recover a brass lens from the depot and fit it to the dark signal. The signal changes from red to green when the route is safe again.
 - **The Morning Chorus:** find a tune card in the market and carry it to the hill bell. Completing it wakes a small firefly-and-bird celebration above the town.
+
+## Harbour Works
+
+Harbour Works is a separate compact globe reached from the restored station map. Its rust-red warehouse, dock, crane, fishing boat and tide clock use a cooler industrial palette while retaining the same hand-made, low-poly rules. In **Wake the Tide Clock**, the player finds a blue tide valve and carries it to the dock pump. Repairing it turns the clock green and lets the harbour keep time with the water again.
+
+The route is persisted locally, so reloading while visiting the harbour returns the player to the same district. Moonhill Observatory remains a later, deliberately unavailable destination.
 
 ## Soundscape
 

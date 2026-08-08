@@ -1,5 +1,5 @@
 import { defaultQuest } from './quest'
-import type { CoatColor, GameSave, QuestState, SideQuestStage } from './types'
+import type { CoatColor, DistrictId, GameSave, QuestState, SideQuestStage } from './types'
 
 export const SAVE_KEY = 'thelastloop.save.v1'
 
@@ -10,9 +10,10 @@ export interface StorageLike {
 
 export function defaultSave(): GameSave {
   return {
-    version: 1,
+    version: 2,
     soundEnabled: true,
     coatColor: 'gold',
+    district: 'hillside',
     playerNormal: [0.19, 0.96, 0.2],
     quest: defaultQuest(),
   }
@@ -21,12 +22,13 @@ export function defaultSave(): GameSave {
 export function readSave(storage: StorageLike): GameSave {
   const fallback = defaultSave()
   try {
-    const parsed = JSON.parse(storage.getItem(SAVE_KEY) ?? '') as Partial<GameSave>
-    if (parsed.version !== 1 || !Array.isArray(parsed.playerNormal) || parsed.playerNormal.length !== 3 || !parsed.quest) return fallback
+    const parsed = JSON.parse(storage.getItem(SAVE_KEY) ?? '') as Omit<Partial<GameSave>, 'version'> & { version?: number }
+    if ((parsed.version !== 1 && parsed.version !== 2) || !Array.isArray(parsed.playerNormal) || parsed.playerNormal.length !== 3 || !parsed.quest) return fallback
     return {
-      version: 1,
+      version: 2,
       soundEnabled: typeof parsed.soundEnabled === 'boolean' ? parsed.soundEnabled : fallback.soundEnabled,
       coatColor: isCoatColor(parsed.coatColor) ? parsed.coatColor : fallback.coatColor,
+      district: isDistrict(parsed.district) ? parsed.district : fallback.district,
       playerNormal: parsed.playerNormal as GameSave['playerNormal'],
       quest: hydrateQuest(parsed.quest),
     }
@@ -43,6 +45,7 @@ function hydrateQuest(quest: Partial<QuestState>): QuestState {
     stationNameRestored,
     lantern: normaliseSideQuestStage(quest.lantern, stationNameRestored),
     chorus: normaliseSideQuestStage(quest.chorus, stationNameRestored),
+    harbour: normaliseSideQuestStage(quest.harbour, false),
   }
 }
 
@@ -53,6 +56,10 @@ function normaliseSideQuestStage(value: unknown, unlocked: boolean): SideQuestSt
 
 function isCoatColor(value: unknown): value is CoatColor {
   return value === 'gold' || value === 'berry' || value === 'ocean'
+}
+
+function isDistrict(value: unknown): value is DistrictId {
+  return value === 'hillside' || value === 'harbour'
 }
 
 export function writeSave(storage: StorageLike, save: GameSave): void {

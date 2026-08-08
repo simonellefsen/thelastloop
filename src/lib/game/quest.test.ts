@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { advanceSideQuest, defaultQuest, resolveClue, sideQuestLabel } from './quest'
+import { advanceSideQuest, defaultQuest, resolveClue, sideQuestLabel, unlockHarbour } from './quest'
 
 describe('station-name quest', () => {
   it('restores the station after three distinct clues', () => {
@@ -24,5 +24,13 @@ describe('station-name quest', () => {
   it('does not duplicate a clue', () => {
     const quest = resolveClue(resolveClue(defaultQuest(), 'signal'), 'signal')
     expect(quest.completedClues).toEqual(['signal'])
+  })
+
+  it('unlocks and resolves the Harbour Works route separately', () => {
+    const restored = { ...defaultQuest(), stationNameRestored: true }
+    const valveFound = advanceSideQuest(unlockHarbour(restored), 'harbour')
+    expect(valveFound.harbour).toBe('second')
+    expect(advanceSideQuest(valveFound, 'harbour').harbour).toBe('complete')
+    expect(sideQuestLabel('harbour', 'first')).toBe('Find the tide valve')
   })
 })

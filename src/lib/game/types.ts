@@ -1,6 +1,7 @@
 export type ClueId = 'signal' | 'mural' | 'bell'
 export type CoatColor = 'gold' | 'berry' | 'ocean'
-export type SideQuestId = 'lantern' | 'chorus'
+export type DistrictId = 'hillside' | 'harbour'
+export type SideQuestId = 'lantern' | 'chorus' | 'harbour'
 export type SideQuestStage = 'locked' | 'first' | 'second' | 'complete'
 
 export interface QuestState {
@@ -9,18 +10,20 @@ export interface QuestState {
   stationNameRestored: boolean
   lantern: SideQuestStage
   chorus: SideQuestStage
+  harbour: SideQuestStage
 }
 
 export interface GameSave {
-  version: 1
+  version: 2
   soundEnabled: boolean
   coatColor: CoatColor
+  district: DistrictId
   playerNormal: [number, number, number]
   quest: QuestState
 }
 
 export interface WorldInteractable {
-  id: 'station-keeper' | 'station-door' | ClueId | 'lens-cache' | 'signal-repair' | 'tune-card' | 'bell-chime'
+  id: 'station-keeper' | 'station-door' | ClueId | 'lens-cache' | 'signal-repair' | 'tune-card' | 'bell-chime' | 'harbour-valve' | 'harbour-pump'
   label: string
   position: [number, number, number]
 }
@@ -30,6 +33,8 @@ export interface PlayerController {
   interact(): void
   leaveStation(): void
   cycleCoat(): void
+  travelToHarbour(): void
+  returnToStation(): void
 }
 
 export interface GameHud {
@@ -39,4 +44,5 @@ export interface GameHud {
   quest: QuestState
   inStation: boolean
   coatColor: CoatColor
+  district: DistrictId
 }

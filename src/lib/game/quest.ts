@@ -3,7 +3,7 @@ import type { ClueId, QuestState, SideQuestId, SideQuestStage } from './types'
 export const clueOrder: ClueId[] = ['signal', 'mural', 'bell']
 
 export function defaultQuest(): QuestState {
-  return { introductionSeen: false, completedClues: [], stationNameRestored: false, lantern: 'locked', chorus: 'locked' }
+  return { introductionSeen: false, completedClues: [], stationNameRestored: false, lantern: 'locked', chorus: 'locked', harbour: 'locked' }
 }
 
 export function resolveClue(quest: QuestState, clue: ClueId): QuestState {
@@ -29,9 +29,14 @@ export function advanceSideQuest(quest: QuestState, id: SideQuestId): QuestState
   return { ...quest, [id]: next }
 }
 
+export function unlockHarbour(quest: QuestState): QuestState {
+  if (!quest.stationNameRestored || quest.harbour !== 'locked') return quest
+  return { ...quest, harbour: 'first' }
+}
+
 export function sideQuestLabel(id: SideQuestId, stage: SideQuestStage): string {
-  if (stage === 'complete') return id === 'lantern' ? 'Green light restored' : 'Morning chorus heard'
-  if (stage === 'second') return id === 'lantern' ? 'Fit the lens at the signal' : 'Ring the hill bell with the tune'
-  if (stage === 'first') return id === 'lantern' ? 'Find the depot lens' : 'Find the market tune card'
+  if (stage === 'complete') return id === 'lantern' ? 'Green light restored' : id === 'chorus' ? 'Morning chorus heard' : 'Tide clock restored'
+  if (stage === 'second') return id === 'lantern' ? 'Fit the lens at the signal' : id === 'chorus' ? 'Ring the hill bell with the tune' : 'Return to the dock pump'
+  if (stage === 'first') return id === 'lantern' ? 'Find the depot lens' : id === 'chorus' ? 'Find the market tune card' : 'Find the tide valve'
   return 'Restore Sunset Loop first'
 }

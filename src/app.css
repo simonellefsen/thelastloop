@@ -36,6 +36,7 @@ h1 span { display: inline-block; font-size: .39em; letter-spacing: -.08em; verti
 .route-map { position: relative; height: 105px; margin: 8px 2px; overflow: hidden; border: 2px solid #375862; border-radius: 5px; background: #9edbd1; }
 .map-loop { position: absolute; left: 43px; top: 16px; width: 146px; height: 68px; border: 5px solid #d15e46; border-radius: 50%; transform: rotate(-16deg); }
 .map-stop { position: absolute; padding: 2px 4px; border: 1px solid #2f545c; border-radius: 3px; background: #fff8db; color: #1f4046; font-size: .52rem; font-weight: 900; line-height: 1.05; text-align: center; }
+.map-stop.available { cursor: pointer; font-family: inherit; }.map-stop.available:hover { background: #f7d552; transform: translateY(-1px); }
 .map-stop small { color: #77705e; font-size: .48rem; font-weight: 700; }
 .map-stop.current { left: 6px; top: 37px; background: #f7d552; }.map-stop.harbour { right: 3px; top: 7px; }.map-stop.observatory { right: 1px; bottom: 3px; }
 .station-copy { margin: 5px 0 8px; color: #53676b; font-size: .68rem; line-height: 1.25; }
@@ -49,6 +50,8 @@ h1 span { display: inline-block; font-size: .39em; letter-spacing: -.08em; verti
 .quest-card li.done span { color: #438161; }
 .side-routes { margin-top: 9px; padding-top: 7px; border-top: 1px dashed #a2aaa0; }
 .side-routes .eyebrow { margin-bottom: 4px; color: #6b7472; font-size: .52rem; }.side-routes p { margin: 3px 0; color: #68777a; font-size: .64rem; line-height: 1.15; }.side-routes p span { display: inline-block; width: 16px; color: #ca7350; font-weight: 900; }.side-routes p.done { color: #1b4e4d; text-decoration: line-through; }.side-routes p.done span { color: #438161; }
+.harbour-card { background: rgba(232, 244, 239, .95); }.harbour-card h2 { color: #24515a; }.harbour-card p { margin: 7px 0; color: #536f72; font-size: .7rem; font-weight: 800; }.harbour-card p span { display: inline-block; width: 16px; color: #c7634d; }.harbour-card p.done { color: #1f655a; text-decoration: line-through; }.harbour-card p.done span { color: #3b916a; }
+.return-button { margin-top: 5px; border: 2px solid #345058; border-radius: 4px; padding: 6px 8px; background: #f6d05a; color: #1f3f46; cursor: pointer; font-size: .65rem; font-weight: 900; pointer-events: auto; }
 .dialogue { position: absolute; left: 50%; bottom: max(17px, env(safe-area-inset-bottom)); width: min(500px, 48vw); padding: 13px 16px; transform: translateX(-50%) rotate(-.6deg); border: 2px solid #29474e; border-radius: 5px; background: #fff9e7; box-shadow: 3px 4px 0 rgba(25,55,61,.5); }
 .dialogue.complete { background: #fff0b5; }
 .dialogue p { margin: 0; font-size: clamp(.75rem, 1.7vw, 1rem); font-weight: 800; line-height: 1.25; }

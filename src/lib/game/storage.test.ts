@@ -17,6 +17,8 @@ describe('game save', () => {
     const store = memoryStorage()
     const save = defaultSave()
     save.quest.introductionSeen = true
+    save.district = 'harbour'
+    save.quest.harbour = 'second'
     writeSave(store, save)
     expect(readSave(store)).toEqual(save)
   })
@@ -32,5 +34,14 @@ describe('game save', () => {
     store.setItem(SAVE_KEY, JSON.stringify({ version: 1, soundEnabled: true, playerNormal: [0, 1, 0], quest: { ...defaultSave().quest, stationNameRestored: true } }))
     expect(readSave(store).quest.lantern).toBe('first')
     expect(readSave(store).quest.chorus).toBe('first')
+    expect(readSave(store).quest.harbour).toBe('locked')
+  })
+
+  it('migrates a v1 save to the hillside district', () => {
+    const store = memoryStorage()
+    store.setItem(SAVE_KEY, JSON.stringify({ version: 1, soundEnabled: true, playerNormal: [0, 1, 0], quest: defaultSave().quest }))
+    const save = readSave(store)
+    expect(save.version).toBe(2)
+    expect(save.district).toBe('hillside')
   })
 })
