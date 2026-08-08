@@ -39,6 +39,16 @@ The current soundscape is generated with browser-native Web Audio, not borrowed 
 - The world is small enough to become familiar, never a procedurally generated open world.
 - The title preserves the mini-globe silhouette; entry zooms into a lower street-level camera. See the [world detail plan](WORLD_DETAIL_PLAN.md) for the local terrain and detail-level path.
 
+### Hillside: Ravnbro, a fictional old river town
+
+Hillside is now art-directed as **Ravnbro**: an original little railway town at the meeting point of a raised rail line, a marshy river edge and a hill. Its architectural reference is the compact urban rhythm of old Danish towns such as Ribe, rather than any copied building, street plan or historical story.
+
+- **Tight, uneven frontage:** narrow gable houses face the lane in short, slightly offset runs; a few have small covered passages leading to private yards.
+- **Mixed old materials:** dark timber frames and pale infill, weathered red brick, limewash, green-grey tiled roofs and warm ochre doors. These are shared material families, not replicas of real façades.
+- **A town made of thresholds:** raised pavements, short bridgelets, little stairs, handrails, water steps and market pockets should make every route feel deliberately connected.
+- **One clear landmark:** a fictional bell-and-signal tower behind the station gives the player a skyline reference from every lane; it is not a model of Ribe Cathedral.
+- **Marsh light, not period cosplay:** reeds, reflected water, low mist and lantern warmth suggest a Wadden Sea climate while the railway mystery remains contemporary-fantastical.
+
 ## Controls
 
 - iPhone landscape: left-thumb joystick moves the player; the right-side action button appears near a character or clue.

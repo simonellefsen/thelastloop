@@ -19,12 +19,28 @@ The title remains a spherical overview. On entering Hillside, the game now switc
 
 The globe is therefore a macro preview only for Hillside. Its route objects are intentionally not reused as the playable collision layer. Amber clues are placed in the flat district and show an explicit `Investigate …` action when the player enters range.
 
+## Ravnbro street plan — reference translated into an original world
+
+Ravnbro is not a recreation of Ribe. It borrows a useful spatial idea from well-preserved Danish river towns: dense, irregular building frontage and many small route decisions make a compact place feel richer than its footprint.
+
+| Pocket | Player purpose | Detail kit | Route connection |
+| --- | --- | --- | --- |
+| Station Gate | Arrival, keeper, restored name | Station sign, timber canopy, raised pavement, luggage cart | Main street and platform stair |
+| Market Fold | Mural clue and tune-card side quest | Offset gable façades, mural wall, bench, awnings and planted boxes | Narrow lane to the east of the station |
+| Signal Yard | Lens route | Brick signal hut, timber fence, depot arch and green lamp | Small service alley behind the northern frontage |
+| Bell Rise | Bell clue and step route | Handrails, retaining wall, bell-and-signal tower, shallow grass terraces | Six-step route from the road, then a sloped back path |
+| Reedwater Edge | Quiet atmosphere and future harbour transition | Low bridge, reeds, mooring posts, water shimmer and flood marker | South-west lane, visually below the station town |
+
+The first gameplay pass keeps the present route footprint. Future detail should replace isolated house objects with short, offset frontage groups so that paths naturally reveal courtyards and landmarks. Buildings remain purpose-built abstractions: the reference informs scale, materials and circulation, not individual façades or a real map.
+
 ## Next terrain foundation
 
 1. Give Harbour Works and Moonhill their own named, flat local coordinate frames.
 2. ✅ Add the first Hillside terrain kit: steps, handrails, kerbs, retaining walls and authored planted collision edges.
 3. ✅ Move existing Hillside side-route props into the playable district: depot lens/signal and tune card/hill bell routes.
 4. Extend the authored kerb, retaining-wall, rail, plant and building-front modules into the collision-aware street zone.
-5. Transition L0 → L1 → L2 without a loading screen; fade or occlude the macro sphere beyond the local horizon.
+5. Build the Ravnbro frontage kit: timber-frame beams, brick plinths, tiled gables, covered passages, drainage channels and small yard gates.
+6. Add the Reedwater Edge as a visual boundary and future route hand-off, without making the opening district materially larger.
+7. Transition L0 → L1 → L2 without a loading screen; fade or occlude the macro sphere beyond the local horizon.
 
 This keeps the miniature-world identity at a distance while allowing the close-up feel shown in the reference target: a district is a place to walk through, not a visibly curved ball under the player.
