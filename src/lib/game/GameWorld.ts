@@ -156,6 +156,7 @@ export class GameWorld implements PlayerController {
   }
 
   start(): void {
+    this.setTitlePreview(this.save.district)
     this.started = true
     this.save.quest.introductionSeen = true
     this.persist()
