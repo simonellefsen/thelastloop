@@ -61,6 +61,7 @@ h1 span { display: inline-block; font-size: .39em; letter-spacing: -.08em; verti
 .dialogue.complete { background: #fff0b5; }
 .dialogue p { margin: 0; font-size: clamp(.75rem, 1.7vw, 1rem); font-weight: 800; line-height: 1.25; }
 .dialogue small { display: block; margin-top: 5px; color: #5d6c6d; font-size: clamp(.57rem, 1.2vw, .7rem); }
+.npc-dialogue .eyebrow { margin: 0 0 5px; color: #c85b46; font-size: .58rem; letter-spacing: .11em; }
 .joystick { position: absolute; bottom: max(23px, env(safe-area-inset-bottom)); left: max(22px, env(safe-area-inset-left)); width: clamp(82px, 16vw, 122px); height: clamp(82px, 16vw, 122px); border: 3px solid rgba(255, 250, 221, .72); border-radius: 50%; background: rgba(16, 55, 63, .3); pointer-events: auto; touch-action: none; }
 .joystick::after { content: "MOVE"; position: absolute; inset: 50% auto auto 50%; color: rgba(255,255,255,.78); font-size: .55rem; font-weight: 900; letter-spacing: .12em; transform: translate(-50%, -50%); }
 .joystick-knob { position: absolute; top: 25%; left: 25%; width: 50%; height: 50%; border: 3px solid #25464d; border-radius: 50%; background: #f2c758; box-shadow: 2px 3px 0 rgba(0,0,0,.22); }

@@ -14,6 +14,7 @@
     hint: 'Enter the town when you are ready.',
     dialogue: 'A small world remembers every path.',
     nearbyLabel: '',
+    showNpcDialogue: false,
     quest: { introductionSeen: false, completedClues: [], stationNameRestored: false, lantern: 'locked', chorus: 'locked', harbour: 'locked', observatory: 'locked' },
     inStation: false,
     coatColor: 'gold',
@@ -209,10 +210,13 @@
       </aside>
       {/if}
 
-      <div class="dialogue" class:complete={isComplete(hud.quest)}>
-        <p>{hud.dialogue}</p>
-        <small>{hud.hint}</small>
-      </div>
+      {#if hud.showNpcDialogue}
+        <div class="dialogue npc-dialogue" class:complete={isComplete(hud.quest)} aria-live="polite">
+          <p class="eyebrow">STATION KEEPER</p>
+          <p>{hud.dialogue}</p>
+          <small>{hud.hint}</small>
+        </div>
+      {/if}
 
       {#if !hud.inStation}<div
         class="joystick"

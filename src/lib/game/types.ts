@@ -58,6 +58,7 @@ export interface GameHud {
   hint: string
   dialogue: string
   nearbyLabel: string
+  showNpcDialogue: boolean
   quest: QuestState
   inStation: boolean
   coatColor: CoatColor

@@ -1350,6 +1350,12 @@ export class GameWorld implements PlayerController {
     return 'The town is waiting for its station to remember.'
   }
 
+  private stationKeeperDialogue(): string {
+    if (this.save.quest.stationNameRestored && (this.save.quest.lantern !== 'complete' || this.save.quest.chorus !== 'complete')) return '“The sign is bright again. If you have time, the signal and hill bell still need a little care.”'
+    if (this.save.quest.stationNameRestored) return '“You did it. The last train has a name to come home to.”'
+    return '“The station sign has faded. Find the three amber beacons, and bring our name back.”'
+  }
+
   private emitHud(hint: string, dialogue: string): void {
     this.displayedHint = hint
     this.displayedDialogue = dialogue
@@ -1358,10 +1364,12 @@ export class GameWorld implements PlayerController {
 
   private currentHud(): GameHud {
     const nearbyLabel = this.nearby === 'station-keeper' ? 'Talk' : this.nearby === 'station-door' ? 'Enter station' : this.nearby ? `Investigate ${this.nearby.label}` : ''
+    const showNpcDialogue = !this.inStation && this.nearby === 'station-keeper'
     return {
-      hint: this.displayedHint || this.hint(),
-      dialogue: this.displayedDialogue || this.dialogue(),
+      hint: showNpcDialogue ? 'Tap Talk to speak with the station keeper.' : this.displayedHint || this.hint(),
+      dialogue: showNpcDialogue ? this.stationKeeperDialogue() : this.displayedDialogue || this.dialogue(),
       nearbyLabel: this.inStation ? '' : nearbyLabel,
+      showNpcDialogue,
       quest: this.save.quest,
       inStation: this.inStation,
       coatColor: this.save.coatColor,
