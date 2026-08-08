@@ -19,6 +19,6 @@
 
 ## Later: shared loop
 
-- Introduce anonymous player identities and a small room directory.
+- ✅ Introduce anonymous local passenger identities and an honest solo carriage board.
 - Host a persistent WebSocket service outside Vercel and synchronise movement with interpolation.
 - Keep quests, NPCs and ambient animation local unless they need shared state.

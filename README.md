@@ -2,6 +2,8 @@
 
 A tiny, original railway world built for iPhone landscape and the browser. Walk a hillside station town, recover its forgotten name, restore the first route, complete two local side stories, and travel to Harbour Works or Moonhill Observatory for compact repair journeys.
 
+The station passenger pass is local-only and non-identifying. There are no live rooms or networked players in this release.
+
 ## Development
 
 ```bash

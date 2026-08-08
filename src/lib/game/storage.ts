@@ -1,4 +1,5 @@
 import { defaultQuest } from './quest'
+import { defaultPassengerIdentity, isPassengerIdentity } from './presence'
 import type { CoatColor, DistrictId, GameSave, QuestState, SideQuestStage } from './types'
 
 export const SAVE_KEY = 'thelastloop.save.v1'
@@ -10,9 +11,10 @@ export interface StorageLike {
 
 export function defaultSave(): GameSave {
   return {
-    version: 3,
+    version: 4,
     soundEnabled: true,
     coatColor: 'gold',
+    identity: defaultPassengerIdentity(),
     district: 'hillside',
     playerNormal: [0.19, 0.96, 0.2],
     quest: defaultQuest(),
@@ -23,11 +25,12 @@ export function readSave(storage: StorageLike): GameSave {
   const fallback = defaultSave()
   try {
     const parsed = JSON.parse(storage.getItem(SAVE_KEY) ?? '') as Omit<Partial<GameSave>, 'version'> & { version?: number }
-    if ((parsed.version !== 1 && parsed.version !== 2 && parsed.version !== 3) || !Array.isArray(parsed.playerNormal) || parsed.playerNormal.length !== 3 || !parsed.quest) return fallback
+    if ((parsed.version !== 1 && parsed.version !== 2 && parsed.version !== 3 && parsed.version !== 4) || !Array.isArray(parsed.playerNormal) || parsed.playerNormal.length !== 3 || !parsed.quest) return fallback
     return {
-      version: 3,
+      version: 4,
       soundEnabled: typeof parsed.soundEnabled === 'boolean' ? parsed.soundEnabled : fallback.soundEnabled,
       coatColor: isCoatColor(parsed.coatColor) ? parsed.coatColor : fallback.coatColor,
+      identity: isPassengerIdentity(parsed.identity) ? parsed.identity : fallback.identity,
       district: isDistrict(parsed.district) ? parsed.district : fallback.district,
       playerNormal: parsed.playerNormal as GameSave['playerNormal'],
       quest: hydrateQuest(parsed.quest),

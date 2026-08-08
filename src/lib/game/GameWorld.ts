@@ -27,6 +27,7 @@ import {
   WebGLRenderer,
 } from 'three'
 import { isWithinWalkableCap, tangentForward } from './math'
+import { nextPassengerIdentity } from './presence'
 import { animationTime, shouldRender } from './runtime'
 import { advanceSideQuest, defaultQuest, resolveClue, unlockHarbour, unlockObservatory } from './quest'
 import { coatColors, nextCoatColor } from './style'
@@ -232,6 +233,13 @@ export class GameWorld implements PlayerController {
     this.persist()
     this.playTone(587)
     this.emitHud(`Railway coat changed to ${this.save.coatColor}.`, 'A little colour makes a long route feel like your own.')
+  }
+
+  cyclePassengerIdentity(): void {
+    this.save.identity = nextPassengerIdentity(this.save.identity)
+    this.persist()
+    this.playTone(494)
+    this.emitHud(`Passenger pass changed to ${this.save.identity.callsign}.`, 'This callsign stays on this device until shared rooms arrive.')
   }
 
   travelToHarbour(): void {
@@ -994,6 +1002,7 @@ export class GameWorld implements PlayerController {
       inStation: this.inStation,
       coatColor: this.save.coatColor,
       district: this.save.district,
+      identity: this.save.identity,
     }
   }
 

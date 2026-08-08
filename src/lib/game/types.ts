@@ -4,6 +4,18 @@ export type DistrictId = 'hillside' | 'harbour' | 'observatory'
 export type SideQuestId = 'lantern' | 'chorus' | 'harbour' | 'observatory'
 export type SideQuestStage = 'locked' | 'first' | 'second' | 'complete'
 
+export interface PassengerIdentity {
+  callsign: string
+}
+
+export interface RoomDirectoryEntry {
+  id: string
+  label: string
+  occupancy: number
+  capacity: number
+  localOnly: boolean
+}
+
 export interface QuestState {
   introductionSeen: boolean
   completedClues: ClueId[]
@@ -15,9 +27,10 @@ export interface QuestState {
 }
 
 export interface GameSave {
-  version: 3
+  version: 4
   soundEnabled: boolean
   coatColor: CoatColor
+  identity: PassengerIdentity
   district: DistrictId
   playerNormal: [number, number, number]
   quest: QuestState
@@ -34,6 +47,7 @@ export interface PlayerController {
   interact(): void
   leaveStation(): void
   cycleCoat(): void
+  cyclePassengerIdentity(): void
   travelToHarbour(): void
   travelToObservatory(): void
   returnToStation(): void
@@ -47,4 +61,5 @@ export interface GameHud {
   inStation: boolean
   coatColor: CoatColor
   district: DistrictId
+  identity: PassengerIdentity
 }

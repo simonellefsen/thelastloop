@@ -17,6 +17,7 @@
     inStation: false,
     coatColor: 'gold',
     district: 'hillside',
+    identity: { callsign: 'EMBER-7' },
   }
 
   const clueLabels: Record<string, string> = {
@@ -59,6 +60,10 @@
 
   function cycleCoat() {
     game?.cycleCoat()
+  }
+
+  function cyclePassengerIdentity() {
+    game?.cyclePassengerIdentity()
   }
 
   function travelToHarbour() {
@@ -176,6 +181,12 @@
           <button class="map-stop observatory available" onclick={travelToObservatory}>Moonhill Observatory<br /><small>ride now</small></button>
         </div>
         <p class="station-copy">The restored loop now reaches Harbour Works and Moonhill Observatory.</p>
+        <div class="carriage-board" aria-label="Local carriage status">
+          <strong>{hud.identity.callsign}</strong>
+          <span>Quiet carriage · 1 / 6</span>
+          <small>Local only — shared rooms are not online yet.</small>
+        </div>
+        <button class="identity-button" onclick={cyclePassengerIdentity}>Passenger pass: {hud.identity.callsign} ↻</button>
         <button class="coat-button" onclick={cycleCoat}>Railway coat: {hud.coatColor} ↻</button>
         <button class="leave-button" onclick={leaveStation}>Back to town</button>
       </aside>

@@ -45,4 +45,6 @@ The current soundscape is generated with browser-native Web Audio, not borrowed 
 
 ## Multiplayer boundary
 
-V1 is fully local. A future shared-room release may synchronise avatars, emotes and nearby presence over a separate persistent WebSocket service. Vercel remains the frontend host; game state and ambient life stay client-rendered.
+V1 is fully local. The station offers an anonymous passenger pass (a fixed project callsign, never a name, account or identifier) and an explicitly local-only carriage board. It does not imply live presence or send data anywhere.
+
+A future shared-room release may use these contracts to synchronise avatars, emotes and nearby presence over a separate persistent WebSocket service. Vercel remains the frontend host; game state and ambient life stay client-rendered.
