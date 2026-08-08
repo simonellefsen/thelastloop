@@ -17,7 +17,7 @@ The title should read as a small spherical planet. Once the player enters, the c
 
 The title remains a spherical overview. On entering Hillside, the game now switches to a distinct, gently curved street district: an upright station town with a shallow rolling ground profile, road, paths, lamps, benches, trees and purpose-built building blockers. The first local connection is now a visible step-and-rail run toward the hill bell, with kerbed road edges, retaining walls and planted collision props. The camera and player use world-up rather than a spherical normal, so the player, houses and props remain stable at street scale while the ground still carries a miniature-world rise and fall.
 
-The globe is therefore a macro preview only for Hillside. Its route objects are intentionally not reused as the playable collision layer. Amber clues are placed in the flat district and show an explicit `Investigate …` action when the player enters range.
+The globe is therefore a macro preview for Hillside and Harbour Works. Their route objects are intentionally not reused as the playable collision layer: Ravnbro becomes a street district, while Harbour Works becomes a compact upright dockyard with a physical shore edge and local quest markers. Amber and blue markers show an explicit `Investigate …` action when the player enters range.
 
 ## Ravnbro street plan — reference translated into an original world
 

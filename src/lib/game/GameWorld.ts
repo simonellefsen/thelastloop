@@ -41,6 +41,7 @@ const UP = new Vector3(0, 1, 0)
 const PLANET_RADIUS = 10
 const WALKABLE_ANCHOR = new Vector3(0, 1, 0)
 const WALKABLE_ANGLE = 0.82
+const harbourStreetHeight = (x: number, z: number): number => -0.0016 * (x * x + z * z) + Math.sin(x * 0.35) * Math.cos(z * 0.27) * 0.055
 
 export interface GameWorldEvents {
   onHud(hud: GameHud): void
@@ -71,6 +72,7 @@ export class GameWorld implements PlayerController {
   private readonly camera = new PerspectiveCamera(40, 1, 0.1, 120)
   private readonly root = new Group()
   private readonly hillsideStreet = new Group()
+  private readonly harbourStreet = new Group()
   private readonly harbourWorld = new Group()
   private readonly observatoryWorld = new Group()
   private readonly player = new Group()
@@ -85,8 +87,10 @@ export class GameWorld implements PlayerController {
   private readonly streetClues: Clue[] = []
   private readonly sideMarkers: SideMarker[] = []
   private readonly streetSideMarkers: SideMarker[] = []
+  private readonly harbourStreetSideMarkers: SideMarker[] = []
   private readonly blockersByDistrict: Record<DistrictId, SphericalBlocker[]> = { hillside: [], harbour: [], observatory: [] }
   private readonly streetBlockers: Array<{ center: Vector3; radius: number }> = []
+  private readonly harbourStreetBlockers: Array<{ center: Vector3; radius: number }> = []
   private readonly ambient = new Group()
   private readonly harbourAmbient = new Group()
   private readonly streetLife = new Group()
@@ -146,6 +150,7 @@ export class GameWorld implements PlayerController {
     this.createHillsideStreetWorld()
     this.createPlayer()
     this.createHarbourWorld()
+    this.createHarbourStreetWorld()
     this.createObservatoryWorld()
     this.createStationInterior()
     this.createAmbientLife()
@@ -166,6 +171,7 @@ export class GameWorld implements PlayerController {
   setTitlePreview(district: DistrictId): void {
     if (this.started) return
     this.hillsideStreet.visible = false
+    this.harbourStreet.visible = false
     this.root.visible = district === 'hillside'
     this.ambient.visible = district === 'hillside'
     this.harbourWorld.visible = district === 'harbour'
@@ -293,9 +299,10 @@ export class GameWorld implements PlayerController {
   returnToStation(): void {
     if (this.save.district === 'hillside') return
     const leavingObservatory = this.save.district === 'observatory'
-    ;(leavingObservatory ? this.observatoryWorld : this.harbourWorld).remove(this.player)
+    ;(leavingObservatory ? this.observatoryWorld : this.harbourStreet).remove(this.player)
     this.root.add(this.player)
     this.harbourWorld.visible = false
+    this.harbourStreet.visible = false
     this.harbourAmbient.visible = false
     this.observatoryWorld.visible = false
     this.root.visible = false
@@ -1361,6 +1368,82 @@ export class GameWorld implements PlayerController {
     this.createHarbourAmbient()
   }
 
+  /** Street-scale counterpart to the title globe: an upright dockyard with a shallow local roll. */
+  private createHarbourStreetWorld(): void {
+    this.harbourStreet.visible = false
+    const water = new Mesh(new PlaneGeometry(42, 14), new MeshLambertMaterial({ color: '#347f8b', flatShading: true, side: DoubleSide }))
+    water.rotation.x = -Math.PI / 2
+    water.position.set(0, -0.18, -14)
+    this.harbourStreet.add(water)
+    this.harbourStreet.add(this.createHarbourStreetSurface(5.4, 25, 0, -1.4, '#697f79', 0.09))
+    this.harbourStreet.add(this.createHarbourStreetSurface(8.4, 1.35, 0, -9.2, '#9f835f', 0.15))
+    const warehouse = new Mesh(new BoxGeometry(3.5, 2.05, 2.25), new MeshLambertMaterial({ color: '#ad624c', flatShading: true }))
+    warehouse.position.set(-4.05, harbourStreetHeight(-4.05, -0.7) + 1.03, -0.7)
+    this.harbourStreet.add(warehouse)
+    const roof = new Mesh(new ConeGeometry(2.15, 0.9, 4), new MeshLambertMaterial({ color: '#294a51', flatShading: true }))
+    roof.rotation.y = Math.PI / 4
+    roof.position.set(-4.05, harbourStreetHeight(-4.05, -0.7) + 2.28, -0.7)
+    this.harbourStreet.add(roof)
+    const warehouseSign = this.createSign('HARBOUR WORKS', '#f4d46a', 260, 58)
+    warehouseSign.scale.set(1.5, 0.34, 1)
+    warehouseSign.position.set(-4.05, harbourStreetHeight(-4.05, -0.7) + 2.95, -0.7)
+    this.harbourStreet.add(warehouseSign)
+    const crane = new Group()
+    const orange = new MeshLambertMaterial({ color: '#d57d4d', flatShading: true })
+    const mast = new Mesh(new BoxGeometry(0.25, 4.1, 0.25), orange)
+    mast.position.y = 2.05
+    crane.add(mast)
+    const arm = new Mesh(new BoxGeometry(3.4, 0.18, 0.18), orange)
+    arm.position.set(-1.35, 3.82, 0)
+    crane.add(arm)
+    crane.position.set(4.35, harbourStreetHeight(4.35, -4.8), -4.8)
+    this.harbourStreet.add(crane)
+    const boat = new Mesh(new BoxGeometry(2.0, 0.46, 3.2), new MeshLambertMaterial({ color: '#e6ddc3', flatShading: true }))
+    boat.position.set(-5.6, 0.05, -13.25)
+    this.harbourStreet.add(boat)
+    for (const [x, z] of [[-2.5, -8.8], [2.5, -8.8], [-2.5, -10.1], [2.5, -10.1]] as Array<[number, number]>) {
+      const post = new Mesh(new CylinderGeometry(0.11, 0.15, 1.2, 5), new MeshLambertMaterial({ color: '#704f3d', flatShading: true }))
+      post.position.set(x, harbourStreetHeight(x, z) + 0.6, z)
+      this.harbourStreet.add(post)
+    }
+    this.addHarbourStreetMarker('harbour-valve', 'Tide valve', 'first', -5.6, -3.5, 'A blue tide valve clicks free. The dock pump can hear the sea again.')
+    this.addHarbourStreetMarker('harbour-pump', 'Wake clock', 'second', 1.55, -8.0, 'The tide clock turns once, then keeps time with the water. The harbour breathes again.')
+    this.harbourStreetBlockers.push({ center: new Vector3(-4.05, 0, -0.7), radius: 2.05 }, { center: new Vector3(4.35, 0, -4.8), radius: 0.72 })
+    for (let x = -16; x <= 16; x += 2.2) this.harbourStreetBlockers.push({ center: new Vector3(x, 0, -11.2), radius: 1.0 })
+    this.scene.add(this.harbourStreet)
+    this.updateSideQuestMarkers()
+  }
+
+  private createHarbourStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number): Mesh {
+    const geometry = new PlaneGeometry(width, length, Math.max(2, Math.ceil(width)), Math.max(4, Math.ceil(length / 1.5)))
+    const positions = geometry.getAttribute('position')
+    for (let index = 0; index < positions.count; index += 1) positions.setZ(index, harbourStreetHeight(x + positions.getX(index), z - positions.getY(index)) + offset)
+    geometry.computeVertexNormals()
+    geometry.rotateX(-Math.PI / 2)
+    const surface = new Mesh(geometry, new MeshLambertMaterial({ color, flatShading: true, side: DoubleSide }))
+    surface.position.set(x, 0, z)
+    return surface
+  }
+
+  private addHarbourStreetMarker(id: 'harbour-valve' | 'harbour-pump', label: string, requiredStage: 'first' | 'second', x: number, z: number, text: string): void {
+    const marker = new Group()
+    const blue = new MeshLambertMaterial({ color: '#4b9ec2', flatShading: true })
+    const base = new Mesh(new CylinderGeometry(0.22, 0.28, 0.36, 5), blue)
+    base.position.y = 0.18
+    marker.add(base)
+    const glow = new Mesh(new SphereGeometry(0.17, 8, 6), new MeshLambertMaterial({ color: '#d8f2dd', emissive: new Color('#4b9ec2'), emissiveIntensity: 0.9, flatShading: true }))
+    glow.position.y = 0.65
+    marker.add(glow)
+    const sign = this.createSign(label, '#eff6dc', 190, 52)
+    sign.scale.set(1.08, 0.3, 1)
+    sign.position.y = 1.12
+    marker.add(sign)
+    const height = harbourStreetHeight(x, z)
+    marker.position.set(x, height, z)
+    this.harbourStreet.add(marker)
+    this.harbourStreetSideMarkers.push({ id, label, sideQuest: 'harbour', requiredStage, district: 'harbour', text, mesh: marker, position: [x, height, z] })
+  }
+
   private createObservatoryWorld(): void {
     this.observatoryWorld.visible = false
     const ocean = new Mesh(new SphereGeometry(PLANET_RADIUS - 0.2, 40, 28), new MeshStandardMaterial({ color: '#263d72', roughness: 0.92, metalness: 0 }))
@@ -1928,15 +2011,19 @@ export class GameWorld implements PlayerController {
     this.inStation = false
     this.root.visible = false
     this.hillsideStreet.visible = false
+    this.harbourWorld.visible = false
     this.ambient.visible = false
+    this.harbourAmbient.visible = false
     this.root.remove(this.player)
     this.hillsideStreet.remove(this.player)
-    this.harbourWorld.add(this.player)
-    this.harbourWorld.visible = true
-    this.harbourAmbient.visible = true
+    this.harbourWorld.remove(this.player)
+    this.harbourStreet.add(this.player)
+    this.harbourStreet.visible = true
     this.player.visible = true
     this.save.district = 'harbour'
     if (resetPosition) this.currentNormal.copy(this.normalAt(0.34, -0.3))
+    this.streetPosition.set(0, 0, 8)
+    this.streetForward.set(0, 0, -1)
     this.updateSideQuestMarkers()
     this.soundscape.setProfile(soundscapeProfile(this.save.quest))
   }
@@ -1946,11 +2033,13 @@ export class GameWorld implements PlayerController {
     this.inStation = false
     this.root.visible = false
     this.hillsideStreet.visible = false
+    this.harbourStreet.visible = false
     this.ambient.visible = false
     this.harbourWorld.visible = false
     this.harbourAmbient.visible = false
     this.root.remove(this.player)
     this.hillsideStreet.remove(this.player)
+    this.harbourStreet.remove(this.player)
     this.harbourWorld.remove(this.player)
     this.observatoryWorld.add(this.player)
     this.observatoryWorld.visible = true
@@ -2031,6 +2120,10 @@ export class GameWorld implements PlayerController {
       this.updateHillsideStreetPlayer(delta)
       return
     }
+    if (this.harbourStreet.visible) {
+      this.updateHarbourStreetPlayer(delta)
+      return
+    }
     this.entryCameraProgress = Math.min(1, this.entryCameraProgress + delta / 1.05)
     const keyboard = new Vector2(
       (this.keys.has('d') || this.keys.has('arrowright') ? 1 : 0) - (this.keys.has('a') || this.keys.has('arrowleft') ? 1 : 0),
@@ -2070,8 +2163,10 @@ export class GameWorld implements PlayerController {
   private enterHillsideStreet(): void {
     this.root.visible = false
     this.ambient.visible = false
+    this.harbourStreet.visible = false
     this.hillsideStreet.visible = true
     this.root.remove(this.player)
+    this.harbourStreet.remove(this.player)
     this.hillsideStreet.add(this.player)
     this.player.visible = true
     this.streetPosition.set(0, 0, 7.4)
@@ -2104,6 +2199,32 @@ export class GameWorld implements PlayerController {
     this.camera.position.lerp(cameraPosition, 0.16)
     this.camera.up.copy(UP)
     this.camera.lookAt(playerPosition.clone().add(new Vector3(0, 0.95, -3.2)))
+    this.findNearby(playerPosition)
+  }
+
+  private updateHarbourStreetPlayer(delta: number): void {
+    const keyboard = new Vector2(
+      (this.keys.has('d') || this.keys.has('arrowright') ? 1 : 0) - (this.keys.has('a') || this.keys.has('arrowleft') ? 1 : 0),
+      (this.keys.has('w') || this.keys.has('arrowup') ? 1 : 0) - (this.keys.has('s') || this.keys.has('arrowdown') ? 1 : 0),
+    )
+    const input = this.joystick.lengthSq() > 0.002 ? this.joystick.clone() : keyboard
+    if (input.lengthSq() > 0) {
+      input.normalize()
+      const direction = new Vector3(input.x, 0, -input.y).normalize()
+      const candidate = this.streetPosition.clone().addScaledVector(direction, delta * 4.1)
+      const inBounds = Math.abs(candidate.x) < 15.5 && candidate.z < 11.5 && candidate.z > -10.5
+      if (inBounds && this.harbourStreetBlockers.every((blocker) => candidate.distanceTo(blocker.center) > blocker.radius)) {
+        this.streetPosition.copy(candidate)
+        this.streetForward.copy(direction)
+      }
+    }
+    const playerPosition = this.streetPosition.clone().setY(harbourStreetHeight(this.streetPosition.x, this.streetPosition.z) + 0.04)
+    this.player.position.copy(playerPosition)
+    this.player.quaternion.identity()
+    this.player.rotation.y = Math.atan2(this.streetForward.x, this.streetForward.z)
+    this.camera.position.lerp(playerPosition.clone().add(new Vector3(0, 3.9, 6.4)), 0.16)
+    this.camera.up.copy(UP)
+    this.camera.lookAt(playerPosition.clone().add(new Vector3(0, 0.9, -3.1)))
     this.findNearby(playerPosition)
   }
 
@@ -2201,7 +2322,7 @@ export class GameWorld implements PlayerController {
         if (position.distanceTo(cluePosition) < 1.85) next = clue
       }
     }
-    const activeSideMarkers = this.hillsideStreet.visible ? this.streetSideMarkers : this.sideMarkers
+    const activeSideMarkers = this.hillsideStreet.visible ? this.streetSideMarkers : this.harbourStreet.visible ? this.harbourStreetSideMarkers : this.sideMarkers
     for (const marker of activeSideMarkers) {
       if (marker.district !== this.save.district || !marker.mesh.visible) continue
       const markerPosition = new Vector3(...marker.position)
@@ -2287,7 +2408,7 @@ export class GameWorld implements PlayerController {
   }
 
   private updateSideQuestMarkers(): void {
-    for (const marker of [...this.sideMarkers, ...this.streetSideMarkers]) {
+    for (const marker of [...this.sideMarkers, ...this.streetSideMarkers, ...this.harbourStreetSideMarkers]) {
       const stage = this.save.quest[marker.sideQuest]
       marker.mesh.visible = stage === marker.requiredStage
     }

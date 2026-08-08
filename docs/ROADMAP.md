@@ -23,7 +23,8 @@
 - ✅ Replace Hillside gameplay with a gently curved local street district: upright characters/buildings, stable camera, rolling ground, authored roads and building collision.
 - ✅ Move Green Light Home and The Morning Chorus into the playable Hillside district, including local visual-state changes.
 - ✅ Add the first authored Hillside connection: a step-and-rail route to the bell, road kerbs, retaining edges and planted collision props.
-- Extend the flat local-world treatment to Harbour Works and Moonhill, then add Hillside slopes, stairs and authored collision edges.
+- ✅ Extend the flat local-world treatment to Harbour Works: keep its globe for title preview, then enter an upright dockyard with a physical water edge, warehouse, crane and quest markers.
+- Extend the flat local-world treatment to Moonhill, then add further authored terrain and collision edges.
 - ✅ Build the first visible L2 hillside street kit: marked road, kerbs, paths, retaining wall, shop front, benches, lamps and planted boxes.
 - ✅ Reframe Hillside as Ravnbro, an original old Danish river-town-inspired rail district: connected frontage groups, timber-and-brick modules, the Market Courtyard and the bell-and-signal landmark.
 - ✅ Replace the generic Hillside station façade with Ravnbro's original red-brick civic station kit: gable, clock, repeated windows, chimneys and a cobbled forecourt.
