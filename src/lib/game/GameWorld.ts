@@ -1469,6 +1469,7 @@ export class GameWorld implements PlayerController {
       bench.add(back)
       bench.position.set(x, gentleStreetHeight(x, z), z)
       this.hillsideStreet.add(bench)
+      this.addStreetBlocker(x, z, 0.68)
     }
     for (const [x, z] of [[-3.6, 0.8], [3.8, -3.3], [-4.2, -8.5], [4.2, -8.8]]) {
       const tree = new Group()
@@ -1480,6 +1481,7 @@ export class GameWorld implements PlayerController {
       tree.add(crown)
       tree.position.set(x, gentleStreetHeight(x, z), z)
       this.hillsideStreet.add(tree)
+      this.addStreetBlocker(x, z, 0.78)
     }
   }
 
@@ -1580,12 +1582,64 @@ export class GameWorld implements PlayerController {
       post.position.set(x, harbourStreetHeight(x, z) + 0.6, z)
       this.harbourStreet.add(post)
     }
+    this.addHarbourOuterPier()
     this.addHarbourStreetMarker('harbour-valve', 'Tide valve', 'first', -5.6, -3.5, 'A blue tide valve clicks free. The dock pump can hear the sea again.')
     this.addHarbourStreetMarker('harbour-pump', 'Wake clock', 'second', 1.55, -8.0, 'The tide clock turns once, then keeps time with the water. The harbour breathes again.')
     this.harbourStreetBlockers.push({ center: new Vector3(-4.05, 0, -0.7), radius: 2.05 }, { center: new Vector3(4.35, 0, -4.8), radius: 0.72 })
     for (let x = -16; x <= 16; x += 2.2) this.harbourStreetBlockers.push({ center: new Vector3(x, 0, -11.2), radius: 1.0 })
     this.scene.add(this.harbourStreet)
     this.updateSideQuestMarkers()
+  }
+
+  /** A walkable outer pier makes the dockyard an actual waterfront route. */
+  private addHarbourOuterPier(): void {
+    const wood = new MeshLambertMaterial({ color: '#896247', flatShading: true })
+    const iron = new MeshLambertMaterial({ color: '#36545a', flatShading: true })
+    const paint = new MeshLambertMaterial({ color: '#e2c45e', flatShading: true })
+    const pier = this.createHarbourStreetSurface(5.4, 2.45, 5.15, -8.55, '#9e7955', 0.17)
+    this.harbourStreet.add(pier)
+    for (let x = 2.8; x <= 7.5; x += 0.52) {
+      const plank = new Mesh(new BoxGeometry(0.42, 0.065, 2.58), wood)
+      plank.position.set(x, harbourStreetHeight(x, -8.55) + 0.24, -8.55)
+      this.harbourStreet.add(plank)
+    }
+    for (const z of [-9.65, -7.45]) {
+      for (const x of [2.8, 4.75, 6.7]) {
+        const post = new Mesh(new CylinderGeometry(0.07, 0.1, 0.82, 5), iron)
+        post.position.set(x, harbourStreetHeight(x, z) + 0.41, z)
+        this.harbourStreet.add(post)
+        if (x !== 4.75) this.addHarbourStreetBlocker(x, z, 0.2)
+      }
+      const rail = new Mesh(new BoxGeometry(4.1, 0.065, 0.065), iron)
+      rail.position.set(4.75, harbourStreetHeight(4.75, z) + 0.71, z)
+      this.harbourStreet.add(rail)
+    }
+    const beacon = new Group()
+    const tower = new Mesh(new CylinderGeometry(0.34, 0.48, 2.15, 7), new MeshLambertMaterial({ color: '#e0d6bd', flatShading: true }))
+    tower.position.y = 1.08
+    beacon.add(tower)
+    const band = new Mesh(new CylinderGeometry(0.5, 0.5, 0.24, 7), paint)
+    band.position.y = 1.1
+    beacon.add(band)
+    const roof = new Mesh(new ConeGeometry(0.52, 0.48, 6), iron)
+    roof.position.y = 2.36
+    beacon.add(roof)
+    const lamp = new Mesh(new SphereGeometry(0.16, 7, 5), new MeshLambertMaterial({ color: '#fff0a3', emissive: new Color('#d48d3f'), emissiveIntensity: 0.85, flatShading: true }))
+    lamp.position.y = 2.09
+    beacon.add(lamp)
+    beacon.position.set(7.55, harbourStreetHeight(7.55, -8.55), -8.55)
+    this.harbourStreet.add(beacon)
+    this.addHarbourStreetBlocker(7.55, -8.55, 0.86)
+    for (const [x, z] of [[3.55, -8.22], [4.25, -8.95], [5.05, -8.22]] as Array<[number, number]>) {
+      const crate = new Mesh(new BoxGeometry(0.52, 0.46, 0.52), new MeshLambertMaterial({ color: '#b77646', flatShading: true }))
+      crate.position.set(x, harbourStreetHeight(x, z) + 0.23, z)
+      this.harbourStreet.add(crate)
+      this.addHarbourStreetBlocker(x, z, 0.38)
+    }
+    const pierSign = this.createSign('OUTER PIER', '#f2ead0', 190, 48)
+    pierSign.scale.set(1.06, 0.28, 1)
+    pierSign.position.set(5.0, harbourStreetHeight(5.0, -7.38) + 1.22, -7.38)
+    this.harbourStreet.add(pierSign)
   }
 
   private createHarbourStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number): Mesh {
@@ -1616,6 +1670,10 @@ export class GameWorld implements PlayerController {
     marker.position.set(x, height, z)
     this.harbourStreet.add(marker)
     this.harbourStreetSideMarkers.push({ id, label, sideQuest: 'harbour', requiredStage, district: 'harbour', text, mesh: marker, position: [x, height, z] })
+  }
+
+  private addHarbourStreetBlocker(x: number, z: number, radius: number): void {
+    this.harbourStreetBlockers.push({ center: new Vector3(x, 0, z), radius })
   }
 
   private createObservatoryWorld(): void {

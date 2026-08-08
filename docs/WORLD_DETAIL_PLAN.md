@@ -33,6 +33,8 @@ Ravnbro is not a recreation of Ribe. It borrows a useful spatial idea from well-
 
 The first gameplay pass keeps the present route footprint. It now has the first Ravnbro frontage kit: timber-frame grids on the remaining buildings, a bakehouse awning, depot yard sign and a service-lane threshold. Station Gate now establishes the railway anchor with platform hardware, luggage and waiting props; its rails now have a timber pedestrian crossing, warning lamps and collision outside the clear route toward Bell Rise. A compact parked shunter and platform cargo give that rail edge a readable working purpose while keeping the crossing open. Market Fold now opens through a covered threshold into a cobbled courtyard with a rear brick wing, drainage, laundry and planting; its collision props keep the pocket legible without sealing it off. Signal Yard and Bell Rise make all three main clues clear interaction pockets without obscuring their approaches. Two local townsfolk, a small bird flight and butterflies by the planted route give the district visible life without introducing networking, schedules or persistent NPC state. Future detail should join those short frontage groups into offset runs so that paths naturally reveal courtyards and landmarks. Buildings remain purpose-built abstractions: the reference informs scale, materials and circulation, not individual façades or a real map.
 
+Harbour Works now has an Outer Pier branching from its main dock. Planks, safety rails, cargo and a beacon tower turn the water edge into a deliberate destination; the physical boundaries keep that extension readable and prevent walks through its landmark props.
+
 ## Next terrain foundation
 
 1. Give Harbour Works and Moonhill their own named, flat local coordinate frames.
