@@ -1,6 +1,6 @@
 # The Last Loop
 
-A tiny, original railway world built for iPhone landscape and the browser. Walk a hillside station town, recover its forgotten name, restore the first route, and unlock the station's future route map.
+A tiny, original railway world built for iPhone landscape and the browser. Walk a hillside station town, recover its forgotten name, restore the first route, complete two local side stories, and unlock the station's future route map.
 
 ## Development
 

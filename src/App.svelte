@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import { GameWorld } from './lib/game/GameWorld'
   import type { GameHud, QuestState } from './lib/game/types'
+  import { sideQuestLabel } from './lib/game/quest'
 
   let gameHost: HTMLDivElement
   let game: GameWorld | undefined
@@ -12,7 +13,7 @@
     hint: 'Enter the town when you are ready.',
     dialogue: 'A small world remembers every path.',
     nearbyLabel: '',
-    quest: { introductionSeen: false, completedClues: [], stationNameRestored: false },
+    quest: { introductionSeen: false, completedClues: [], stationNameRestored: false, lantern: 'locked', chorus: 'locked' },
     inStation: false,
     coatColor: 'gold',
   }
@@ -129,6 +130,13 @@
             </li>
           {/each}
         </ul>
+        {#if isComplete(hud.quest)}
+          <div class="side-routes">
+            <p class="eyebrow">SIDE ROUTES</p>
+            <p class:done={hud.quest.lantern === 'complete'}><span>{hud.quest.lantern === 'complete' ? '✓' : '○'}</span>{sideQuestLabel('lantern', hud.quest.lantern)}</p>
+            <p class:done={hud.quest.chorus === 'complete'}><span>{hud.quest.chorus === 'complete' ? '✓' : '○'}</span>{sideQuestLabel('chorus', hud.quest.chorus)}</p>
+          </div>
+        {/if}
       </aside>
       {:else}
       <aside class="station-panel">

@@ -10,7 +10,7 @@
 ## Next: richer town
 
 - ✅ Add the unlockable station interior, route map and railway-coat customisation.
-- Add two more self-contained quests inside the hillside town.
+- ✅ Add two self-contained hillside quests: Green Light Home and The Morning Chorus.
 - Expand original audio from synthesized interaction tones to recorded ambience and music.
 - Build the industrial harbour and forest observatory as distinct globe districts.
 

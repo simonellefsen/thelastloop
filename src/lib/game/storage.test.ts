@@ -26,4 +26,11 @@ describe('game save', () => {
     store.setItem(SAVE_KEY, JSON.stringify({ version: 1, soundEnabled: true, playerNormal: [0, 1, 0], quest: defaultSave().quest }))
     expect(readSave(store).coatColor).toBe('gold')
   })
+
+  it('unlocks the new town quests for a restored legacy station', () => {
+    const store = memoryStorage()
+    store.setItem(SAVE_KEY, JSON.stringify({ version: 1, soundEnabled: true, playerNormal: [0, 1, 0], quest: { ...defaultSave().quest, stationNameRestored: true } }))
+    expect(readSave(store).quest.lantern).toBe('first')
+    expect(readSave(store).quest.chorus).toBe('first')
+  })
 })

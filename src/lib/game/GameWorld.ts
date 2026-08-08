@@ -27,7 +27,7 @@ import {
   WebGLRenderer,
 } from 'three'
 import { isWithinWalkableCap, tangentForward } from './math'
-import { defaultQuest, resolveClue } from './quest'
+import { advanceSideQuest, defaultQuest, resolveClue } from './quest'
 import { coatColors, nextCoatColor } from './style'
 import { readSave, writeSave } from './storage'
 import type { ClueId, GameHud, GameSave, PlayerController, WorldInteractable } from './types'
@@ -49,6 +49,15 @@ interface Clue extends WorldInteractable {
   mesh: Object3D
 }
 
+type SideMarkerId = 'lens-cache' | 'signal-repair' | 'tune-card' | 'bell-chime'
+
+interface SideMarker extends WorldInteractable {
+  id: SideMarkerId
+  sideQuest: 'lantern' | 'chorus'
+  text: string
+  mesh: Object3D
+}
+
 export class GameWorld implements PlayerController {
   private readonly renderer: WebGLRenderer
   private readonly scene = new Scene()
@@ -61,6 +70,7 @@ export class GameWorld implements PlayerController {
   private readonly clock = { last: performance.now(), elapsed: 0 }
   private readonly keys = new Set<string>()
   private readonly clues: Clue[] = []
+  private readonly sideMarkers: SideMarker[] = []
   private readonly ambient = new Group()
   private readonly resizeObserver: ResizeObserver
   private readonly onKeyDown = (event: KeyboardEvent) => this.keys.add(event.key.toLowerCase())
@@ -71,10 +81,12 @@ export class GameWorld implements PlayerController {
   private joystick = new Vector2()
   private started = false
   private animationFrame = 0
-  private nearby: Clue | 'station-keeper' | 'station-door' | undefined
+  private nearby: Clue | SideMarker | 'station-keeper' | 'station-door' | undefined
   private stationSign: Sprite | undefined
   private stationDoorPosition = new Vector3()
   private playerCoat: MeshLambertMaterial | undefined
+  private signalBulb: MeshLambertMaterial | undefined
+  private readonly chorusFireflies = new Group()
   private save: GameSave
   private audioContext: AudioContext | undefined
   private inStation = false
@@ -136,8 +148,14 @@ export class GameWorld implements PlayerController {
       return
     }
     if (this.nearby === 'station-keeper') {
-      if (this.save.quest.stationNameRestored) this.emitHud('You did it. The station doors are open, and the restored map is waiting inside.', 'Walk to the blue station door to enter.')
+      if (this.save.quest.stationNameRestored && (this.save.quest.lantern !== 'complete' || this.save.quest.chorus !== 'complete')) this.emitHud('Sunset Loop has a name again, but the signal is dark and the hill has forgotten its song.', 'Follow the teal and rose markers for two small side routes.')
+      else if (this.save.quest.stationNameRestored) this.emitHud('The station is bright, the birds are singing, and the next routes are waiting inside.', 'Walk to the blue station door to enter.')
       else this.emitHud('The old sign is blank again. The town kept its name in three little stories.', 'Look for the signal box, market mural and hill bell.')
+      return
+    }
+
+    if ('sideQuest' in this.nearby) {
+      this.resolveSideMarker(this.nearby)
       return
     }
 
@@ -151,6 +169,7 @@ export class GameWorld implements PlayerController {
     const quest = this.save.quest
     if (quest.stationNameRestored) {
       this.setStationSign('SUNSET LOOP', '#f8d34e')
+      this.updateSideQuestMarkers()
       this.playTone(784)
       this.emitHud('The painted letters return: SUNSET LOOP. Somewhere far below, an old train answers.', 'The first route is restored.')
     } else {
@@ -247,6 +266,7 @@ export class GameWorld implements PlayerController {
     this.addClue('signal', 'Signal box', 0.56, -0.52, 'The brass plate reads: “Every last train returns in a LOOP.”')
     this.addClue('mural', 'Market mural', 0.43, 0.22, 'A faded market mural shows the town under a gold SUNSET.')
     this.addClue('bell', 'Hill bell', 0.27, 0.72, 'The hill bell rings once: the old sign needs the last word—LOOP.')
+    this.addSideQuestLandmarks()
     this.setStationSign(this.save.quest.stationNameRestored ? 'SUNSET LOOP' : '____ ____', this.save.quest.stationNameRestored ? '#f8d34e' : '#efeee2')
   }
 
@@ -335,6 +355,68 @@ export class GameWorld implements PlayerController {
     this.root.add(marker)
     const position = marker.getWorldPosition(new Vector3())
     this.clues.push({ id, label, text, mesh: marker, position: [position.x, position.y, position.z] })
+  }
+
+  private addSideQuestLandmarks(): void {
+    this.addSignalTower()
+    this.addBellLandmark()
+    this.addSideMarker('lens-cache', 'Depot lens', 'lantern', 0.65, -0.82, 'A warm brass lens waits in the depot crate. Take it back to the signal.')
+    this.addSideMarker('signal-repair', 'Fit lens', 'lantern', 0.56, -0.52, 'The signal wakes green. One more corner of the loop feels safe after dusk.')
+    this.addSideMarker('tune-card', 'Tune card', 'chorus', 0.45, 0.36, 'A small tune card reads: “Three notes for the hill bell.”')
+    this.addSideMarker('bell-chime', 'Ring bell', 'chorus', 0.27, 0.72, 'The hill bell answers the tune. Birds lift from the rooftops in reply.')
+    for (let index = 0; index < 16; index += 1) {
+      const firefly = new Mesh(new SphereGeometry(0.05, 6, 5), new MeshLambertMaterial({ color: '#f8db68', emissive: new Color('#efb648'), emissiveIntensity: 0.8 }))
+      firefly.userData.phase = index / 16 * Math.PI * 2
+      this.chorusFireflies.add(firefly)
+    }
+    this.chorusFireflies.visible = this.save.quest.chorus === 'complete'
+    this.root.add(this.chorusFireflies)
+    this.updateSideQuestMarkers()
+  }
+
+  private addSignalTower(): void {
+    const tower = new Group()
+    const pole = new Mesh(new CylinderGeometry(0.08, 0.1, 1.25, 5), new MeshLambertMaterial({ color: '#354a4d', flatShading: true }))
+    pole.position.y = 0.62
+    tower.add(pole)
+    this.signalBulb = new MeshLambertMaterial({ color: this.save.quest.lantern === 'complete' ? '#78c271' : '#ca6854', emissive: new Color(this.save.quest.lantern === 'complete' ? '#4f9e5a' : '#803f39'), emissiveIntensity: 0.55 })
+    const bulb = new Mesh(new SphereGeometry(0.16, 8, 6), this.signalBulb)
+    bulb.position.y = 1.25
+    tower.add(bulb)
+    this.placeOnPlanet(tower, 0.56, -0.52, 0)
+    this.root.add(tower)
+  }
+
+  private addBellLandmark(): void {
+    const bell = new Group()
+    const frame = new Mesh(new BoxGeometry(0.6, 1, 0.14), new MeshLambertMaterial({ color: '#6d5948', flatShading: true }))
+    frame.position.y = 0.5
+    bell.add(frame)
+    const bellBody = new Mesh(new ConeGeometry(0.29, 0.38, 7), new MeshLambertMaterial({ color: '#d9a94f', flatShading: true }))
+    bellBody.rotation.x = Math.PI
+    bellBody.position.y = 0.68
+    bell.add(bellBody)
+    this.placeOnPlanet(bell, 0.27, 0.72, 0.4)
+    this.root.add(bell)
+  }
+
+  private addSideMarker(id: SideMarkerId, label: string, sideQuest: 'lantern' | 'chorus', latitude: number, longitude: number, text: string): void {
+    const marker = new Group()
+    const colour = sideQuest === 'lantern' ? '#71bcb9' : '#d683a2'
+    const base = new Mesh(new CylinderGeometry(0.2, 0.25, 0.28, 5), new MeshLambertMaterial({ color: colour, flatShading: true }))
+    base.position.y = 0.14
+    marker.add(base)
+    const glow = new Mesh(new SphereGeometry(0.13, 8, 6), new MeshLambertMaterial({ color: '#fff0a7', emissive: new Color(colour), emissiveIntensity: 0.85 }))
+    glow.position.y = 0.48
+    marker.add(glow)
+    const labelSprite = this.createSign(label, '#fff5d8', 228, 64)
+    labelSprite.scale.set(1.25, 0.34, 1)
+    labelSprite.position.y = 0.88
+    marker.add(labelSprite)
+    this.placeOnPlanet(marker, latitude, longitude, 0)
+    this.root.add(marker)
+    const position = marker.getWorldPosition(new Vector3())
+    this.sideMarkers.push({ id, label, sideQuest, text, mesh: marker, position: [position.x, position.y, position.z] })
   }
 
   private createPlayer(): void {
@@ -522,10 +604,14 @@ export class GameWorld implements PlayerController {
         object.position.set(Math.cos(motion * 0.12 + phase) * 18, 9 + index % 2, Math.sin(motion * 0.12 + phase) * 18)
       }
     })
+    this.chorusFireflies.children.forEach((object) => {
+      const phase = Number(object.userData.phase ?? 0)
+      object.position.set(Math.cos(motion * 1.6 + phase) * 1.2, 4.4 + Math.sin(motion * 2.2 + phase) * 0.55, Math.sin(motion * 1.6 + phase) * 1.2)
+    })
   }
 
   private findNearby(position: Vector3): void {
-    let next: Clue | 'station-keeper' | 'station-door' | undefined
+    let next: Clue | SideMarker | 'station-keeper' | 'station-door' | undefined
     const keeperPosition = this.normalAt(0.47, -0.14).multiplyScalar(PLANET_RADIUS)
     if (position.distanceTo(keeperPosition) < 2) next = 'station-keeper'
     if (this.save.quest.stationNameRestored && position.distanceTo(this.stationDoorPosition) < 2.45) next = 'station-door'
@@ -533,6 +619,11 @@ export class GameWorld implements PlayerController {
       if (!clue.mesh.visible) continue
       const cluePosition = new Vector3(...clue.position)
       if (position.distanceTo(cluePosition) < 1.85) next = clue
+    }
+    for (const marker of this.sideMarkers) {
+      if (!marker.mesh.visible) continue
+      const markerPosition = new Vector3(...marker.position)
+      if (position.distanceTo(markerPosition) < 1.85) next = marker
     }
     if (next !== this.nearby) {
       this.nearby = next
@@ -566,6 +657,33 @@ export class GameWorld implements PlayerController {
       inStation: this.inStation,
       coatColor: this.save.coatColor,
     }
+  }
+
+  private resolveSideMarker(marker: SideMarker): void {
+    const stage = this.save.quest[marker.sideQuest]
+    if (stage === 'complete' || stage === 'locked') return
+    this.save.quest = advanceSideQuest(this.save.quest, marker.sideQuest)
+    if (marker.id === 'signal-repair') {
+      this.signalBulb?.color.set('#78c271')
+      this.signalBulb?.emissive.set('#4f9e5a')
+      this.playTone(698)
+    }
+    if (marker.id === 'bell-chime') {
+      this.chorusFireflies.visible = true
+      this.playTone(880)
+    }
+    this.updateSideQuestMarkers()
+    this.persist()
+    const finished = this.save.quest[marker.sideQuest] === 'complete'
+    this.emitHud(marker.text, finished ? marker.sideQuest === 'lantern' ? 'Green Light Home is complete. The signal will guide the last train.' : 'The Morning Chorus is complete. The town has found its song.' : marker.sideQuest === 'lantern' ? 'Take the lens to the teal signal marker.' : 'Take the tune to the rose bell marker.')
+  }
+
+  private updateSideQuestMarkers(): void {
+    for (const marker of this.sideMarkers) {
+      const stage = this.save.quest[marker.sideQuest]
+      marker.mesh.visible = (marker.id === 'lens-cache' || marker.id === 'tune-card') ? stage === 'first' : stage === 'second'
+    }
+    this.chorusFireflies.visible = this.save.quest.chorus === 'complete'
   }
 
   private enterStation(): void {

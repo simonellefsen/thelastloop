@@ -1,10 +1,14 @@
 export type ClueId = 'signal' | 'mural' | 'bell'
 export type CoatColor = 'gold' | 'berry' | 'ocean'
+export type SideQuestId = 'lantern' | 'chorus'
+export type SideQuestStage = 'locked' | 'first' | 'second' | 'complete'
 
 export interface QuestState {
   introductionSeen: boolean
   completedClues: ClueId[]
   stationNameRestored: boolean
+  lantern: SideQuestStage
+  chorus: SideQuestStage
 }
 
 export interface GameSave {
@@ -16,7 +20,7 @@ export interface GameSave {
 }
 
 export interface WorldInteractable {
-  id: 'station-keeper' | 'station-door' | ClueId
+  id: 'station-keeper' | 'station-door' | ClueId | 'lens-cache' | 'signal-repair' | 'tune-card' | 'bell-chime'
   label: string
   position: [number, number, number]
 }

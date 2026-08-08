@@ -1,5 +1,5 @@
 import { defaultQuest } from './quest'
-import type { CoatColor, GameSave } from './types'
+import type { CoatColor, GameSave, QuestState, SideQuestStage } from './types'
 
 export const SAVE_KEY = 'thelastloop.save.v1'
 
@@ -28,15 +28,27 @@ export function readSave(storage: StorageLike): GameSave {
       soundEnabled: typeof parsed.soundEnabled === 'boolean' ? parsed.soundEnabled : fallback.soundEnabled,
       coatColor: isCoatColor(parsed.coatColor) ? parsed.coatColor : fallback.coatColor,
       playerNormal: parsed.playerNormal as GameSave['playerNormal'],
-      quest: {
-        introductionSeen: Boolean(parsed.quest.introductionSeen),
-        completedClues: Array.isArray(parsed.quest.completedClues) ? parsed.quest.completedClues.filter((clue): clue is 'signal' | 'mural' | 'bell' => clue === 'signal' || clue === 'mural' || clue === 'bell') : [],
-        stationNameRestored: Boolean(parsed.quest.stationNameRestored),
-      },
+      quest: hydrateQuest(parsed.quest),
     }
   } catch {
     return fallback
   }
+}
+
+function hydrateQuest(quest: Partial<QuestState>): QuestState {
+  const stationNameRestored = Boolean(quest.stationNameRestored)
+  return {
+    introductionSeen: Boolean(quest.introductionSeen),
+    completedClues: Array.isArray(quest.completedClues) ? quest.completedClues.filter((clue): clue is 'signal' | 'mural' | 'bell' => clue === 'signal' || clue === 'mural' || clue === 'bell') : [],
+    stationNameRestored,
+    lantern: normaliseSideQuestStage(quest.lantern, stationNameRestored),
+    chorus: normaliseSideQuestStage(quest.chorus, stationNameRestored),
+  }
+}
+
+function normaliseSideQuestStage(value: unknown, unlocked: boolean): SideQuestStage {
+  if (value === 'first' || value === 'second' || value === 'complete') return value
+  return unlocked ? 'first' : 'locked'
 }
 
 function isCoatColor(value: unknown): value is CoatColor {
