@@ -31,6 +31,10 @@ Moonhill is a twilight-blue observatory globe with a small dome, telescope and f
 
 The current soundscape is generated with browser-native Web Audio, not borrowed sound files. A light wind layer starts after the player enters the world; restoring Sunset Loop adds a distant rail hum and an occasional four-note dusk motif; the station interior has a quiet room tone; and completing The Morning Chorus adds occasional soft bird calls. Audio is optional, saved locally, and starts only after an intentional player gesture for iPhone compatibility. Recorded ambience and music remain a separate future audio-session task.
 
+## Street life
+
+Ravnbro has a small local street-life layer: two non-interactive townsfolk walk short repeating routes, birds circle over the station and butterflies move around planted areas. These are client-side visual behaviours with no profiles, schedules, networking or implied live players. They hold still when reduced motion is enabled.
+
 ## Visual rules
 
 - Every model, texture and line of writing is original to this project.

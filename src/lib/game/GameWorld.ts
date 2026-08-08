@@ -89,6 +89,7 @@ export class GameWorld implements PlayerController {
   private readonly streetBlockers: Array<{ center: Vector3; radius: number }> = []
   private readonly ambient = new Group()
   private readonly harbourAmbient = new Group()
+  private readonly streetLife = new Group()
   private readonly resizeObserver: ResizeObserver
   private readonly onKeyDown = (event: KeyboardEvent) => this.keys.add(event.key.toLowerCase())
   private readonly onKeyUp = (event: KeyboardEvent) => this.keys.delete(event.key.toLowerCase())
@@ -396,6 +397,7 @@ export class GameWorld implements PlayerController {
     this.addStreetBlocker(-6.8, -7.3, 1.75)
     this.addStreetBlocker(-7.1, 5.3, 1.75)
     this.addFlatStreetFurniture()
+    this.createStreetLife()
     this.scene.add(this.hillsideStreet)
   }
 
@@ -1127,6 +1129,40 @@ export class GameWorld implements PlayerController {
     }
   }
 
+  /** Decorative local activity only: it has no simulation, collision or network state. */
+  private createStreetLife(): void {
+    const addWalker = (coatColor: string, hatColor: string, from: [number, number], to: [number, number], phase: number): void => {
+      const walker = new Group()
+      const coat = new Mesh(new CylinderGeometry(0.22, 0.29, 0.7, 5), new MeshLambertMaterial({ color: coatColor, flatShading: true }))
+      coat.position.y = 0.52
+      walker.add(coat)
+      const head = new Mesh(new SphereGeometry(0.2, 7, 6), new MeshLambertMaterial({ color: '#d6a179', flatShading: true }))
+      head.position.y = 1.02
+      walker.add(head)
+      const hat = new Mesh(new CylinderGeometry(0.22, 0.25, 0.08, 6), new MeshLambertMaterial({ color: hatColor, flatShading: true }))
+      hat.position.y = 1.2
+      walker.add(hat)
+      walker.userData = { kind: 'walker', from, to, phase }
+      this.streetLife.add(walker)
+    }
+
+    addWalker('#547f8a', '#344d57', [5.2, 0.45], [7.5, -3.85], 0.08)
+    addWalker('#b66d4c', '#4e514c', [-5.2, 2.2], [-8.1, -1.25], 0.53)
+
+    for (let index = 0; index < 4; index += 1) {
+      const bird = new Mesh(new ConeGeometry(0.08, 0.34, 3), new MeshLambertMaterial({ color: '#294b50', flatShading: true }))
+      bird.rotation.x = Math.PI / 2
+      bird.userData = { kind: 'bird', phase: index * 1.47 }
+      this.streetLife.add(bird)
+    }
+    for (let index = 0; index < 5; index += 1) {
+      const butterfly = new Mesh(new PlaneGeometry(0.13, 0.09), new MeshLambertMaterial({ color: index % 2 === 0 ? '#ef8a67' : '#f5ce55', side: DoubleSide, flatShading: true }))
+      butterfly.userData = { kind: 'butterfly', phase: index * 1.21 }
+      this.streetLife.add(butterfly)
+    }
+    this.hillsideStreet.add(this.streetLife)
+  }
+
   private createHarbourWorld(): void {
     this.harbourWorld.visible = false
     const ocean = new Mesh(
@@ -1811,6 +1847,7 @@ export class GameWorld implements PlayerController {
     }
     else this.updateTitleCamera()
     this.updateAmbient()
+    this.updateStreetLife()
     this.soundscape.update(this.clock.elapsed)
     this.renderer.render(this.scene, this.camera)
     this.animationFrame = requestAnimationFrame(this.tick)
@@ -1938,6 +1975,36 @@ export class GameWorld implements PlayerController {
       } else {
         const radius = 4.5 + index * 0.22
         object.position.set(Math.cos(motion * 0.38 + phase) * radius, 0.8, Math.sin(motion * 0.38 + phase) * radius)
+      }
+    })
+  }
+
+  private updateStreetLife(): void {
+    if (!this.hillsideStreet.visible) return
+    const motion = animationTime(this.clock.elapsed, window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    this.streetLife.children.forEach((object) => {
+      const kind = String(object.userData.kind ?? '')
+      const phase = Number(object.userData.phase ?? 0)
+      if (kind === 'walker') {
+        const from = object.userData.from as [number, number]
+        const to = object.userData.to as [number, number]
+        const travel = (Math.sin(motion * 0.38 + phase * Math.PI * 2) + 1) / 2
+        const x = from[0] + (to[0] - from[0]) * travel
+        const z = from[1] + (to[1] - from[1]) * travel
+        object.position.set(x, gentleStreetHeight(x, z) + Math.sin(motion * 4 + phase) * 0.018, z)
+        const direction = travel > 0.5 ? 1 : -1
+        object.rotation.y = Math.atan2((to[0] - from[0]) * direction, (to[1] - from[1]) * direction)
+      } else if (kind === 'bird') {
+        const angle = motion * 0.48 + phase
+        object.position.set(Math.cos(angle) * 5.5 - 0.8, 4.9 + Math.sin(angle * 2.2) * 0.22, Math.sin(angle) * 4.1 - 1.7)
+        object.rotation.y = -angle + Math.PI / 2
+        object.rotation.z = Math.sin(motion * 5 + phase) * 0.14
+      } else if (kind === 'butterfly') {
+        const angle = motion * 1.45 + phase
+        const x = 4.5 + Math.cos(angle) * 1.45
+        const z = -7.8 + Math.sin(angle * 1.3) * 0.78
+        object.position.set(x, gentleStreetHeight(x, z) + 0.85 + Math.sin(angle * 2.5) * 0.16, z)
+        object.rotation.y = -angle + Math.PI / 2
       }
     })
   }
