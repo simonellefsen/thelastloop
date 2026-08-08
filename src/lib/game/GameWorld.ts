@@ -1814,10 +1814,79 @@ export class GameWorld implements PlayerController {
       this.observatoryStreet.add(pine)
       this.addObservatoryStreetBlocker(x, z, 0.62)
     }
+    this.addMoonhillLookout()
     this.addObservatoryStreetMarker('observatory-lens', 'Starlight lens', 'first', -5.5, -2.2, 'A starlight lens rests beside the hill path. The telescope can see again.')
     this.addObservatoryStreetMarker('observatory-scope', 'Align scope', 'second', 1.5, -3.85, 'The moon signal crosses the glass. Every faraway station gets one clear night.')
     this.updateSideQuestMarkers()
     this.scene.add(this.observatoryStreet)
+  }
+
+  /** A second, quiet route off the telescope path: Moonhill's wind lookout. */
+  private addMoonhillLookout(): void {
+    const stone = new MeshLambertMaterial({ color: '#aaa592', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#654d42', flatShading: true })
+    const moss = new MeshLambertMaterial({ color: '#466c61', flatShading: true })
+    this.observatoryStreet.add(this.createObservatoryStreetSurface(6.2, 3.6, -5.25, -7.7, '#a99f8a', 0.15))
+    const shelter = new Group()
+    const frame = new Mesh(new BoxGeometry(1.85, 1.15, 1.25), timber)
+    frame.position.y = 0.58
+    shelter.add(frame)
+    const openFront = new Mesh(new PlaneGeometry(1.05, 0.72), new MeshLambertMaterial({ color: '#304f54', side: DoubleSide }))
+    openFront.position.set(0, 0.58, 0.631)
+    shelter.add(openFront)
+    const roof = new Mesh(new ConeGeometry(1.35, 0.7, 4), new MeshLambertMaterial({ color: '#364e5a', flatShading: true }))
+    roof.rotation.y = Math.PI / 4
+    roof.position.y = 1.48
+    shelter.add(roof)
+    shelter.position.set(-7.05, observatoryStreetHeight(-7.05, -7.55), -7.55)
+    this.observatoryStreet.add(shelter)
+    this.addObservatoryStreetBlocker(-7.05, -7.55, 1.14)
+
+    const chartTable = new Group()
+    const leg = new Mesh(new CylinderGeometry(0.08, 0.11, 0.68, 5), timber)
+    leg.position.y = 0.34
+    chartTable.add(leg)
+    const chart = new Mesh(new CylinderGeometry(0.58, 0.58, 0.08, 7), new MeshLambertMaterial({ color: '#d8d3be', flatShading: true }))
+    chart.position.y = 0.7
+    chartTable.add(chart)
+    for (const angle of [0.2, 2.1, 4.3]) {
+      const star = new Mesh(new SphereGeometry(0.045, 5, 4), new MeshLambertMaterial({ color: '#d4b669', emissive: new Color('#8f7138'), emissiveIntensity: 0.4, flatShading: true }))
+      star.position.set(Math.cos(angle) * 0.3, 0.76, Math.sin(angle) * 0.3)
+      chartTable.add(star)
+    }
+    chartTable.position.set(-3.8, observatoryStreetHeight(-3.8, -7.6), -7.6)
+    this.observatoryStreet.add(chartTable)
+    this.addObservatoryStreetBlocker(-3.8, -7.6, 0.64)
+
+    for (const x of [-7.95, -6.8, -5.65, -4.5, -3.35]) {
+      const parapet = new Mesh(new BoxGeometry(0.9, 0.55, 0.3), stone)
+      parapet.position.set(x, observatoryStreetHeight(x, -9.15) + 0.28, -9.15)
+      this.observatoryStreet.add(parapet)
+      this.addObservatoryStreetBlocker(x, -9.15, 0.43)
+    }
+    const fireBowl = new Group()
+    const bowl = new Mesh(new CylinderGeometry(0.28, 0.38, 0.22, 7), stone)
+    bowl.position.y = 0.16
+    fireBowl.add(bowl)
+    const flame = new Mesh(new ConeGeometry(0.17, 0.44, 5), new MeshLambertMaterial({ color: '#e6bd5b', emissive: new Color('#bf6b3b'), emissiveIntensity: 0.7, flatShading: true }))
+    flame.position.y = 0.48
+    fireBowl.add(flame)
+    fireBowl.position.set(-5.15, observatoryStreetHeight(-5.15, -6.4), -6.4)
+    this.observatoryStreet.add(fireBowl)
+    this.addObservatoryStreetBlocker(-5.15, -6.4, 0.42)
+
+    const lookoutSign = this.createSign('WIND LOOKOUT', '#eee8d1', 220, 48)
+    lookoutSign.scale.set(1.2, 0.28, 1)
+    lookoutSign.position.set(-5.3, observatoryStreetHeight(-5.3, -5.95) + 1.24, -5.95)
+    this.observatoryStreet.add(lookoutSign)
+    // A low mossy edge reads as a protected viewpoint without fencing the path.
+    for (const [x, z] of [[-8.35, -6.4], [-8.45, -8.55], [-2.45, -8.65]] as Array<[number, number]>) {
+      const rock = new Mesh(new ConeGeometry(0.42, 0.48, 6), moss)
+      rock.rotation.x = Math.PI
+      rock.position.set(x, observatoryStreetHeight(x, z) + 0.24, z)
+      this.observatoryStreet.add(rock)
+      this.addObservatoryStreetBlocker(x, z, 0.38)
+    }
   }
 
   private createObservatoryStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number): Mesh {

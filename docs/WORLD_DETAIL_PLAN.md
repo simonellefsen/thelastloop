@@ -35,6 +35,8 @@ The first gameplay pass keeps the present route footprint. It now has the first 
 
 Harbour Works now has an Outer Pier branching from its main dock. Planks, safety rails, cargo and a beacon tower turn the water edge into a deliberate destination; the physical boundaries keep that extension readable and prevent walks through its landmark props.
 
+Moonhill now mirrors that depth with a Wind Lookout beyond the observatory terrace: a sheltered rest point, star-chart table, fire bowl and low parapet form a quiet outward-facing pocket while preserving a clear path to the telescope.
+
 ## Next terrain foundation
 
 1. Give Harbour Works and Moonhill their own named, flat local coordinate frames.
