@@ -1871,6 +1871,7 @@ export class GameWorld implements PlayerController {
     }
     this.addHarbourOuterPier()
     this.addHarbourTideyard()
+    this.addHarbourRepairQuay()
     this.addHarbourDockKeeper(-0.9, -6.35)
     this.addHarbourStreetMarker('harbour-valve', 'Tide valve', 'first', -5.6, -3.5, 'A blue tide valve clicks free. The dock pump can hear the sea again.')
     this.addHarbourStreetMarker('harbour-pump', 'Wake clock', 'second', 1.55, -8.0, 'The tide clock turns once, then keeps time with the water. The harbour breathes again.')
@@ -1978,6 +1979,122 @@ export class GameWorld implements PlayerController {
     sign.scale.set(1.02, 0.27, 1)
     sign.position.set(-5.55, harbourStreetHeight(-5.55, -2.35) + 1.02, -2.35)
     this.harbourStreet.add(sign)
+  }
+
+  /**
+   * The east repair quay gives Harbour Works a second physical waterfront
+   * pocket. It keeps a wide approach from the main road while a hauled boat,
+   * workshop and edge rail make the working harbour readable at street scale.
+   */
+  private addHarbourRepairQuay(): void {
+    const plank = new MeshLambertMaterial({ color: '#967052', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#6c4c3b', flatShading: true })
+    const iron = new MeshLambertMaterial({ color: '#34565d', flatShading: true })
+    const brick = new MeshLambertMaterial({ color: '#b86750', flatShading: true })
+    const slate = new MeshLambertMaterial({ color: '#304c54', flatShading: true })
+    const cream = new MeshLambertMaterial({ color: '#e7dcc0', flatShading: true })
+
+    this.harbourStreet.add(this.createHarbourStreetSurface(7.4, 2.65, 6.0, -4.55, '#a27d5b', 0.16))
+    this.harbourStreet.add(this.createHarbourStreetSurface(4.1, 2.1, 9.9, -6.15, '#8d694f', 0.17))
+    for (let x = 2.7; x <= 9.35; x += 0.5) {
+      const board = new Mesh(new BoxGeometry(0.39, 0.065, 2.52), plank)
+      board.position.set(x, harbourStreetHeight(x, -4.55) + 0.23, -4.55)
+      this.harbourStreet.add(board)
+    }
+    for (let x = 8.1; x <= 11.6; x += 0.48) {
+      const board = new Mesh(new BoxGeometry(0.42, 0.065, 1.92), plank)
+      board.position.set(x, harbourStreetHeight(x, -6.15) + 0.24, -6.15)
+      this.harbourStreet.add(board)
+    }
+
+    const workshop = new Group()
+    const body = new Mesh(new BoxGeometry(2.5, 1.65, 1.85), brick)
+    body.position.y = 0.82
+    workshop.add(body)
+    const roof = new Mesh(new ConeGeometry(1.65, 0.72, 4), slate)
+    roof.rotation.y = Math.PI / 4
+    roof.position.y = 2.0
+    workshop.add(roof)
+    const door = new Mesh(new PlaneGeometry(0.92, 1.06), new MeshLambertMaterial({ color: '#294c52', side: DoubleSide }))
+    door.position.set(-0.25, 0.55, 0.931)
+    workshop.add(door)
+    const window = new Mesh(new PlaneGeometry(0.45, 0.46), new MeshLambertMaterial({ color: '#d8e6dc', side: DoubleSide }))
+    window.position.set(0.78, 1.12, 0.94)
+    workshop.add(window)
+    const sign = this.createSign('REPAIR QUAY', '#f3ead2', 205, 48)
+    sign.scale.set(1.14, 0.3, 1)
+    sign.position.set(0, 2.02, 0.95)
+    workshop.add(sign)
+    workshop.position.set(10.65, harbourStreetHeight(10.65, -3.65), -3.65)
+    this.harbourStreet.add(workshop)
+    this.addHarbourStreetBlocker(10.65, -3.65, 1.5)
+
+    const gantry = new Group()
+    for (const x of [-1.05, 1.05]) {
+      const post = new Mesh(new BoxGeometry(0.13, 2.45, 0.13), iron)
+      post.position.set(x, 1.22, 0)
+      gantry.add(post)
+    }
+    const beam = new Mesh(new BoxGeometry(2.38, 0.16, 0.16), iron)
+    beam.position.set(0, 2.28, 0)
+    gantry.add(beam)
+    const chain = new Mesh(new CylinderGeometry(0.025, 0.025, 0.98, 5), new MeshLambertMaterial({ color: '#c0b48f', flatShading: true }))
+    chain.position.set(-0.12, 1.7, 0.02)
+    gantry.add(chain)
+    const hook = new Mesh(new TorusGeometry(0.13, 0.032, 5, 8, Math.PI), iron)
+    hook.rotation.z = Math.PI
+    hook.position.set(-0.12, 1.2, 0.02)
+    gantry.add(hook)
+    gantry.position.set(6.1, harbourStreetHeight(6.1, -5.72), -5.72)
+    this.harbourStreet.add(gantry)
+    this.addHarbourStreetBlocker(5.05, -5.72, 0.22)
+    this.addHarbourStreetBlocker(7.15, -5.72, 0.22)
+
+    const boat = new Group()
+    const hull = new Mesh(new BoxGeometry(2.28, 0.5, 0.92), cream)
+    hull.position.y = 0.42
+    boat.add(hull)
+    const gunwale = new Mesh(new BoxGeometry(2.42, 0.11, 1.06), timber)
+    gunwale.position.y = 0.7
+    boat.add(gunwale)
+    const cockpit = new Mesh(new BoxGeometry(0.78, 0.24, 0.64), slate)
+    cockpit.position.set(0.22, 0.83, 0)
+    boat.add(cockpit)
+    const mast = new Mesh(new CylinderGeometry(0.045, 0.06, 1.45, 5), timber)
+    mast.position.set(-0.5, 1.28, 0)
+    boat.add(mast)
+    const repairPatch = new Mesh(new PlaneGeometry(0.48, 0.38), new MeshLambertMaterial({ color: '#d38b4f', side: DoubleSide }))
+    repairPatch.rotation.y = Math.PI / 2
+    repairPatch.position.set(1.15, 0.52, 0)
+    boat.add(repairPatch)
+    boat.position.set(8.9, harbourStreetHeight(8.9, -6.18), -6.18)
+    boat.rotation.y = -0.1
+    this.harbourStreet.add(boat)
+    this.addHarbourStreetBlocker(8.9, -6.18, 1.18)
+
+    for (const [x, z] of [[3.0, -5.87], [4.5, -5.87], [7.6, -5.87], [10.0, -7.12], [11.5, -7.12]] as Array<[number, number]>) {
+      const post = new Mesh(new CylinderGeometry(0.08, 0.11, 0.86, 5), iron)
+      post.position.set(x, harbourStreetHeight(x, z) + 0.43, z)
+      this.harbourStreet.add(post)
+      this.addHarbourStreetBlocker(x, z, 0.18)
+    }
+    const edgeRail = new Mesh(new BoxGeometry(4.45, 0.06, 0.06), iron)
+    edgeRail.position.set(5.25, harbourStreetHeight(5.25, -5.87) + 0.72, -5.87)
+    this.harbourStreet.add(edgeRail)
+    const quayRail = new Mesh(new BoxGeometry(2.0, 0.06, 0.06), iron)
+    quayRail.position.set(10.75, harbourStreetHeight(10.75, -7.12) + 0.72, -7.12)
+    this.harbourStreet.add(quayRail)
+
+    for (const [x, z, color] of [[4.1, -3.72, '#c87847'], [4.65, -3.5, '#b36b43'], [7.85, -4.0, '#d09d50']] as Array<[number, number, string]>) {
+      const crate = new Mesh(new BoxGeometry(0.46, 0.4, 0.44), new MeshLambertMaterial({ color, flatShading: true }))
+      crate.position.set(x, harbourStreetHeight(x, z) + 0.2, z)
+      this.harbourStreet.add(crate)
+      this.addHarbourStreetBlocker(x, z, 0.33)
+    }
+    const lifebuoy = new Mesh(new TorusGeometry(0.2, 0.055, 7, 12), new MeshLambertMaterial({ color: '#e7d9be', flatShading: true }))
+    lifebuoy.rotation.y = Math.PI / 2
+    lifebuoy.position.set(9.35, harbourStreetHeight(9.35, -4.72) + 1.04, -4.72)
+    this.harbourStreet.add(lifebuoy)
   }
 
   /** A local person gives the dock story a voice without becoming a schedule simulation. */

@@ -37,6 +37,8 @@ Harbour Works now has an Outer Pier branching from its main dock. Planks, safety
 
 Tideyard now branches west from the same dock road. Its paved board route, net shed, cargo stack and low rope edge frame the blue tide-valve marker as the first obvious Harbour Works destination, with an open approach preserved around the interaction radius.
 
+Repair Quay balances the dockyard on its eastern side: a short planked branch reaches a purpose-built workshop, hauled fishing boat and lifting gantry. Its handrails and edge posts are collision-aware, but the centre remains open enough to read as a place for the player to walk through rather than a sealed scene.
+
 Moonhill now mirrors that depth with a Wind Lookout beyond the observatory terrace: a sheltered rest point, star-chart table, fire bowl and low parapet form a quiet outward-facing pocket while preserving a clear path to the telescope.
 
 Lens Path is Moonhill's westward branch from the observatory road. Low handrails and repeated stone slabs lead to a tiny three-star dais, while the nearby pine is held back from the marker's interaction radius so the first violet objective stays visible and reachable.

@@ -34,6 +34,7 @@
 - Add further authored terrain and collision edges to the three districts.
 - ✅ Expand Harbour Works with a collision-aware Outer Pier: planked dock, safety rails, cargo and a beacon tower form a walkable waterfront destination.
 - ✅ Connect Harbour Works' first quest marker to the main dock with Tideyard: paved approach, net shed, low rail, cargo and clear wayfinding make the tide valve reachable.
+- ✅ Add Harbour Works' Repair Quay: an east dock extension with workshop, hauled boat, lifting gantry, cargo and protected water edge gives the tide-clock route a second collision-aware waterfront pocket.
 - ✅ Expand Moonhill with the collision-aware Wind Lookout: shelter, star-chart table, fire bowl, boundary parapet and mossy viewpoint edge.
 - ✅ Connect Moonhill's starlight lens to the observatory road with Lens Path: a paved branch, low handrails, sightline-clearing tree move and a small lens dais make the first violet marker clear and reachable.
 - ✅ Complete Ravnbro's bridge route with Reedwater Landing: plank deck, shelter, skiff and a safe physical water edge.
