@@ -39,6 +39,8 @@ Moonhill now mirrors that depth with a Wind Lookout beyond the observatory terra
 
 Ravnbro's bridge now reaches Reedwater Landing rather than stopping at a collision wall. A plank deck, tiny shelter, moored skiff and boundary posts make its river edge a deliberate, safe walkable destination.
 
+Ambient life belongs to each local district rather than a global simulation: Harbour Works uses a small flight of dock gulls and slow water ripples, while Moonhill has three high swifts and a few fireflies around the lookout. These meshes animate only while their district is visible, have no collision or save state, and remain a mobile-safe visual layer rather than networked actors.
+
 ## Next terrain foundation
 
 1. Give Harbour Works and Moonhill their own named, flat local coordinate frames.

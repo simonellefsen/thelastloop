@@ -106,6 +106,8 @@ export class GameWorld implements PlayerController {
   private readonly ambient = new Group()
   private readonly harbourAmbient = new Group()
   private readonly streetLife = new Group()
+  private readonly harbourStreetLife = new Group()
+  private readonly observatoryStreetLife = new Group()
   private readonly resizeObserver: ResizeObserver
   private readonly onKeyDown = (event: KeyboardEvent) => this.keys.add(event.key.toLowerCase())
   private readonly onKeyUp = (event: KeyboardEvent) => this.keys.delete(event.key.toLowerCase())
@@ -1573,6 +1575,40 @@ export class GameWorld implements PlayerController {
     this.hillsideStreet.add(this.streetLife)
   }
 
+  /** Harbour motion stays deliberately small: gulls, ripples and no simulation state. */
+  private createHarbourStreetLife(): void {
+    for (let index = 0; index < 5; index += 1) {
+      const gull = new Mesh(new ConeGeometry(0.09, 0.38, 3), new MeshLambertMaterial({ color: '#f4efd9', flatShading: true }))
+      gull.rotation.x = Math.PI / 2
+      gull.userData = { kind: 'harbour-gull', phase: index * 1.29 }
+      this.harbourStreetLife.add(gull)
+    }
+    for (let index = 0; index < 4; index += 1) {
+      const ripple = new Mesh(new TorusGeometry(0.22, 0.025, 4, 10), new MeshLambertMaterial({ color: '#8ac5c4', flatShading: true }))
+      ripple.rotation.x = Math.PI / 2
+      ripple.userData = { kind: 'harbour-ripple', phase: index * 1.71 }
+      this.harbourStreetLife.add(ripple)
+    }
+    this.harbourStreet.add(this.harbourStreetLife)
+  }
+
+  /** Moonhill has a few visible, local night details rather than a persistent NPC simulation. */
+  private createObservatoryStreetLife(): void {
+    const glow = new MeshLambertMaterial({ color: '#f5d87a', emissive: new Color('#c69142'), emissiveIntensity: 0.72, flatShading: true })
+    for (let index = 0; index < 7; index += 1) {
+      const firefly = new Mesh(new SphereGeometry(0.06, 6, 5), glow)
+      firefly.userData = { kind: 'moon-firefly', phase: index * 0.9 }
+      this.observatoryStreetLife.add(firefly)
+    }
+    for (let index = 0; index < 3; index += 1) {
+      const swift = new Mesh(new ConeGeometry(0.075, 0.32, 3), new MeshLambertMaterial({ color: '#313e57', flatShading: true }))
+      swift.rotation.x = Math.PI / 2
+      swift.userData = { kind: 'moon-swift', phase: index * 2.1 }
+      this.observatoryStreetLife.add(swift)
+    }
+    this.observatoryStreet.add(this.observatoryStreetLife)
+  }
+
   private createHarbourWorld(): void {
     this.harbourWorld.visible = false
     const ocean = new Mesh(
@@ -1641,6 +1677,7 @@ export class GameWorld implements PlayerController {
     this.addHarbourStreetMarker('harbour-pump', 'Wake clock', 'second', 1.55, -8.0, 'The tide clock turns once, then keeps time with the water. The harbour breathes again.')
     this.harbourStreetBlockers.push({ center: new Vector3(-4.05, 0, -0.7), radius: 2.05 }, { center: new Vector3(4.35, 0, -4.8), radius: 0.72 })
     for (let x = -16; x <= 16; x += 2.2) this.harbourStreetBlockers.push({ center: new Vector3(x, 0, -11.2), radius: 1.0 })
+    this.createHarbourStreetLife()
     this.scene.add(this.harbourStreet)
     this.updateSideQuestMarkers()
   }
@@ -1872,6 +1909,7 @@ export class GameWorld implements PlayerController {
     this.addObservatoryStreetMarker('observatory-lens', 'Starlight lens', 'first', -5.5, -2.2, 'A starlight lens rests beside the hill path. The telescope can see again.')
     this.addObservatoryStreetMarker('observatory-scope', 'Align scope', 'second', 1.5, -3.85, 'The moon signal crosses the glass. Every faraway station gets one clear night.')
     this.updateSideQuestMarkers()
+    this.createObservatoryStreetLife()
     this.scene.add(this.observatoryStreet)
   }
 
@@ -2819,33 +2857,65 @@ export class GameWorld implements PlayerController {
   }
 
   private updateStreetLife(): void {
-    if (!this.hillsideStreet.visible) return
     const motion = animationTime(this.clock.elapsed, window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-    this.streetLife.children.forEach((object) => {
-      const kind = String(object.userData.kind ?? '')
-      const phase = Number(object.userData.phase ?? 0)
-      if (kind === 'walker') {
-        const from = object.userData.from as [number, number]
-        const to = object.userData.to as [number, number]
-        const travel = (Math.sin(motion * 0.38 + phase * Math.PI * 2) + 1) / 2
-        const x = from[0] + (to[0] - from[0]) * travel
-        const z = from[1] + (to[1] - from[1]) * travel
-        object.position.set(x, gentleStreetHeight(x, z) + Math.sin(motion * 4 + phase) * 0.018, z)
-        const direction = travel > 0.5 ? 1 : -1
-        object.rotation.y = Math.atan2((to[0] - from[0]) * direction, (to[1] - from[1]) * direction)
-      } else if (kind === 'bird') {
-        const angle = motion * 0.48 + phase
-        object.position.set(Math.cos(angle) * 5.5 - 0.8, 4.9 + Math.sin(angle * 2.2) * 0.22, Math.sin(angle) * 4.1 - 1.7)
-        object.rotation.y = -angle + Math.PI / 2
-        object.rotation.z = Math.sin(motion * 5 + phase) * 0.14
-      } else if (kind === 'butterfly') {
-        const angle = motion * 1.45 + phase
-        const x = 4.5 + Math.cos(angle) * 1.45
-        const z = -7.8 + Math.sin(angle * 1.3) * 0.78
-        object.position.set(x, gentleStreetHeight(x, z) + 0.85 + Math.sin(angle * 2.5) * 0.16, z)
-        object.rotation.y = -angle + Math.PI / 2
-      }
-    })
+    if (this.hillsideStreet.visible) {
+      this.streetLife.children.forEach((object) => {
+        const kind = String(object.userData.kind ?? '')
+        const phase = Number(object.userData.phase ?? 0)
+        if (kind === 'walker') {
+          const from = object.userData.from as [number, number]
+          const to = object.userData.to as [number, number]
+          const travel = (Math.sin(motion * 0.38 + phase * Math.PI * 2) + 1) / 2
+          const x = from[0] + (to[0] - from[0]) * travel
+          const z = from[1] + (to[1] - from[1]) * travel
+          object.position.set(x, gentleStreetHeight(x, z) + Math.sin(motion * 4 + phase) * 0.018, z)
+          const direction = travel > 0.5 ? 1 : -1
+          object.rotation.y = Math.atan2((to[0] - from[0]) * direction, (to[1] - from[1]) * direction)
+        } else if (kind === 'bird') {
+          const angle = motion * 0.48 + phase
+          object.position.set(Math.cos(angle) * 5.5 - 0.8, 4.9 + Math.sin(angle * 2.2) * 0.22, Math.sin(angle) * 4.1 - 1.7)
+          object.rotation.y = -angle + Math.PI / 2
+          object.rotation.z = Math.sin(motion * 5 + phase) * 0.14
+        } else if (kind === 'butterfly') {
+          const angle = motion * 1.45 + phase
+          const x = 4.5 + Math.cos(angle) * 1.45
+          const z = -7.8 + Math.sin(angle * 1.3) * 0.78
+          object.position.set(x, gentleStreetHeight(x, z) + 0.85 + Math.sin(angle * 2.5) * 0.16, z)
+          object.rotation.y = -angle + Math.PI / 2
+        }
+      })
+    }
+    if (this.harbourStreet.visible) {
+      this.harbourStreetLife.children.forEach((object) => {
+        const phase = Number(object.userData.phase ?? 0)
+        if (object.userData.kind === 'harbour-gull') {
+          const angle = motion * 0.45 + phase
+          object.position.set(Math.cos(angle) * 6.2 + 0.4, 4.55 + Math.sin(angle * 2.1) * 0.28, Math.sin(angle) * 3.6 - 6.7)
+          object.rotation.y = -angle + Math.PI / 2
+          object.rotation.z = Math.sin(motion * 5 + phase) * 0.13
+        } else {
+          const pulse = 0.82 + (Math.sin(motion * 1.7 + phase) + 1) * 0.28
+          object.position.set(-5.6 + Math.cos(phase) * 2.6, 0.035, -13.25 + Math.sin(phase) * 1.7)
+          object.scale.setScalar(pulse)
+        }
+      })
+    }
+    if (this.observatoryStreet.visible) {
+      this.observatoryStreetLife.children.forEach((object) => {
+        const phase = Number(object.userData.phase ?? 0)
+        if (object.userData.kind === 'moon-firefly') {
+          const angle = motion * 0.9 + phase
+          const x = -4.9 + Math.cos(angle) * 2.05
+          const z = -7.25 + Math.sin(angle * 1.35) * 1.25
+          object.position.set(x, observatoryStreetHeight(x, z) + 1.05 + Math.sin(angle * 2.4) * 0.24, z)
+        } else {
+          const angle = motion * 0.38 + phase
+          object.position.set(Math.cos(angle) * 5.4 - 0.9, 4.9 + Math.sin(angle * 2) * 0.24, Math.sin(angle) * 3.4 - 6.4)
+          object.rotation.y = -angle + Math.PI / 2
+          object.rotation.z = Math.sin(motion * 4.6 + phase) * 0.12
+        }
+      })
+    }
   }
 
   private findNearby(position: Vector3): void {
