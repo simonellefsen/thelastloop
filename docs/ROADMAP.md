@@ -11,7 +11,8 @@
 
 - ✅ Add the unlockable station interior, route map and railway-coat customisation.
 - ✅ Add two self-contained hillside quests: Green Light Home and The Morning Chorus.
-- Expand original audio from synthesized interaction tones to recorded ambience and music.
+- ✅ Add an original adaptive Web Audio soundscape: wind, a restored rail hum, interior room tone, and chorus chirps.
+- Add recorded ambience and music after an original audio session.
 - Build the industrial harbour and forest observatory as distinct globe districts.
 
 ## Later: shared loop

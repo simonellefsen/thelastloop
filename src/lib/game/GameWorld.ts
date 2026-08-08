@@ -29,6 +29,7 @@ import {
 import { isWithinWalkableCap, tangentForward } from './math'
 import { advanceSideQuest, defaultQuest, resolveClue } from './quest'
 import { coatColors, nextCoatColor } from './style'
+import { Soundscape, soundscapeProfile } from './soundscape'
 import { readSave, writeSave } from './storage'
 import type { ClueId, GameHud, GameSave, PlayerController, WorldInteractable } from './types'
 
@@ -88,7 +89,7 @@ export class GameWorld implements PlayerController {
   private signalBulb: MeshLambertMaterial | undefined
   private readonly chorusFireflies = new Group()
   private save: GameSave
-  private audioContext: AudioContext | undefined
+  private soundscape: Soundscape
   private inStation = false
   private displayedHint = ''
   private displayedDialogue = ''
@@ -96,6 +97,7 @@ export class GameWorld implements PlayerController {
   constructor(private readonly container: HTMLElement, private readonly events: GameWorldEvents) {
     this.save = readSave(window.localStorage)
     this.currentNormal.fromArray(this.save.playerNormal).normalize()
+    this.soundscape = new Soundscape(this.save.soundEnabled)
 
     this.renderer = new WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' })
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.65))
@@ -133,6 +135,7 @@ export class GameWorld implements PlayerController {
     this.started = true
     this.save.quest.introductionSeen = true
     this.persist()
+    this.soundscape.start(soundscapeProfile(this.save.quest))
     this.emitHud('Find three fragments of the station name.', 'Walk to the glowing amber markers.')
   }
 
@@ -170,6 +173,7 @@ export class GameWorld implements PlayerController {
     if (quest.stationNameRestored) {
       this.setStationSign('SUNSET LOOP', '#f8d34e')
       this.updateSideQuestMarkers()
+      this.soundscape.setProfile(soundscapeProfile(this.save.quest))
       this.playTone(784)
       this.emitHud('The painted letters return: SUNSET LOOP. Somewhere far below, an old train answers.', 'The first route is restored.')
     } else {
@@ -182,6 +186,7 @@ export class GameWorld implements PlayerController {
     this.save.soundEnabled = !this.save.soundEnabled
     this.persist()
     this.events.onSound(this.save.soundEnabled)
+    this.soundscape.setEnabled(this.save.soundEnabled)
     if (this.save.soundEnabled) this.playTone(660)
   }
 
@@ -192,6 +197,7 @@ export class GameWorld implements PlayerController {
     this.root.visible = true
     this.ambient.visible = true
     this.player.visible = true
+    this.soundscape.setProfile(soundscapeProfile(this.save.quest))
     this.emitHud('The route map has marked two places beyond Sunset Loop.', 'The harbour and observatory will arrive in a later journey.')
   }
 
@@ -208,6 +214,7 @@ export class GameWorld implements PlayerController {
     this.resizeObserver.disconnect()
     window.removeEventListener('keydown', this.onKeyDown)
     window.removeEventListener('keyup', this.onKeyUp)
+    this.soundscape.dispose()
     this.renderer.dispose()
     this.container.replaceChildren()
   }
@@ -537,6 +544,7 @@ export class GameWorld implements PlayerController {
     }
     else this.updateTitleCamera()
     this.updateAmbient()
+    this.soundscape.update(this.clock.elapsed)
     this.renderer.render(this.scene, this.camera)
     this.animationFrame = requestAnimationFrame(this.tick)
   }
@@ -673,6 +681,7 @@ export class GameWorld implements PlayerController {
       this.playTone(880)
     }
     this.updateSideQuestMarkers()
+    this.soundscape.setProfile(soundscapeProfile(this.save.quest))
     this.persist()
     const finished = this.save.quest[marker.sideQuest] === 'complete'
     this.emitHud(marker.text, finished ? marker.sideQuest === 'lantern' ? 'Green Light Home is complete. The signal will guide the last train.' : 'The Morning Chorus is complete. The town has found its song.' : marker.sideQuest === 'lantern' ? 'Take the lens to the teal signal marker.' : 'Take the tune to the rose bell marker.')
@@ -694,6 +703,7 @@ export class GameWorld implements PlayerController {
     this.ambient.visible = false
     this.player.visible = false
     this.stationInterior.visible = true
+    this.soundscape.setProfile(soundscapeProfile(this.save.quest, true))
     this.emitHud('The map shows the old circle reaching farther than the town remembers.', 'Choose a coat colour while the next route waits for its story.')
   }
 
@@ -703,17 +713,7 @@ export class GameWorld implements PlayerController {
   }
 
   private playTone(frequency: number): void {
-    if (!this.save.soundEnabled) return
-    this.audioContext ??= new AudioContext()
-    const oscillator = this.audioContext.createOscillator()
-    const gain = this.audioContext.createGain()
-    oscillator.frequency.value = frequency
-    oscillator.type = 'triangle'
-    gain.gain.setValueAtTime(0.06, this.audioContext.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.28)
-    oscillator.connect(gain).connect(this.audioContext.destination)
-    oscillator.start()
-    oscillator.stop(this.audioContext.currentTime + 0.3)
+    this.soundscape.playCue(frequency)
   }
 
   private resize(): void {

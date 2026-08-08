@@ -15,6 +15,10 @@ Restoring the name opens the station interior. Its route map introduces the late
 - **Green Light Home:** recover a brass lens from the depot and fit it to the dark signal. The signal changes from red to green when the route is safe again.
 - **The Morning Chorus:** find a tune card in the market and carry it to the hill bell. Completing it wakes a small firefly-and-bird celebration above the town.
 
+## Soundscape
+
+The current soundscape is generated with browser-native Web Audio, not borrowed sound files. A light wind layer starts after the player enters the world; restoring Sunset Loop adds a distant rail hum; the station interior has a quiet room tone; and completing The Morning Chorus adds occasional soft bird calls. Audio is optional, saved locally, and starts only after an intentional player gesture for iPhone compatibility.
+
 ## Visual rules
 
 - Every model, texture and line of writing is original to this project.
