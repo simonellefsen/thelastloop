@@ -42,6 +42,7 @@
 - ✅ Add proximity-only local dialogue in the outer districts: the Dock Keeper and Moonhill Warden explain their current quest step only when approached; neither has a schedule, collision exception or network state.
 - ✅ Build the first visible L2 hillside street kit: marked road, kerbs, paths, retaining wall, shop front, benches, lamps and planted boxes.
 - ✅ Reframe Hillside as Ravnbro, an original old Danish river-town-inspired rail district: connected frontage groups, timber-and-brick modules, the Market Courtyard and the bell-and-signal landmark.
+- ✅ Extend Ravnbro northward with a collision-aware depot quarter: loading canopy, post-and-goods shed, hand cart, cargo and a cobbled yard continue the service lane into a real town edge.
 - ✅ Replace the generic Hillside station façade with Ravnbro's original red-brick civic station kit: gable, clock, repeated windows, chimneys and a cobbled forecourt.
 - ✅ Replace the remaining generic Hillside buildings with Ravnbro timber-frame frontages, a bakehouse awning, depot yard gate and a walkable service-lane threshold.
 - ✅ Add the Reedwater Edge: a bridgelet, reeds, mooring posts, water ripples and a flood marker form the district's collision-aware southern boundary.

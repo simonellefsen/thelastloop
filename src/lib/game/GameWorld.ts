@@ -594,6 +594,7 @@ export class GameWorld implements PlayerController {
     this.addFlatBuilding(-6.8, -7.3, '#e2c971', '#4e6970', 'HOME')
     this.addFlatBuilding(-7.1, 5.3, '#c9ded6', '#50666a', 'DEPOT')
     this.addRavnbroLaneThreshold()
+    this.addRavnbroDepotYard()
     this.addMarketFold()
     this.addMarketCourtyard()
     this.addSignalYard()
@@ -1417,6 +1418,111 @@ export class GameWorld implements PlayerController {
     gate.add(lantern)
     gate.position.set(-5.1, gentleStreetHeight(-5.1, 2.55), 2.55)
     this.hillsideStreet.add(gate)
+  }
+
+  /**
+   * A north-yard pocket extends the depot's small service lane into a proper
+   * town edge. It is intentionally open through the middle: cargo gives it a
+   * sense of work without making the player's first route feel hemmed in.
+   */
+  private addRavnbroDepotYard(): void {
+    const cobble = new MeshLambertMaterial({ color: '#b5aa89', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#68483b', flatShading: true })
+    const brick = new MeshLambertMaterial({ color: '#9b5543', flatShading: true })
+    const darkSlate = new MeshLambertMaterial({ color: '#3b5357', flatShading: true })
+    const cream = new MeshLambertMaterial({ color: '#e4d9b8', flatShading: true })
+
+    this.hillsideStreet.add(this.createRollingStreetSurface(5.4, 2.35, -8.2, 6.82, '#c9bea0', 0.09))
+    this.hillsideStreet.add(this.createRollingStreetSurface(6.6, 4.15, -11.1, 8.25, '#b5aa89', 0.1))
+    for (let x = -13.7; x <= -8.6; x += 0.56) {
+      for (let z = 6.72; z <= 9.58; z += 0.52) {
+        const stone = new Mesh(new BoxGeometry(0.46, 0.035, 0.4), (Math.round((x + z) * 2) % 2 === 0) ? cobble : cream)
+        stone.position.set(x, gentleStreetHeight(x, z) + 0.15, z)
+        this.hillsideStreet.add(stone)
+      }
+    }
+
+    const shed = new Group()
+    const shedBody = new Mesh(new BoxGeometry(2.62, 1.56, 1.92), brick)
+    shedBody.position.y = 0.78
+    shed.add(shedBody)
+    const shedRoof = new Mesh(new ConeGeometry(1.76, 0.76, 4), darkSlate)
+    shedRoof.rotation.y = Math.PI / 4
+    shedRoof.position.y = 1.92
+    shed.add(shedRoof)
+    const doubleDoor = new Mesh(new PlaneGeometry(1.12, 0.96), new MeshLambertMaterial({ color: '#2d4e54', side: DoubleSide }))
+    doubleDoor.position.set(0.28, 0.53, 0.968)
+    shed.add(doubleDoor)
+    for (const x of [-0.72, -0.12, 0.48]) {
+      const window = new Mesh(new PlaneGeometry(0.29, 0.38), new MeshLambertMaterial({ color: '#dce8dc', side: DoubleSide }))
+      window.position.set(x, 1.12, 0.978)
+      shed.add(window)
+    }
+    const shedSign = this.createSign('POST & GOODS', '#f6eed7', 210, 50)
+    shedSign.scale.set(1.16, 0.3, 1)
+    shedSign.position.set(-0.12, 1.98, 0.985)
+    shed.add(shedSign)
+    shed.position.set(-12.42, gentleStreetHeight(-12.42, 8.45), 8.45)
+    this.hillsideStreet.add(shed)
+    this.addStreetBlocker(-12.42, 8.45, 1.56)
+
+    const canopy = new Group()
+    for (const x of [-1.05, 1.05]) {
+      const post = new Mesh(new BoxGeometry(0.12, 1.62, 0.12), timber)
+      post.position.set(x, 0.81, 0)
+      canopy.add(post)
+    }
+    const beam = new Mesh(new BoxGeometry(2.52, 0.15, 0.16), timber)
+    beam.position.set(0, 1.49, 0)
+    canopy.add(beam)
+    const roof = new Mesh(new BoxGeometry(2.72, 0.12, 1.1), darkSlate)
+    roof.position.set(0, 1.58, -0.06)
+    canopy.add(roof)
+    const hangingLamp = new Mesh(new SphereGeometry(0.11, 7, 5), new MeshLambertMaterial({ color: '#f4d779', emissive: new Color('#c78639'), emissiveIntensity: 0.72, flatShading: true }))
+    hangingLamp.position.set(0, 1.3, 0.08)
+    canopy.add(hangingLamp)
+    canopy.position.set(-9.5, gentleStreetHeight(-9.5, 8.28), 8.28)
+    this.hillsideStreet.add(canopy)
+    this.addStreetBlocker(-9.5, 8.28, 0.7)
+
+    const handCart = new Group()
+    const cartBody = new Mesh(new BoxGeometry(1.1, 0.34, 0.68), timber)
+    cartBody.position.y = 0.42
+    handCart.add(cartBody)
+    const handle = new Mesh(new BoxGeometry(0.12, 0.1, 1.18), timber)
+    handle.position.set(0, 0.66, 0.74)
+    handle.rotation.x = -0.32
+    handCart.add(handle)
+    for (const x of [-0.39, 0.39]) {
+      const wheel = new Mesh(new CylinderGeometry(0.18, 0.18, 0.09, 7), darkSlate)
+      wheel.rotation.z = Math.PI / 2
+      wheel.position.set(x, 0.19, -0.25)
+      handCart.add(wheel)
+    }
+    const parcel = new Mesh(new BoxGeometry(0.46, 0.38, 0.38), new MeshLambertMaterial({ color: '#ca934b', flatShading: true }))
+    parcel.position.set(-0.16, 0.77, -0.04)
+    handCart.add(parcel)
+    handCart.position.set(-7.5, gentleStreetHeight(-7.5, 8.9), 8.9)
+    handCart.rotation.y = -0.32
+    this.hillsideStreet.add(handCart)
+    this.addStreetBlocker(-7.5, 8.9, 0.72)
+
+    for (const [x, z, color] of [[-10.75, 6.95, '#a67243'], [-10.25, 7.15, '#cf9c50'], [-8.3, 7.78, '#9d6744']] as Array<[number, number, string]>) {
+      const crate = new Mesh(new BoxGeometry(0.48, 0.42, 0.46), new MeshLambertMaterial({ color, flatShading: true }))
+      crate.position.set(x, gentleStreetHeight(x, z) + 0.21, z)
+      this.hillsideStreet.add(crate)
+      this.addStreetBlocker(x, z, 0.32)
+    }
+    for (const x of [-13.9, -12.8, -11.7]) {
+      const bollard = new Mesh(new CylinderGeometry(0.09, 0.12, 0.62, 6), timber)
+      bollard.position.set(x, gentleStreetHeight(x, 6.3) + 0.31, 6.3)
+      this.hillsideStreet.add(bollard)
+      this.addStreetBlocker(x, 6.3, 0.17)
+    }
+    const yardSign = this.createSign('NORTH YARD', '#eef0d7', 190, 46)
+    yardSign.scale.set(1.06, 0.28, 1)
+    yardSign.position.set(-9.25, gentleStreetHeight(-9.25, 6.0) + 1.14, 6.0)
+    this.hillsideStreet.add(yardSign)
   }
 
   /**
