@@ -23,7 +23,7 @@
 - ✅ Add the first authored Hillside connection: a step-and-rail route to the bell, road kerbs, retaining edges and planted collision props.
 - Extend the flat local-world treatment to Harbour Works and Moonhill, then add Hillside slopes, stairs and authored collision edges.
 - ✅ Build the first visible L2 hillside street kit: marked road, kerbs, paths, retaining wall, shop front, benches, lamps and planted boxes.
-- Reframe Hillside as Ravnbro, an original old Danish river-town-inspired rail district: build connected frontage groups, timber-and-brick material modules, courtyards and the bell-and-signal landmark.
+- ✅ Reframe Hillside as Ravnbro, an original old Danish river-town-inspired rail district: connected frontage groups, timber-and-brick modules, the Market Courtyard and the bell-and-signal landmark.
 - ✅ Replace the generic Hillside station façade with Ravnbro's original red-brick civic station kit: gable, clock, repeated windows, chimneys and a cobbled forecourt.
 - ✅ Replace the remaining generic Hillside buildings with Ravnbro timber-frame frontages, a bakehouse awning, depot yard gate and a walkable service-lane threshold.
 - ✅ Add the Reedwater Edge: a bridgelet, reeds, mooring posts, water ripples and a flood marker form the district's collision-aware southern boundary.

@@ -384,6 +384,7 @@ export class GameWorld implements PlayerController {
     this.addFlatBuilding(-7.1, 5.3, '#c9ded6', '#50666a', 'DEPOT')
     this.addRavnbroLaneThreshold()
     this.addMarketFold()
+    this.addMarketCourtyard()
     this.addSignalYard()
     this.addFlatKeeper(0, 2.2)
     this.addFlatClue('signal', 'Signal box', -7.2, -0.5, 'The brass plate reads: “Every last train returns in a LOOP.”')
@@ -615,6 +616,88 @@ export class GameWorld implements PlayerController {
     // The mural wall is solid, while the painting and the amber clue remain in
     // the open market approach for reliable interaction on touch and keyboard.
     this.addStreetBlocker(wallX, wallZ, 1.18)
+  }
+
+  /** A small cobbled yard lets the market read as a sequence of lanes and thresholds. */
+  private addMarketCourtyard(): void {
+    const yardX = 12.2
+    const yardZ = 0.15
+    this.hillsideStreet.add(this.createRollingStreetSurface(4.65, 3.55, yardX, yardZ, '#cbb78f', 0.105))
+    this.hillsideStreet.add(this.createRollingStreetSurface(3.8, 1.18, 9.9, 0.18, '#d8c9a7', 0.11))
+
+    const timber = new MeshLambertMaterial({ color: '#65483b', flatShading: true })
+    const paleBrick = new MeshLambertMaterial({ color: '#c68a68', flatShading: true })
+    const deepBrick = new MeshLambertMaterial({ color: '#8b4b40', flatShading: true })
+    const slate = new MeshLambertMaterial({ color: '#40595b', flatShading: true })
+    const rearWing = new Mesh(new BoxGeometry(1.75, 1.56, 1.68), paleBrick)
+    rearWing.position.set(13.62, gentleStreetHeight(13.62, -0.68) + 0.78, -0.68)
+    this.hillsideStreet.add(rearWing)
+    const rearRoof = new Mesh(new ConeGeometry(1.28, 0.68, 4), slate)
+    rearRoof.rotation.y = Math.PI / 4
+    rearRoof.position.set(13.62, gentleStreetHeight(13.62, -0.68) + 1.86, -0.68)
+    this.hillsideStreet.add(rearRoof)
+    for (const offsetZ of [-0.22, 0.32]) {
+      const brickBand = new Mesh(new BoxGeometry(1.86, 0.08, 0.08), deepBrick)
+      brickBand.position.set(13.62, gentleStreetHeight(13.62, -0.68) + 0.46 + (offsetZ + 0.22) * 1.35, -0.68 + offsetZ)
+      this.hillsideStreet.add(brickBand)
+    }
+
+    const arch = new Group()
+    for (const x of [-0.58, 0.58]) {
+      const post = new Mesh(new BoxGeometry(0.12, 1.24, 0.12), timber)
+      post.position.set(x, 0.62, 0)
+      arch.add(post)
+    }
+    const lintel = new Mesh(new BoxGeometry(1.34, 0.16, 0.15), timber)
+    lintel.position.set(0, 1.16, 0)
+    arch.add(lintel)
+    const lantern = new Mesh(new SphereGeometry(0.105, 7, 5), new MeshLambertMaterial({ color: '#f1cc68', emissive: new Color('#b87935'), emissiveIntensity: 0.68, flatShading: true }))
+    lantern.position.set(0, 0.93, 0.13)
+    arch.add(lantern)
+    arch.position.set(10.82, gentleStreetHeight(10.82, 0.72), 0.72)
+    this.hillsideStreet.add(arch)
+
+    for (let column = 0; column < 4; column += 1) {
+      for (let row = 0; row < 3; row += 1) {
+        const tile = new Mesh(new BoxGeometry(0.48, 0.035, 0.38), new MeshLambertMaterial({ color: (column + row) % 2 === 0 ? '#b8aa89' : '#d5c7a2', flatShading: true }))
+        const x = 11.05 + column * 0.58
+        const z = 0.72 + row * 0.52
+        tile.position.set(x, gentleStreetHeight(x, z) + 0.13, z)
+        this.hillsideStreet.add(tile)
+      }
+    }
+    const drain = new Mesh(new BoxGeometry(3.8, 0.05, 0.12), slate)
+    drain.position.set(12.15, gentleStreetHeight(12.15, 1.52) + 0.15, 1.52)
+    this.hillsideStreet.add(drain)
+    for (const x of [11.15, 12.15, 13.15]) {
+      const grate = new Mesh(new BoxGeometry(0.14, 0.035, 0.28), timber)
+      grate.position.set(x, gentleStreetHeight(x, 1.52) + 0.18, 1.52)
+      this.hillsideStreet.add(grate)
+    }
+
+    const barrel = new Mesh(new CylinderGeometry(0.23, 0.27, 0.64, 7), new MeshLambertMaterial({ color: '#765444', flatShading: true }))
+    barrel.position.set(11.35, gentleStreetHeight(11.35, -1.16) + 0.32, -1.16)
+    this.hillsideStreet.add(barrel)
+    const flowerBox = new Mesh(new BoxGeometry(0.9, 0.34, 0.4), timber)
+    flowerBox.position.set(12.18, gentleStreetHeight(12.18, -1.33) + 0.17, -1.33)
+    this.hillsideStreet.add(flowerBox)
+    for (const xOffset of [-0.28, 0, 0.28]) {
+      const flower = new Mesh(new SphereGeometry(0.09, 6, 5), new MeshLambertMaterial({ color: xOffset === 0 ? '#e06e6a' : '#f0c65e', flatShading: true }))
+      flower.position.set(12.18 + xOffset, gentleStreetHeight(12.18 + xOffset, -1.33) + 0.42, -1.33)
+      this.hillsideStreet.add(flower)
+    }
+    const clothesline = new Mesh(new BoxGeometry(2.15, 0.035, 0.035), timber)
+    clothesline.position.set(12.12, gentleStreetHeight(12.12, 1.08) + 1.52, 1.08)
+    this.hillsideStreet.add(clothesline)
+    for (const [x, color] of [[11.44, '#d7c462'], [12.12, '#5d91a0'], [12.8, '#c46e5c']] as Array<[number, string]>) {
+      const cloth = new Mesh(new PlaneGeometry(0.36, 0.42), new MeshLambertMaterial({ color, side: DoubleSide }))
+      cloth.position.set(x, gentleStreetHeight(x, 1.08) + 1.29, 1.11)
+      this.hillsideStreet.add(cloth)
+    }
+
+    this.addStreetBlocker(13.62, -0.68, 1.1)
+    this.addStreetBlocker(11.35, -1.16, 0.34)
+    this.addStreetBlocker(12.18, -1.33, 0.55)
   }
 
   /** The signal clue sits in an open railway-service pocket, not behind scenery. */
