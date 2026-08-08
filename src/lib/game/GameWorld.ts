@@ -42,6 +42,7 @@ const PLANET_RADIUS = 10
 const WALKABLE_ANCHOR = new Vector3(0, 1, 0)
 const WALKABLE_ANGLE = 0.82
 const harbourStreetHeight = (x: number, z: number): number => -0.0016 * (x * x + z * z) + Math.sin(x * 0.35) * Math.cos(z * 0.27) * 0.055
+const observatoryStreetHeight = (x: number, z: number): number => -0.0012 * (x * x + z * z) + Math.cos(x * 0.28 + z * 0.12) * 0.075
 
 export interface GameWorldEvents {
   onHud(hud: GameHud): void
@@ -76,6 +77,7 @@ export class GameWorld implements PlayerController {
   private readonly titleAtlas = new Group()
   private readonly hillsideStreet = new Group()
   private readonly harbourStreet = new Group()
+  private readonly observatoryStreet = new Group()
   private readonly harbourWorld = new Group()
   private readonly observatoryWorld = new Group()
   private readonly player = new Group()
@@ -91,9 +93,11 @@ export class GameWorld implements PlayerController {
   private readonly sideMarkers: SideMarker[] = []
   private readonly streetSideMarkers: SideMarker[] = []
   private readonly harbourStreetSideMarkers: SideMarker[] = []
+  private readonly observatoryStreetSideMarkers: SideMarker[] = []
   private readonly blockersByDistrict: Record<DistrictId, SphericalBlocker[]> = { hillside: [], harbour: [], observatory: [] }
   private readonly streetBlockers: Array<{ center: Vector3; radius: number }> = []
   private readonly harbourStreetBlockers: Array<{ center: Vector3; radius: number }> = []
+  private readonly observatoryStreetBlockers: Array<{ center: Vector3; radius: number }> = []
   private readonly ambient = new Group()
   private readonly harbourAmbient = new Group()
   private readonly streetLife = new Group()
@@ -155,6 +159,7 @@ export class GameWorld implements PlayerController {
     this.createHarbourWorld()
     this.createHarbourStreetWorld()
     this.createObservatoryWorld()
+    this.createObservatoryStreetWorld()
     this.createStationInterior()
     this.createAmbientLife()
     this.resize()
@@ -175,6 +180,7 @@ export class GameWorld implements PlayerController {
     if (this.started) return
     this.hillsideStreet.visible = false
     this.harbourStreet.visible = false
+    this.observatoryStreet.visible = false
     // Keep the complete world visible while the copy changes.  Selecting a
     // route should never make two-thirds of the title planet disappear.
     this.root.visible = true
@@ -305,12 +311,13 @@ export class GameWorld implements PlayerController {
   returnToStation(): void {
     if (this.save.district === 'hillside') return
     const leavingObservatory = this.save.district === 'observatory'
-    ;(leavingObservatory ? this.observatoryWorld : this.harbourStreet).remove(this.player)
+    ;(leavingObservatory ? this.observatoryStreet : this.harbourStreet).remove(this.player)
     this.root.add(this.player)
     this.harbourWorld.visible = false
     this.harbourStreet.visible = false
     this.harbourAmbient.visible = false
     this.observatoryWorld.visible = false
+    this.observatoryStreet.visible = false
     this.root.visible = false
     this.ambient.visible = false
     this.player.visible = false
@@ -1609,6 +1616,137 @@ export class GameWorld implements PlayerController {
     this.scene.add(this.observatoryWorld)
   }
 
+  /** Street-scale Moonhill: a stable, shallowly rolling hilltop around the observatory. */
+  private createObservatoryStreetWorld(): void {
+    this.observatoryStreet.visible = false
+    const groundGeometry = new PlaneGeometry(42, 38, 24, 20)
+    const positions = groundGeometry.getAttribute('position')
+    for (let index = 0; index < positions.count; index += 1) {
+      positions.setZ(index, observatoryStreetHeight(positions.getX(index), -positions.getY(index)))
+    }
+    groundGeometry.computeVertexNormals()
+    const ground = new Mesh(groundGeometry, new MeshLambertMaterial({ color: '#718a78', flatShading: true, side: DoubleSide }))
+    ground.rotation.x = -Math.PI / 2
+    this.observatoryStreet.add(ground)
+    this.observatoryStreet.add(this.createObservatoryStreetSurface(4.8, 25, 0, -1.1, '#5b6975', 0.09))
+    this.observatoryStreet.add(this.createObservatoryStreetSurface(9.4, 5.2, 0, -7.2, '#b9ad93', 0.13))
+
+    const stone = new MeshLambertMaterial({ color: '#d9d5bf', flatShading: true })
+    const slate = new MeshLambertMaterial({ color: '#424c75', flatShading: true })
+    const brass = new MeshLambertMaterial({ color: '#d6ad62', flatShading: true })
+    const dome = new Group()
+    const base = new Mesh(new CylinderGeometry(2.15, 2.35, 1.7, 10), stone)
+    base.position.y = 0.85
+    dome.add(base)
+    const roof = new Mesh(new SphereGeometry(2.18, 12, 7, 0, Math.PI * 2, 0, Math.PI / 2), slate)
+    roof.position.y = 1.72
+    dome.add(roof)
+    const door = new Mesh(new PlaneGeometry(0.72, 1.05), new MeshLambertMaterial({ color: '#315a65', side: DoubleSide }))
+    door.position.set(0, 0.58, 2.18)
+    dome.add(door)
+    const domeSign = this.createSign('MOONHILL', '#f0dc83', 250, 58)
+    domeSign.scale.set(1.42, 0.34, 1)
+    domeSign.position.set(0, 3.18, 2.22)
+    dome.add(domeSign)
+    dome.position.set(0, observatoryStreetHeight(0, -7.35), -7.35)
+    this.observatoryStreet.add(dome)
+    this.addObservatoryStreetBlocker(0, -7.35, 2.45)
+
+    const telescope = new Group()
+    const pedestal = new Mesh(new CylinderGeometry(0.3, 0.47, 1.18, 7), new MeshLambertMaterial({ color: '#6d5b8a', flatShading: true }))
+    pedestal.position.y = 0.59
+    telescope.add(pedestal)
+    const tube = new Mesh(new CylinderGeometry(0.18, 0.28, 2.2, 8), new MeshLambertMaterial({ color: '#d9d3e9', flatShading: true }))
+    tube.rotation.z = Math.PI / 3.1
+    tube.position.set(0.68, 1.5, 0)
+    telescope.add(tube)
+    const localLens = new Mesh(new SphereGeometry(0.22, 8, 6), this.observatoryBeacon ?? new MeshLambertMaterial({ color: '#8975bc', flatShading: true }))
+    localLens.position.set(1.28, 1.94, 0)
+    telescope.add(localLens)
+    telescope.position.set(1.5, observatoryStreetHeight(1.5, -3.85), -3.85)
+    this.observatoryStreet.add(telescope)
+    this.addObservatoryStreetBlocker(1.5, -3.85, 1.02)
+
+    const pathStone = new MeshLambertMaterial({ color: '#aa9c87', flatShading: true })
+    for (let index = 0; index < 9; index += 1) {
+      const z = -3.05 - index * 0.38
+      const slab = new Mesh(new BoxGeometry(2.1, 0.09, 0.29), pathStone)
+      slab.position.set(0, observatoryStreetHeight(0, z) + 0.15, z)
+      this.observatoryStreet.add(slab)
+    }
+    const railMaterial = new MeshLambertMaterial({ color: '#53616d', flatShading: true })
+    for (const x of [-1.32, 1.32]) {
+      const rail = new Mesh(new BoxGeometry(0.06, 0.06, 3.45), railMaterial)
+      rail.position.set(x, observatoryStreetHeight(x, -4.65) + 0.66, -4.65)
+      this.observatoryStreet.add(rail)
+      for (const z of [-3.15, -4.7, -6.05]) {
+        const post = new Mesh(new CylinderGeometry(0.045, 0.06, 0.8, 5), railMaterial)
+        post.position.set(x, observatoryStreetHeight(x, z) + 0.4, z)
+        this.observatoryStreet.add(post)
+      }
+    }
+
+    const wallMaterial = new MeshLambertMaterial({ color: '#989a89', flatShading: true })
+    for (const x of [-5.2, -3.9, 3.9, 5.2]) {
+      const wall = new Mesh(new BoxGeometry(0.95, 0.56, 0.28), wallMaterial)
+      wall.position.set(x, observatoryStreetHeight(x, -5.5) + 0.28, -5.5)
+      this.observatoryStreet.add(wall)
+      this.addObservatoryStreetBlocker(x, -5.5, 0.45)
+    }
+    for (const [x, z, height] of [[-6.3, -2.2, 2.4], [5.6, -1.4, 2.1], [-4.8, -9.4, 2.6], [4.6, -9.6, 2.25]] as Array<[number, number, number]>) {
+      const pine = new Group()
+      const trunk = new Mesh(new CylinderGeometry(0.1, 0.15, height * 0.38, 5), new MeshLambertMaterial({ color: '#55443d', flatShading: true }))
+      trunk.position.y = height * 0.19
+      pine.add(trunk)
+      const crown = new Mesh(new ConeGeometry(height * 0.32, height, 6), new MeshLambertMaterial({ color: '#355f59', flatShading: true }))
+      crown.position.y = height * 0.72
+      pine.add(crown)
+      pine.position.set(x, observatoryStreetHeight(x, z), z)
+      this.observatoryStreet.add(pine)
+      this.addObservatoryStreetBlocker(x, z, 0.62)
+    }
+    this.addObservatoryStreetMarker('observatory-lens', 'Starlight lens', 'first', -5.5, -2.2, 'A starlight lens rests beside the hill path. The telescope can see again.')
+    this.addObservatoryStreetMarker('observatory-scope', 'Align scope', 'second', 1.5, -3.85, 'The moon signal crosses the glass. Every faraway station gets one clear night.')
+    this.updateSideQuestMarkers()
+    this.scene.add(this.observatoryStreet)
+  }
+
+  private createObservatoryStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number): Mesh {
+    const geometry = new PlaneGeometry(width, length, Math.max(2, Math.ceil(width)), Math.max(4, Math.ceil(length / 1.5)))
+    const positions = geometry.getAttribute('position')
+    for (let index = 0; index < positions.count; index += 1) {
+      positions.setZ(index, observatoryStreetHeight(x + positions.getX(index), z - positions.getY(index)) + offset)
+    }
+    geometry.computeVertexNormals()
+    geometry.rotateX(-Math.PI / 2)
+    const surface = new Mesh(geometry, new MeshLambertMaterial({ color, flatShading: true, side: DoubleSide }))
+    surface.position.set(x, 0, z)
+    return surface
+  }
+
+  private addObservatoryStreetMarker(id: 'observatory-lens' | 'observatory-scope', label: string, requiredStage: 'first' | 'second', x: number, z: number, text: string): void {
+    const marker = new Group()
+    const violet = new MeshLambertMaterial({ color: '#8d78bf', flatShading: true })
+    const base = new Mesh(new CylinderGeometry(0.22, 0.28, 0.36, 5), violet)
+    base.position.y = 0.18
+    marker.add(base)
+    const glow = new Mesh(new SphereGeometry(0.17, 8, 6), new MeshLambertMaterial({ color: '#ede7ff', emissive: new Color('#8d78bf'), emissiveIntensity: 0.9, flatShading: true }))
+    glow.position.y = 0.65
+    marker.add(glow)
+    const sign = this.createSign(label, '#f1ebff', 210, 52)
+    sign.scale.set(1.18, 0.3, 1)
+    sign.position.y = 1.12
+    marker.add(sign)
+    const height = observatoryStreetHeight(x, z)
+    marker.position.set(x, height, z)
+    this.observatoryStreet.add(marker)
+    this.observatoryStreetSideMarkers.push({ id, label, sideQuest: 'observatory', requiredStage, district: 'observatory', text, mesh: marker, position: [x, height, z] })
+  }
+
+  private addObservatoryStreetBlocker(x: number, z: number, radius: number): void {
+    this.observatoryStreetBlockers.push({ center: new Vector3(x, 0, z), radius })
+  }
+
   private addHarbourRail(): void {
     const rail = new Mesh(
       new TorusGeometry(7.8, 0.075, 5, 96),
@@ -2127,11 +2265,13 @@ export class GameWorld implements PlayerController {
     this.inStation = false
     this.root.visible = false
     this.hillsideStreet.visible = false
+    this.observatoryStreet.visible = false
     this.harbourWorld.visible = false
     this.ambient.visible = false
     this.harbourAmbient.visible = false
     this.root.remove(this.player)
     this.hillsideStreet.remove(this.player)
+    this.observatoryStreet.remove(this.player)
     this.harbourWorld.remove(this.player)
     this.harbourStreet.add(this.player)
     this.harbourStreet.visible = true
@@ -2150,6 +2290,7 @@ export class GameWorld implements PlayerController {
     this.root.visible = false
     this.hillsideStreet.visible = false
     this.harbourStreet.visible = false
+    this.observatoryStreet.visible = false
     this.ambient.visible = false
     this.harbourWorld.visible = false
     this.harbourAmbient.visible = false
@@ -2157,11 +2298,14 @@ export class GameWorld implements PlayerController {
     this.hillsideStreet.remove(this.player)
     this.harbourStreet.remove(this.player)
     this.harbourWorld.remove(this.player)
-    this.observatoryWorld.add(this.player)
-    this.observatoryWorld.visible = true
+    this.observatoryWorld.remove(this.player)
+    this.observatoryStreet.add(this.player)
+    this.observatoryStreet.visible = true
     this.player.visible = true
     this.save.district = 'observatory'
     if (resetPosition) this.currentNormal.copy(this.normalAt(0.34, -0.3))
+    this.streetPosition.set(0, 0, 8)
+    this.streetForward.set(0, 0, -1)
     this.updateSideQuestMarkers()
     this.soundscape.setProfile(soundscapeProfile(this.save.quest))
   }
@@ -2240,6 +2384,10 @@ export class GameWorld implements PlayerController {
       this.updateHarbourStreetPlayer(delta)
       return
     }
+    if (this.observatoryStreet.visible) {
+      this.updateObservatoryStreetPlayer(delta)
+      return
+    }
     this.entryCameraProgress = Math.min(1, this.entryCameraProgress + delta / 1.05)
     const keyboard = new Vector2(
       (this.keys.has('d') || this.keys.has('arrowright') ? 1 : 0) - (this.keys.has('a') || this.keys.has('arrowleft') ? 1 : 0),
@@ -2280,9 +2428,11 @@ export class GameWorld implements PlayerController {
     this.root.visible = false
     this.ambient.visible = false
     this.harbourStreet.visible = false
+    this.observatoryStreet.visible = false
     this.hillsideStreet.visible = true
     this.root.remove(this.player)
     this.harbourStreet.remove(this.player)
+    this.observatoryStreet.remove(this.player)
     this.hillsideStreet.add(this.player)
     this.player.visible = true
     this.streetPosition.set(0, 0, 7.4)
@@ -2341,6 +2491,32 @@ export class GameWorld implements PlayerController {
     this.camera.position.lerp(playerPosition.clone().add(new Vector3(0, 3.9, 6.4)), 0.16)
     this.camera.up.copy(UP)
     this.camera.lookAt(playerPosition.clone().add(new Vector3(0, 0.9, -3.1)))
+    this.findNearby(playerPosition)
+  }
+
+  private updateObservatoryStreetPlayer(delta: number): void {
+    const keyboard = new Vector2(
+      (this.keys.has('d') || this.keys.has('arrowright') ? 1 : 0) - (this.keys.has('a') || this.keys.has('arrowleft') ? 1 : 0),
+      (this.keys.has('w') || this.keys.has('arrowup') ? 1 : 0) - (this.keys.has('s') || this.keys.has('arrowdown') ? 1 : 0),
+    )
+    const input = this.joystick.lengthSq() > 0.002 ? this.joystick.clone() : keyboard
+    if (input.lengthSq() > 0) {
+      input.normalize()
+      const direction = new Vector3(input.x, 0, -input.y).normalize()
+      const candidate = this.streetPosition.clone().addScaledVector(direction, delta * 3.85)
+      const inBounds = Math.abs(candidate.x) < 15.5 && candidate.z < 11.5 && candidate.z > -10.8
+      if (inBounds && this.observatoryStreetBlockers.every((blocker) => candidate.distanceTo(blocker.center) > blocker.radius)) {
+        this.streetPosition.copy(candidate)
+        this.streetForward.copy(direction)
+      }
+    }
+    const playerPosition = this.streetPosition.clone().setY(observatoryStreetHeight(this.streetPosition.x, this.streetPosition.z) + 0.04)
+    this.player.position.copy(playerPosition)
+    this.player.quaternion.identity()
+    this.player.rotation.y = Math.atan2(this.streetForward.x, this.streetForward.z)
+    this.camera.position.lerp(playerPosition.clone().add(new Vector3(0, 4.15, 6.7)), 0.16)
+    this.camera.up.copy(UP)
+    this.camera.lookAt(playerPosition.clone().add(new Vector3(0, 0.94, -3.2)))
     this.findNearby(playerPosition)
   }
 
@@ -2441,7 +2617,13 @@ export class GameWorld implements PlayerController {
         if (position.distanceTo(cluePosition) < 1.85) next = clue
       }
     }
-    const activeSideMarkers = this.hillsideStreet.visible ? this.streetSideMarkers : this.harbourStreet.visible ? this.harbourStreetSideMarkers : this.sideMarkers
+    const activeSideMarkers = this.hillsideStreet.visible
+      ? this.streetSideMarkers
+      : this.harbourStreet.visible
+        ? this.harbourStreetSideMarkers
+        : this.observatoryStreet.visible
+          ? this.observatoryStreetSideMarkers
+          : this.sideMarkers
     for (const marker of activeSideMarkers) {
       if (marker.district !== this.save.district || !marker.mesh.visible) continue
       const markerPosition = new Vector3(...marker.position)
@@ -2527,7 +2709,7 @@ export class GameWorld implements PlayerController {
   }
 
   private updateSideQuestMarkers(): void {
-    for (const marker of [...this.sideMarkers, ...this.streetSideMarkers, ...this.harbourStreetSideMarkers]) {
+    for (const marker of [...this.sideMarkers, ...this.streetSideMarkers, ...this.harbourStreetSideMarkers, ...this.observatoryStreetSideMarkers]) {
       const stage = this.save.quest[marker.sideQuest]
       marker.mesh.visible = stage === marker.requiredStage
     }
