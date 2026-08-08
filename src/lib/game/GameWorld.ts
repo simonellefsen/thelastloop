@@ -381,6 +381,7 @@ export class GameWorld implements PlayerController {
     this.addFlatBuilding(-7.1, 5.3, '#c9ded6', '#50666a', 'DEPOT')
     this.addRavnbroLaneThreshold()
     this.addMarketFold()
+    this.addSignalYard()
     this.addFlatKeeper(0, 2.2)
     this.addFlatClue('signal', 'Signal box', -7.2, -0.5, 'The brass plate reads: “Every last train returns in a LOOP.”')
     this.addFlatClue('mural', 'Market mural', 7.2, -1.7, 'A faded market mural shows the town under a gold SUNSET.')
@@ -609,6 +610,66 @@ export class GameWorld implements PlayerController {
     // The mural wall is solid, while the painting and the amber clue remain in
     // the open market approach for reliable interaction on touch and keyboard.
     this.addStreetBlocker(wallX, wallZ, 1.18)
+  }
+
+  /** The signal clue sits in an open railway-service pocket, not behind scenery. */
+  private addSignalYard(): void {
+    const yardX = -8.65
+    const yardZ = -0.35
+    this.hillsideStreet.add(this.createRollingStreetSurface(4.7, 3.9, yardX, yardZ, '#b9b69d', 0.09))
+
+    const hutX = -10.25
+    const hutZ = 0.72
+    const hutHeight = 1.28
+    const brick = new MeshLambertMaterial({ color: '#9a5141', flatShading: true })
+    const darkBrick = new MeshLambertMaterial({ color: '#753c35', flatShading: true })
+    const roofMaterial = new MeshLambertMaterial({ color: '#3a5356', flatShading: true })
+    const hut = new Mesh(new BoxGeometry(1.72, hutHeight, 1.58), brick)
+    hut.position.set(hutX, gentleStreetHeight(hutX, hutZ) + hutHeight / 2, hutZ)
+    this.hillsideStreet.add(hut)
+    const hutRoof = new Mesh(new ConeGeometry(1.24, 0.68, 4), roofMaterial)
+    hutRoof.rotation.y = Math.PI / 4
+    hutRoof.position.set(hutX, gentleStreetHeight(hutX, hutZ) + 1.62, hutZ)
+    this.hillsideStreet.add(hutRoof)
+    const hutDoor = new Mesh(new PlaneGeometry(0.5, 0.82), new MeshLambertMaterial({ color: '#264d53', side: DoubleSide }))
+    hutDoor.position.set(hutX, gentleStreetHeight(hutX, hutZ) + 0.42, hutZ + 0.8)
+    this.hillsideStreet.add(hutDoor)
+    const hutWindow = new Mesh(new PlaneGeometry(0.38, 0.4), new MeshLambertMaterial({ color: '#d9e6d8', side: DoubleSide }))
+    hutWindow.position.set(hutX - 0.45, gentleStreetHeight(hutX, hutZ) + 0.88, hutZ + 0.8)
+    this.hillsideStreet.add(hutWindow)
+    const yardSign = this.createSign('SIGNAL YARD', '#ecf0d8', 185, 46)
+    yardSign.scale.set(1.02, 0.28, 1)
+    yardSign.position.set(hutX, gentleStreetHeight(hutX, hutZ) + 1.96, hutZ)
+    this.hillsideStreet.add(yardSign)
+
+    const iron = new MeshLambertMaterial({ color: '#405b5e', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#6b4d3a', flatShading: true })
+    // A shallow fence frames the service bay without cutting off the clue's road approach.
+    for (const x of [-10.95, -9.55]) {
+      const post = new Mesh(new BoxGeometry(0.09, 0.78, 0.09), timber)
+      post.position.set(x, gentleStreetHeight(x, -1.35) + 0.39, -1.35)
+      this.hillsideStreet.add(post)
+    }
+    for (const y of [0.28, 0.56]) {
+      const rail = new Mesh(new BoxGeometry(1.52, 0.06, 0.06), timber)
+      rail.position.set(-10.25, gentleStreetHeight(-10.25, -1.35) + y, -1.35)
+      this.hillsideStreet.add(rail)
+    }
+    const switchWheel = new Mesh(new TorusGeometry(0.34, 0.055, 5, 10), iron)
+    switchWheel.position.set(-8.92, gentleStreetHeight(-8.92, -1.45) + 0.49, -1.45)
+    this.hillsideStreet.add(switchWheel)
+    const switchStand = new Mesh(new CylinderGeometry(0.05, 0.07, 0.68, 5), iron)
+    switchStand.position.set(-8.92, gentleStreetHeight(-8.92, -1.45) + 0.34, -1.45)
+    this.hillsideStreet.add(switchStand)
+    const toolCrate = new Mesh(new BoxGeometry(0.54, 0.42, 0.48), new MeshLambertMaterial({ color: '#a46d42', flatShading: true }))
+    toolCrate.position.set(-9.7, gentleStreetHeight(-9.7, -1.72) + 0.21, -1.72)
+    this.hillsideStreet.add(toolCrate)
+
+    const cable = new Mesh(new BoxGeometry(2.35, 0.035, 0.035), iron)
+    cable.position.set(-8.8, gentleStreetHeight(-8.8, 1.3) + 1.68, 1.3)
+    cable.rotation.z = -0.12
+    this.hillsideStreet.add(cable)
+    this.addStreetBlocker(hutX, hutZ, 1.06)
   }
 
   private createRollingStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number): Mesh {

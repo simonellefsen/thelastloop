@@ -28,6 +28,7 @@
 - ✅ Replace the remaining generic Hillside buildings with Ravnbro timber-frame frontages, a bakehouse awning, depot yard gate and a walkable service-lane threshold.
 - ✅ Add the Reedwater Edge: a bridgelet, reeds, mooring posts, water ripples and a flood marker form the district's collision-aware southern boundary.
 - ✅ Build the Market Fold interaction pocket around the mural clue: paved square, original sunset mural, canopy, stalls, crates and bunting.
+- ✅ Build Signal Yard around the signal clue: brick hut, yard paving, open fence bay, switch wheel and service crate.
 - Extend L2/L3 with rail hardware, dense interaction pockets and collision-aware terrain.
 - Add recorded ambience and music after an original audio session.
 
