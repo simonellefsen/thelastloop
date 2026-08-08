@@ -21,6 +21,7 @@
 - ✅ Frame the complete mini-globe at title scale with a high, slow orbit before the street-level entry transition.
 - ✅ Make the title globe a single complete route atlas: all three destinations, waystations and natural landmarks remain visible together, with portrait framing sized to the phone's narrow width.
 - ✅ Add a continuous title-rail route and a small moving train to connect the globe's settlements visually.
+- ✅ Make title route previews useful without isolating the selected district: rotate the complete atlas and light the chosen destination beacon.
 - ✅ Add a street-level entry zoom and a staged world-detail/terrain plan.
 - ✅ Replace Hillside gameplay with a gently curved local street district: upright characters/buildings, stable camera, rolling ground, authored roads and building collision.
 - ✅ Move Green Light Home and The Morning Chorus into the playable Hillside district, including local visual-state changes.

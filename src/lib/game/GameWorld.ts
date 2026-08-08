@@ -78,6 +78,7 @@ export class GameWorld implements PlayerController {
   // deliberately low-detail so the whole connected loop reads at phone scale.
   private readonly titleAtlas = new Group()
   private readonly titleTrain = new Group()
+  private readonly titleRouteBeacons = new Map<DistrictId, MeshLambertMaterial>()
   private titleRoute: CatmullRomCurve3 | undefined
   private readonly hillsideStreet = new Group()
   private readonly harbourStreet = new Group()
@@ -193,6 +194,9 @@ export class GameWorld implements PlayerController {
     this.harbourAmbient.visible = false
     this.observatoryWorld.visible = false
     this.titleAtlas.rotation.y = district === 'hillside' ? 0 : district === 'harbour' ? -0.24 : 0.24
+    for (const [beaconDistrict, material] of this.titleRouteBeacons) {
+      material.emissiveIntensity = beaconDistrict === district ? 1.1 : 0.16
+    }
   }
 
   start(): void {
@@ -475,6 +479,13 @@ export class GameWorld implements PlayerController {
       spire.position.set(0, 2.24, -0.2)
       settlement.add(spire)
     }
+    const district: DistrictId = kind === 'ravnbro' ? 'hillside' : kind === 'moonhill' ? 'observatory' : 'harbour'
+    const beaconColor = kind === 'harbour' ? '#82d4dc' : kind === 'moonhill' ? '#c4a9ef' : '#f4d55c'
+    const beaconMaterial = new MeshLambertMaterial({ color: beaconColor, emissive: new Color(beaconColor), emissiveIntensity: district === 'hillside' ? 1.1 : 0.16, flatShading: true })
+    const beacon = new Mesh(new SphereGeometry(0.16, 7, 5), beaconMaterial)
+    beacon.position.set(0, 2.82, 0.06)
+    settlement.add(beacon)
+    this.titleRouteBeacons.set(district, beaconMaterial)
     this.placeOnPlanet(settlement, latitude, longitude, heading)
     this.titleAtlas.add(settlement)
   }

@@ -164,7 +164,7 @@
         {/each}
       </div>
       <button class="enter-button" onclick={enterWorld}>Begin the story</button>
-      <p class="title-tip">Preview all three worlds above · touch to guide your walk · headphones optional</p>
+      <p class="title-tip">Choose a route to light its beacon · touch to guide your walk · headphones optional</p>
     </section>
   {:else}
     <section class="hud" aria-live="polite">
