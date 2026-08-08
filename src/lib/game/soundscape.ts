@@ -5,6 +5,7 @@ export interface SoundscapeProfile {
   rail: number
   birds: number
   roomTone: number
+  music: number
 }
 
 export function soundscapeProfile(quest: QuestState, inStation = false): SoundscapeProfile {
@@ -13,6 +14,7 @@ export function soundscapeProfile(quest: QuestState, inStation = false): Soundsc
     rail: quest.stationNameRestored ? (inStation ? 0.022 : 0.012) : 0,
     birds: quest.chorus === 'complete' && !inStation ? 0.045 : 0,
     roomTone: inStation ? 0.018 : 0,
+    music: quest.stationNameRestored ? (inStation ? 0.024 : 0.032) : 0,
   }
 }
 
@@ -22,9 +24,11 @@ export class Soundscape {
   private wind: GainNode | undefined
   private rail: GainNode | undefined
   private roomTone: GainNode | undefined
-  private profile: SoundscapeProfile = { wind: 0, rail: 0, birds: 0, roomTone: 0 }
+  private profile: SoundscapeProfile = { wind: 0, rail: 0, birds: 0, roomTone: 0, music: 0 }
   private enabled: boolean
   private nextBirdAt = 0
+  private nextMotifAt = 0
+  private motifIndex = 0
   private sources: AudioScheduledSourceNode[] = []
 
   constructor(enabled: boolean) {
@@ -56,9 +60,17 @@ export class Soundscape {
   }
 
   update(elapsed: number): void {
-    if (!this.enabled || !this.context || this.profile.birds === 0 || elapsed < this.nextBirdAt) return
-    this.nextBirdAt = elapsed + 2.6 + Math.random() * 3.4
-    this.playCue(760 + Math.random() * 330, 0.09, this.profile.birds)
+    if (!this.enabled || !this.context) return
+    if (this.profile.birds > 0 && elapsed >= this.nextBirdAt) {
+      this.nextBirdAt = elapsed + 2.6 + Math.random() * 3.4
+      this.playCue(760 + Math.random() * 330, 0.09, this.profile.birds)
+    }
+    if (this.profile.music > 0 && elapsed >= this.nextMotifAt) {
+      const motif = [392, 494, 587, 494]
+      this.playCue(motif[this.motifIndex], 0.42, this.profile.music)
+      this.motifIndex = (this.motifIndex + 1) % motif.length
+      this.nextMotifAt = elapsed + 4.4
+    }
   }
 
   playCue(frequency: number, duration = 0.22, volume = 0.075): void {

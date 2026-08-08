@@ -27,7 +27,7 @@ Moonhill is a twilight-blue observatory globe with a small dome, telescope and f
 
 ## Soundscape
 
-The current soundscape is generated with browser-native Web Audio, not borrowed sound files. A light wind layer starts after the player enters the world; restoring Sunset Loop adds a distant rail hum; the station interior has a quiet room tone; and completing The Morning Chorus adds occasional soft bird calls. Audio is optional, saved locally, and starts only after an intentional player gesture for iPhone compatibility.
+The current soundscape is generated with browser-native Web Audio, not borrowed sound files. A light wind layer starts after the player enters the world; restoring Sunset Loop adds a distant rail hum and an occasional four-note dusk motif; the station interior has a quiet room tone; and completing The Morning Chorus adds occasional soft bird calls. Audio is optional, saved locally, and starts only after an intentional player gesture for iPhone compatibility. Recorded ambience and music remain a separate future audio-session task.
 
 ## Visual rules
 
