@@ -30,6 +30,7 @@
 - ✅ Extend the flat local-world treatment to Moonhill: enter an upright observatory hill with a telescope terrace, stepped rail path, collision-aware dome and trees, and local violet markers.
 - Add further authored terrain and collision edges to the three districts.
 - ✅ Expand Harbour Works with a collision-aware Outer Pier: planked dock, safety rails, cargo and a beacon tower form a walkable waterfront destination.
+- ✅ Connect Harbour Works' first quest marker to the main dock with Tideyard: paved approach, net shed, low rail, cargo and clear wayfinding make the tide valve reachable.
 - ✅ Expand Moonhill with the collision-aware Wind Lookout: shelter, star-chart table, fire bowl, boundary parapet and mossy viewpoint edge.
 - ✅ Complete Ravnbro's bridge route with Reedwater Landing: plank deck, shelter, skiff and a safe physical water edge.
 - ✅ Give the two newer districts their own lightweight ambient life: Harbour Works runs dock gulls and water ripples, while Moonhill has swifts and fireflies only while those local worlds are active.

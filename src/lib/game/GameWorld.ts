@@ -1673,6 +1673,7 @@ export class GameWorld implements PlayerController {
       this.harbourStreet.add(post)
     }
     this.addHarbourOuterPier()
+    this.addHarbourTideyard()
     this.addHarbourStreetMarker('harbour-valve', 'Tide valve', 'first', -5.6, -3.5, 'A blue tide valve clicks free. The dock pump can hear the sea again.')
     this.addHarbourStreetMarker('harbour-pump', 'Wake clock', 'second', 1.55, -8.0, 'The tide clock turns once, then keeps time with the water. The harbour breathes again.')
     this.harbourStreetBlockers.push({ center: new Vector3(-4.05, 0, -0.7), radius: 2.05 }, { center: new Vector3(4.35, 0, -4.8), radius: 0.72 })
@@ -1731,6 +1732,54 @@ export class GameWorld implements PlayerController {
     pierSign.scale.set(1.06, 0.28, 1)
     pierSign.position.set(5.0, harbourStreetHeight(5.0, -7.38) + 1.22, -7.38)
     this.harbourStreet.add(pierSign)
+  }
+
+  /** A paved side yard makes the first dock quest legible from the main route. */
+  private addHarbourTideyard(): void {
+    const stone = new MeshLambertMaterial({ color: '#9a876b', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#755542', flatShading: true })
+    const iron = new MeshLambertMaterial({ color: '#35565e', flatShading: true })
+    const paint = new MeshLambertMaterial({ color: '#c77646', flatShading: true })
+    const yard = this.createHarbourStreetSurface(8.0, 2.7, -4.25, -3.55, '#a98d68', 0.14)
+    this.harbourStreet.add(yard)
+    for (let x = -7.9; x <= -0.7; x += 0.55) {
+      const board = new Mesh(new BoxGeometry(0.43, 0.06, 2.42), stone)
+      board.position.set(x, harbourStreetHeight(x, -3.55) + 0.19, -3.55)
+      this.harbourStreet.add(board)
+    }
+    const shed = new Group()
+    const body = new Mesh(new BoxGeometry(1.62, 1.32, 1.14), timber)
+    body.position.y = 0.66
+    shed.add(body)
+    const roof = new Mesh(new ConeGeometry(1.08, 0.58, 4), new MeshLambertMaterial({ color: '#3c5559', flatShading: true }))
+    roof.rotation.y = Math.PI / 4
+    roof.position.y = 1.58
+    shed.add(roof)
+    const door = new Mesh(new PlaneGeometry(0.58, 0.82), new MeshLambertMaterial({ color: '#294b52', side: DoubleSide }))
+    door.position.set(0, 0.45, 0.576)
+    shed.add(door)
+    shed.position.set(-7.2, harbourStreetHeight(-7.2, -3.55), -3.55)
+    this.harbourStreet.add(shed)
+    this.addHarbourStreetBlocker(-7.2, -3.55, 1.04)
+
+    for (const [x, z] of [[-6.7, -4.62], [-4.1, -4.62], [-1.4, -4.62]] as Array<[number, number]>) {
+      const post = new Mesh(new CylinderGeometry(0.09, 0.12, 0.84, 5), iron)
+      post.position.set(x, harbourStreetHeight(x, z) + 0.42, z)
+      this.harbourStreet.add(post)
+      const rope = new Mesh(new BoxGeometry(2.5, 0.055, 0.055), iron)
+      rope.position.set(x + 1.25, harbourStreetHeight(x + 1.25, z) + 0.68, z)
+      this.harbourStreet.add(rope)
+    }
+    for (const [x, z] of [[-3.35, -2.68], [-2.8, -2.68], [-2.8, -3.12]] as Array<[number, number]>) {
+      const crate = new Mesh(new BoxGeometry(0.42, 0.4, 0.42), paint)
+      crate.position.set(x, harbourStreetHeight(x, z) + 0.2, z)
+      this.harbourStreet.add(crate)
+      this.addHarbourStreetBlocker(x, z, 0.32)
+    }
+    const sign = this.createSign('TIDE YARD', '#f2ead0', 180, 48)
+    sign.scale.set(1.02, 0.27, 1)
+    sign.position.set(-5.55, harbourStreetHeight(-5.55, -2.35) + 1.02, -2.35)
+    this.harbourStreet.add(sign)
   }
 
   private createHarbourStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number): Mesh {

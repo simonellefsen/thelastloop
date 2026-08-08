@@ -35,6 +35,8 @@ The first gameplay pass keeps the present route footprint. It now has the first 
 
 Harbour Works now has an Outer Pier branching from its main dock. Planks, safety rails, cargo and a beacon tower turn the water edge into a deliberate destination; the physical boundaries keep that extension readable and prevent walks through its landmark props.
 
+Tideyard now branches west from the same dock road. Its paved board route, net shed, cargo stack and low rope edge frame the blue tide-valve marker as the first obvious Harbour Works destination, with an open approach preserved around the interaction radius.
+
 Moonhill now mirrors that depth with a Wind Lookout beyond the observatory terrace: a sheltered rest point, star-chart table, fire bowl and low parapet form a quiet outward-facing pocket while preserving a clear path to the telescope.
 
 Ravnbro's bridge now reaches Reedwater Landing rather than stopping at a collision wall. A plank deck, tiny shelter, moored skiff and boundary posts make its river edge a deliberate, safe walkable destination.
