@@ -378,6 +378,7 @@ export class GameWorld implements PlayerController {
 
     this.addFlatBuilding(0, -1.7, '#a4493b', '#303f46', 'STATION')
     this.addStationGate()
+    this.addStationRailCrossing()
     this.addFlatBuilding(6.8, -4.7, '#d8d4c5', '#be7654', 'BAKERY')
     this.addFlatBuilding(-6.8, -7.3, '#e2c971', '#4e6970', 'HOME')
     this.addFlatBuilding(-7.1, 5.3, '#c9ded6', '#50666a', 'DEPOT')
@@ -805,6 +806,42 @@ export class GameWorld implements PlayerController {
     }
     this.addStreetBlocker(timetableX, timetableZ, 0.64)
     this.addStreetBlocker(cartX, cartZ, 0.72)
+  }
+
+  /** The town's main pedestrian route crosses the rails at one deliberate, safe point. */
+  private addStationRailCrossing(): void {
+    const crossingZ = -4.45
+    const deck = this.createRollingStreetSurface(1.55, 1.86, 0, crossingZ, '#9a7958', 0.225)
+    this.hillsideStreet.add(deck)
+    const timber = new MeshLambertMaterial({ color: '#634a3a', flatShading: true })
+    const iron = new MeshLambertMaterial({ color: '#405b5e', flatShading: true })
+    const amber = new MeshLambertMaterial({ color: '#f4c75d', emissive: new Color('#b77930'), emissiveIntensity: 0.55, flatShading: true })
+    for (let z = -5.15; z <= -3.75; z += 0.28) {
+      const plank = new Mesh(new BoxGeometry(1.62, 0.06, 0.12), timber)
+      plank.position.set(0, gentleStreetHeight(0, z) + 0.27, z)
+      this.hillsideStreet.add(plank)
+    }
+    for (const x of [-1.12, 1.12]) {
+      for (const z of [-3.56, -5.34]) {
+        const post = new Mesh(new CylinderGeometry(0.065, 0.085, 1.06, 6), iron)
+        post.position.set(x, gentleStreetHeight(x, z) + 0.53, z)
+        this.hillsideStreet.add(post)
+        const lamp = new Mesh(new SphereGeometry(0.105, 7, 5), amber)
+        lamp.position.set(x, gentleStreetHeight(x, z) + 1.05, z)
+        this.hillsideStreet.add(lamp)
+        this.addStreetBlocker(x, z, 0.22)
+      }
+    }
+    const crossingSign = this.createSign('CROSSING', '#f2ecd1', 138, 38)
+    crossingSign.scale.set(0.75, 0.21, 1)
+    crossingSign.position.set(0, gentleStreetHeight(0, -3.5) + 1.15, -3.5)
+    this.hillsideStreet.add(crossingSign)
+
+    // Keep the railway a physical boundary without making the town feel fenced
+    // off: the gap above is the readable, walkable route to Bell Rise.
+    for (let x = -4.4; x <= 4.4; x += 1.08) {
+      if (Math.abs(x) > 1.2) this.addStreetBlocker(x, crossingZ, 0.48)
+    }
   }
 
   private createRollingStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number): Mesh {
