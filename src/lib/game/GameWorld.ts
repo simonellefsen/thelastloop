@@ -375,7 +375,7 @@ export class GameWorld implements PlayerController {
       this.hillsideStreet.add(dash)
     }
 
-    this.addFlatBuilding(0, -1.7, '#e7dbbc', '#36565b', 'STATION')
+    this.addFlatBuilding(0, -1.7, '#a4493b', '#303f46', 'STATION')
     this.addFlatBuilding(6.8, -4.7, '#d8d4c5', '#be7654', 'BAKERY')
     this.addFlatBuilding(-6.8, -7.3, '#e2c971', '#4e6970', 'HOME')
     this.addFlatBuilding(-7.1, 5.3, '#c9ded6', '#50666a', 'DEPOT')
@@ -385,7 +385,7 @@ export class GameWorld implements PlayerController {
     this.addFlatClue('bell', 'Hill bell', 0, -11.2, 'The hill bell rings once: the old sign needs the last word—LOOP.')
     this.addHillsideTraversalDetail()
     this.addFlatSideRouteLandmarks()
-    this.addStreetBlocker(0, -1.7, 1.75)
+    this.addStreetBlocker(0, -1.7, 2.25)
     this.addStreetBlocker(6.8, -4.7, 1.75)
     this.addStreetBlocker(-6.8, -7.3, 1.75)
     this.addStreetBlocker(-7.1, 5.3, 1.75)
@@ -463,6 +463,10 @@ export class GameWorld implements PlayerController {
   }
 
   private addFlatBuilding(x: number, z: number, wall: string, roofColor: string, label: string): void {
+    if (label === 'STATION') {
+      this.addRavnbroStation(x, z, wall, roofColor)
+      return
+    }
     const building = new Group()
     const body = new Mesh(new BoxGeometry(2.6, 1.7, 2.05), new MeshLambertMaterial({ color: wall, flatShading: true }))
     body.position.y = 0.85
@@ -478,16 +482,75 @@ export class GameWorld implements PlayerController {
     }
     building.position.set(x, gentleStreetHeight(x, z), z)
     this.hillsideStreet.add(building)
-    if (label === 'STATION') {
-      const door = new Mesh(new PlaneGeometry(0.58, 0.92), new MeshLambertMaterial({ color: '#3b7680', side: DoubleSide }))
-      door.position.set(0, 0.5, 1.04)
-      building.add(door)
-      const sign = this.createSign(this.save.quest.stationNameRestored ? 'SUNSET LOOP' : '____ ____', this.save.quest.stationNameRestored ? '#f8d34e' : '#efeee2')
-      sign.position.set(0, 2.56, 1.13)
-      building.add(sign)
-      this.streetStationSign = sign
-      this.streetStationDoorPosition.set(x, gentleStreetHeight(x, z + 1.15), z + 1.15)
+  }
+
+  /**
+   * Ravnbro's station uses an original civic red-brick kit: a long, low wing,
+   * tall centre gable, repeated pale windows and a compact cobbled forecourt.
+   * The proportions are intentionally stylised rather than a model of any real
+   * station building.
+   */
+  private addRavnbroStation(x: number, z: number, brick: string, roofColor: string): void {
+    const station = new Group()
+    const brickMaterial = new MeshLambertMaterial({ color: brick, flatShading: true })
+    const darkBrickMaterial = new MeshLambertMaterial({ color: '#7f362f', flatShading: true })
+    const roofMaterial = new MeshLambertMaterial({ color: roofColor, flatShading: true })
+    const windowMaterial = new MeshLambertMaterial({ color: '#dbe6df', side: DoubleSide })
+    const doorMaterial = new MeshLambertMaterial({ color: '#254955', side: DoubleSide })
+
+    const wing = new Mesh(new BoxGeometry(6.8, 1.48, 1.92), brickMaterial)
+    wing.position.y = 0.74
+    station.add(wing)
+    const centralHall = new Mesh(new BoxGeometry(2.5, 2.18, 2.12), brickMaterial)
+    centralHall.position.y = 1.09
+    station.add(centralHall)
+    const wingRoof = new Mesh(new ConeGeometry(3.85, 0.72, 4), roofMaterial)
+    wingRoof.rotation.y = Math.PI / 4
+    wingRoof.position.y = 1.82
+    station.add(wingRoof)
+    const gableRoof = new Mesh(new ConeGeometry(1.75, 0.94, 4), roofMaterial)
+    gableRoof.rotation.y = Math.PI / 4
+    gableRoof.position.y = 2.25
+    station.add(gableRoof)
+
+    for (const windowX of [-2.8, -1.88, -0.76, 0.76, 1.88, 2.8]) {
+      const window = new Mesh(new PlaneGeometry(0.45, 0.54), windowMaterial)
+      window.position.set(windowX, 0.86, 0.971)
+      station.add(window)
     }
+    for (const windowX of [-0.62, 0.62]) {
+      const upperWindow = new Mesh(new PlaneGeometry(0.38, 0.52), windowMaterial)
+      upperWindow.position.set(windowX, 1.68, 1.081)
+      station.add(upperWindow)
+    }
+    const clockRim = new Mesh(new CylinderGeometry(0.26, 0.26, 0.06, 12), new MeshLambertMaterial({ color: '#f3eed7', flatShading: true }))
+    clockRim.rotation.x = Math.PI / 2
+    clockRim.position.set(0, 2.15, 1.105)
+    station.add(clockRim)
+    for (const doorX of [-0.43, 0.43]) {
+      const door = new Mesh(new PlaneGeometry(0.52, 0.94), doorMaterial)
+      door.position.set(doorX, 0.5, 1.085)
+      station.add(door)
+    }
+    for (const chimneyX of [-2.55, -1.1, 1.1, 2.55]) {
+      const chimney = new Mesh(new BoxGeometry(0.2, 0.7, 0.22), darkBrickMaterial)
+      chimney.position.set(chimneyX, 2.45, 0)
+      station.add(chimney)
+    }
+    const canopy = new Mesh(new BoxGeometry(2.25, 0.11, 0.62), new MeshLambertMaterial({ color: '#d8d2b2', flatShading: true }))
+    canopy.position.set(0, 1.05, 1.3)
+    station.add(canopy)
+    const sign = this.createSign(this.save.quest.stationNameRestored ? 'SUNSET LOOP' : '____ ____', this.save.quest.stationNameRestored ? '#f8d34e' : '#efeee2')
+    sign.position.set(0, 2.72, 1.22)
+    station.add(sign)
+    this.streetStationSign = sign
+
+    const forecourt = new Mesh(new CylinderGeometry(2.5, 2.78, 0.08, 12), new MeshLambertMaterial({ color: '#b99d78', flatShading: true }))
+    forecourt.position.set(0, gentleStreetHeight(x, z + 1.8) - gentleStreetHeight(x, z) + 0.04, 1.8)
+    station.add(forecourt)
+    station.position.set(x, gentleStreetHeight(x, z), z)
+    this.hillsideStreet.add(station)
+    this.streetStationDoorPosition.set(x, gentleStreetHeight(x, z + 1.22), z + 1.22)
   }
 
   private addFlatKeeper(x: number, z: number): void {

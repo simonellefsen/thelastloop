@@ -49,6 +49,10 @@ Hillside is now art-directed as **Ravnbro**: an original little railway town at 
 - **One clear landmark:** a fictional bell-and-signal tower behind the station gives the player a skyline reference from every lane; it is not a model of Ribe Cathedral.
 - **Marsh light, not period cosplay:** reeds, reflected water, low mist and lantern warmth suggest a Wadden Sea climate while the railway mystery remains contemporary-fantastical.
 
+### Ravnbro Station façade kit
+
+The station is a small civic anchor rather than a generic house: warm red brick, a long low wing, a taller central gable, slate-grey roof planes, pale repeated windows, modest chimneys, a clock and a cobbled forecourt. This is an original low-poly composition informed by the material hierarchy of historic Danish station buildings; it is not a reconstruction of Ribe Station.
+
 ## Controls
 
 - iPhone landscape: left-thumb joystick moves the player; the right-side action button appears near a character or clue.
