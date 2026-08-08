@@ -26,12 +26,12 @@ Ravnbro is not a recreation of Ribe. It borrows a useful spatial idea from well-
 | Pocket | Player purpose | Detail kit | Route connection |
 | --- | --- | --- | --- |
 | Station Gate | Arrival, keeper, restored name | Station sign, timber canopy, raised pavement, luggage cart | Main street and platform stair |
-| Market Fold | Mural clue and tune-card side quest | Offset gable façades, mural wall, bench, awnings and planted boxes | Narrow lane to the east of the station |
+| Market Fold | Mural clue and tune-card side quest | Paved market square, original sunset mural, canopy, crates and bunting | Narrow lane to the east of the station |
 | Signal Yard | Lens route | Brick signal hut, timber fence, depot arch and green lamp | Small service alley behind the northern frontage |
 | Bell Rise | Bell clue and step route | Handrails, retaining wall, bell-and-signal tower, shallow grass terraces | Six-step route from the road, then a sloped back path |
 | Reedwater Edge | Quiet atmosphere and future harbour transition | Low bridge, reeds, mooring posts, water shimmer and flood marker | South-west lane, visually below the station town |
 
-The first gameplay pass keeps the present route footprint. It now has the first Ravnbro frontage kit: timber-frame grids on the remaining buildings, a bakehouse awning, depot yard sign and a service-lane threshold. Future detail should join those short frontage groups into offset runs so that paths naturally reveal courtyards and landmarks. Buildings remain purpose-built abstractions: the reference informs scale, materials and circulation, not individual façades or a real map.
+The first gameplay pass keeps the present route footprint. It now has the first Ravnbro frontage kit: timber-frame grids on the remaining buildings, a bakehouse awning, depot yard sign and a service-lane threshold. The Market Fold gives the mural clue a paved, collision-aware interaction pocket with original street art and market props. Future detail should join those short frontage groups into offset runs so that paths naturally reveal courtyards and landmarks. Buildings remain purpose-built abstractions: the reference informs scale, materials and circulation, not individual façades or a real map.
 
 ## Next terrain foundation
 

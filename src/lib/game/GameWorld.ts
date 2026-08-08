@@ -380,6 +380,7 @@ export class GameWorld implements PlayerController {
     this.addFlatBuilding(-6.8, -7.3, '#e2c971', '#4e6970', 'HOME')
     this.addFlatBuilding(-7.1, 5.3, '#c9ded6', '#50666a', 'DEPOT')
     this.addRavnbroLaneThreshold()
+    this.addMarketFold()
     this.addFlatKeeper(0, 2.2)
     this.addFlatClue('signal', 'Signal box', -7.2, -0.5, 'The brass plate reads: “Every last train returns in a LOOP.”')
     this.addFlatClue('mural', 'Market mural', 7.2, -1.7, 'A faded market mural shows the town under a gold SUNSET.')
@@ -536,6 +537,78 @@ export class GameWorld implements PlayerController {
       if (Math.abs(x - bridgeX) > 1.65) this.addStreetBlocker(x, -14.05, 1.03)
     }
     this.addStreetBlocker(bridgeX, -15.05, 0.78)
+  }
+
+  /** A dense, open-ended pocket that makes the mural clue a place to discover. */
+  private addMarketFold(): void {
+    const marketX = 7.5
+    const marketZ = -1.85
+    this.hillsideStreet.add(this.createRollingStreetSurface(4.9, 4.2, marketX, marketZ, '#d7c9a7', 0.095))
+
+    const wallX = 9.05
+    const wallZ = -3.2
+    const wallHeight = 1.58
+    const brick = new MeshLambertMaterial({ color: '#a64e3e', flatShading: true })
+    const darkBrick = new MeshLambertMaterial({ color: '#783b35', flatShading: true })
+    const wall = new Mesh(new BoxGeometry(2.65, wallHeight, 0.16), brick)
+    wall.position.set(wallX, gentleStreetHeight(wallX, wallZ) + wallHeight / 2, wallZ)
+    this.hillsideStreet.add(wall)
+    for (const yOffset of [0.35, 1.05]) {
+      const brickBand = new Mesh(new BoxGeometry(2.78, 0.08, 0.19), darkBrick)
+      brickBand.position.set(wallX, gentleStreetHeight(wallX, wallZ) + yOffset, wallZ + 0.09)
+      this.hillsideStreet.add(brickBand)
+    }
+
+    const muralBackdrop = new Mesh(new PlaneGeometry(2.12, 0.96), new MeshLambertMaterial({ color: '#2f7780', side: DoubleSide }))
+    muralBackdrop.position.set(wallX, gentleStreetHeight(wallX, wallZ) + 0.94, wallZ + 0.102)
+    this.hillsideStreet.add(muralBackdrop)
+    const muralSun = new Mesh(new CylinderGeometry(0.23, 0.23, 0.025, 10), new MeshLambertMaterial({ color: '#f3c95d', flatShading: true }))
+    muralSun.rotation.x = Math.PI / 2
+    muralSun.position.set(wallX + 0.5, gentleStreetHeight(wallX, wallZ) + 1.08, wallZ + 0.12)
+    this.hillsideStreet.add(muralSun)
+    for (const [offsetX, height, color] of [[-0.54, 0.26, '#d77a4c'], [-0.07, 0.38, '#d77a4c'], [0.75, 0.22, '#4c8d6a']] as Array<[number, number, string]>) {
+      const paintedRoof = new Mesh(new ConeGeometry(0.42, height, 3), new MeshLambertMaterial({ color, flatShading: true }))
+      paintedRoof.rotation.y = Math.PI / 6
+      paintedRoof.position.set(wallX + offsetX, gentleStreetHeight(wallX, wallZ) + 0.58, wallZ + 0.125)
+      this.hillsideStreet.add(paintedRoof)
+    }
+    const muralSign = this.createSign('MARKET FOLD', '#fff0ce', 208, 48)
+    muralSign.scale.set(1.15, 0.31, 1)
+    muralSign.position.set(wallX, gentleStreetHeight(wallX, wallZ) + 1.92, wallZ + 0.1)
+    this.hillsideStreet.add(muralSign)
+
+    const awningMaterial = new MeshLambertMaterial({ color: '#d7984d', flatShading: true })
+    const canopy = new Mesh(new BoxGeometry(2.5, 0.16, 0.56), awningMaterial)
+    canopy.position.set(6.0, gentleStreetHeight(6.0, -2.72) + 1.28, -2.72)
+    this.hillsideStreet.add(canopy)
+    const timber = new MeshLambertMaterial({ color: '#6b4d3c', flatShading: true })
+    for (const x of [5.0, 7.0]) {
+      const post = new Mesh(new BoxGeometry(0.09, 1.28, 0.09), timber)
+      post.position.set(x, gentleStreetHeight(x, -2.72) + 0.64, -2.72)
+      this.hillsideStreet.add(post)
+    }
+    const table = new Mesh(new BoxGeometry(1.7, 0.14, 0.58), timber)
+    table.position.set(6.0, gentleStreetHeight(6.0, -2.25) + 0.54, -2.25)
+    this.hillsideStreet.add(table)
+    for (const [x, z] of [[5.45, -2.1], [6.48, -2.35], [5.82, -2.9]] as Array<[number, number]>) {
+      const crate = new Mesh(new BoxGeometry(0.42, 0.36, 0.42), new MeshLambertMaterial({ color: '#a67243', flatShading: true }))
+      crate.position.set(x, gentleStreetHeight(x, z) + 0.18, z)
+      this.hillsideStreet.add(crate)
+    }
+    const bunting = new Mesh(new BoxGeometry(3.65, 0.035, 0.035), new MeshLambertMaterial({ color: '#5a5152', flatShading: true }))
+    bunting.position.set(7.55, gentleStreetHeight(7.55, -1.1) + 1.85, -1.1)
+    this.hillsideStreet.add(bunting)
+    for (let index = 0; index < 6; index += 1) {
+      const flag = new Mesh(new ConeGeometry(0.11, 0.24, 3), new MeshLambertMaterial({ color: index % 2 ? '#e6c55d' : '#d86954', flatShading: true }))
+      flag.rotation.x = Math.PI
+      const x = 5.9 + index * 0.66
+      flag.position.set(x, gentleStreetHeight(x, -1.1) + 1.7, -1.1)
+      this.hillsideStreet.add(flag)
+    }
+
+    // The mural wall is solid, while the painting and the amber clue remain in
+    // the open market approach for reliable interaction on touch and keyboard.
+    this.addStreetBlocker(wallX, wallZ, 1.18)
   }
 
   private createRollingStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number): Mesh {
