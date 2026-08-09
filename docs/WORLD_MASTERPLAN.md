@@ -4,7 +4,7 @@
 
 The Last Loop is one inhabited railway planet, not three disconnected dioramas. Every playable district has a complete town fabric: a station or halt, connected streets and paths, shops and homes, a public green space, a shallow water crossing, and a visible two-way section of the same rail loop. A district may stream in at street detail, but it must always read as a place the train can enter and leave.
 
-The present release makes the shared route explicit in the title atlas and in each street scene's through-section. The station map now boards the player onto a short animated rail transfer before the destination streams in, so a district change is experienced as travel rather than a hard cut. A single uninterrupted global-coordinate journey around the whole planet remains the next scale-up milestone.
+The present release makes the shared route explicit in the title atlas and in each street scene's through-section. The station map now boards the player onto a short animated rail transfer before the destination streams in: its first phase follows the complete title globe's authored rail atlas, then closes in on the local approach. A single uninterrupted global-coordinate journey around the whole planet remains the next scale-up milestone.
 
 ## Global rail spine
 

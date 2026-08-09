@@ -87,4 +87,7 @@ export interface RailJourney {
   to: DistrictId
   progress: number
   label: string
+  phase: RailJourneyPhase
 }
+
+export type RailJourneyPhase = 'atlas' | 'approach'

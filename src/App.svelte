@@ -227,7 +227,7 @@
       <section class="journey-card" role="status" aria-live="polite">
         <p class="eyebrow">RIDING {hud.journey.label}</p>
         <h2>{titleWorlds[hud.journey.to].label}</h2>
-        <p>{Math.round(hud.journey.progress * 100)}% along the loop</p>
+        <p>{hud.journey.phase === 'atlas' ? 'Following the globe rail' : 'Approaching the platform'} · {Math.round(hud.journey.progress * 100)}%</p>
         <div class="journey-progress" aria-label={`${Math.round(hud.journey.progress * 100)} percent to ${titleWorlds[hud.journey.to].label}`}><span style={`width: ${hud.journey.progress * 100}%`}></span></div>
         <small>The towns are connected by the same little railway.</small>
       </section>

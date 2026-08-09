@@ -30,7 +30,7 @@ import {
 } from 'three'
 import { entryCameraProfile, streetArrivalProfile, type StreetCameraProfile } from './camera'
 import { objectiveDirection, screenRelativeStreetDirection } from './controls'
-import { createRailJourney, RAIL_JOURNEY_SECONDS, REDUCED_MOTION_RAIL_JOURNEY_SECONDS } from './journey'
+import { ATLAS_JOURNEY_PORTION, createRailJourney, railAtlasProgress, RAIL_JOURNEY_SECONDS, REDUCED_MOTION_RAIL_JOURNEY_SECONDS } from './journey'
 import { gentleStreetHeight, isOutsideSphericalBlockers, isOutsideStreetBlockers, isWithinWalkableCap, tangentForward } from './math'
 import { nextPassengerIdentity } from './presence'
 import { globalRailStops, nextGlobalRailStop } from './railway'
@@ -5219,6 +5219,30 @@ export class GameWorld implements PlayerController {
     if (!journey || !route) return
     journey.elapsed += delta
     const state = createRailJourney(journey.from, journey.to, journey.elapsed, journey.duration)
+    if (state.phase === 'atlas' && this.titleRoute) {
+      this.journeyScene.visible = false
+      this.root.visible = true
+      const atlasProgress = railAtlasProgress(journey.from, journey.to, state.progress / ATLAS_JOURNEY_PORTION)
+      const localPosition = this.titleRoute.getPointAt(atlasProgress)
+      const localAhead = this.titleRoute.getPointAt((atlasProgress + 0.003) % 1)
+      this.titleTrain.position.copy(localPosition)
+      this.titleTrain.up.copy(localPosition.clone().normalize())
+      this.titleTrain.lookAt(localAhead)
+      const worldPosition = this.titleAtlas.localToWorld(localPosition.clone())
+      const worldNormal = worldPosition.clone().normalize()
+      const cameraPosition = worldNormal.multiplyScalar(27).add(new Vector3(0, 5.5, 0))
+      this.camera.position.lerp(cameraPosition, 0.1)
+      this.camera.up.copy(UP)
+      this.camera.lookAt(0, 0.3, 0)
+      const percent = Math.round(state.progress * 100)
+      if (percent !== this.journeyHudPercent) {
+        this.journeyHudPercent = percent
+        this.events.onHud(this.currentHud())
+      }
+      return
+    }
+    this.root.visible = false
+    this.journeyScene.visible = true
     const position = route.getPointAt(state.progress)
     const ahead = route.getPointAt(Math.min(1, state.progress + 0.012))
     const tangent = ahead.clone().sub(position).normalize()
