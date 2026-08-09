@@ -1997,6 +1997,7 @@ export class GameWorld implements PlayerController {
     this.addHarbourOuterPier()
     this.addHarbourTideyard()
     this.addHarbourRepairQuay()
+    this.addHarbourRailShed()
     this.addHarbourDockKeeper(-0.9, -6.35)
     this.addHarbourStreetMarker('harbour-valve', 'Tide valve', 'first', -5.6, -3.5, 'A blue tide valve clicks free. The dock pump can hear the sea again.')
     this.addHarbourStreetMarker('harbour-pump', 'Wake clock', 'second', 1.55, -8.0, 'The tide clock turns once, then keeps time with the water. The harbour breathes again.')
@@ -2220,6 +2221,110 @@ export class GameWorld implements PlayerController {
     lifebuoy.rotation.y = Math.PI / 2
     lifebuoy.position.set(9.35, harbourStreetHeight(9.35, -4.72) + 1.04, -4.72)
     this.harbourStreet.add(lifebuoy)
+  }
+
+  /**
+   * The inland side of Harbour Works gets a short freight spur so the harbour
+   * still feels connected to the loop. It is a compact, open loading pocket:
+   * the shed and cart block properly, while the centre remains a clear route
+   * from the player spawn toward the waterfront work yards.
+   */
+  private addHarbourRailShed(): void {
+    const ballast = new MeshLambertMaterial({ color: '#9d9077', flatShading: true })
+    const paleBallast = new MeshLambertMaterial({ color: '#c4b996', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#694b3b', flatShading: true })
+    const iron = new MeshLambertMaterial({ color: '#344f56', flatShading: true })
+    const brick = new MeshLambertMaterial({ color: '#a15b48', flatShading: true })
+    const slate = new MeshLambertMaterial({ color: '#334e55', flatShading: true })
+
+    this.harbourStreet.add(this.createHarbourStreetSurface(6.9, 3.9, 5.45, 6.3, '#a99879', 0.11))
+    this.harbourStreet.add(this.createHarbourStreetSurface(3.85, 1.75, 2.7, 7.78, '#b6a682', 0.12))
+    for (let x = 2.28; x <= 8.55; x += 0.52) {
+      for (const z of [5.46, 6.54]) {
+        const stone = new Mesh(new BoxGeometry(0.42, 0.04, 0.82), (Math.round(x * 2) % 2 === 0) ? ballast : paleBallast)
+        stone.position.set(x, harbourStreetHeight(x, z) + 0.15, z)
+        this.harbourStreet.add(stone)
+      }
+      const sleeper = new Mesh(new BoxGeometry(0.14, 0.065, 1.72), timber)
+      sleeper.position.set(x, harbourStreetHeight(x, 6.0) + 0.2, 6.0)
+      this.harbourStreet.add(sleeper)
+    }
+    for (const z of [5.46, 6.54]) {
+      const rail = new Mesh(new BoxGeometry(6.7, 0.07, 0.075), iron)
+      rail.position.set(5.42, harbourStreetHeight(5.42, z) + 0.25, z)
+      this.harbourStreet.add(rail)
+    }
+
+    const shed = new Group()
+    const body = new Mesh(new BoxGeometry(2.24, 1.62, 1.72), brick)
+    body.position.y = 0.81
+    shed.add(body)
+    const roof = new Mesh(new ConeGeometry(1.52, 0.72, 4), slate)
+    roof.rotation.y = Math.PI / 4
+    roof.position.y = 1.98
+    shed.add(roof)
+    const door = new Mesh(new PlaneGeometry(0.94, 1.0), new MeshLambertMaterial({ color: '#294c52', side: DoubleSide }))
+    door.position.set(-0.28, 0.53, 0.865)
+    shed.add(door)
+    const window = new Mesh(new PlaneGeometry(0.42, 0.46), new MeshLambertMaterial({ color: '#dce7dc', side: DoubleSide }))
+    window.position.set(0.7, 1.06, 0.87)
+    shed.add(window)
+    const shedSign = this.createSign('RAIL SHED', '#f3e9d0', 180, 46)
+    shedSign.scale.set(1.0, 0.28, 1)
+    shedSign.position.set(0, 1.92, 0.88)
+    shed.add(shedSign)
+    shed.position.set(7.82, harbourStreetHeight(7.82, 7.32), 7.32)
+    this.harbourStreet.add(shed)
+    this.addHarbourStreetBlocker(7.82, 7.32, 1.28)
+
+    const cart = new Group()
+    const cartBody = new Mesh(new BoxGeometry(1.08, 0.34, 0.64), timber)
+    cartBody.position.y = 0.42
+    cart.add(cartBody)
+    const handle = new Mesh(new BoxGeometry(0.1, 0.1, 0.94), timber)
+    handle.position.set(0, 0.62, 0.66)
+    handle.rotation.x = -0.3
+    cart.add(handle)
+    for (const xOffset of [-0.37, 0.37]) {
+      const wheel = new Mesh(new CylinderGeometry(0.17, 0.17, 0.09, 7), iron)
+      wheel.rotation.z = Math.PI / 2
+      wheel.position.set(xOffset, 0.18, -0.22)
+      cart.add(wheel)
+    }
+    const parcel = new Mesh(new BoxGeometry(0.44, 0.38, 0.38), new MeshLambertMaterial({ color: '#c58a48', flatShading: true }))
+    parcel.position.set(-0.16, 0.77, -0.03)
+    cart.add(parcel)
+    cart.position.set(4.1, harbourStreetHeight(4.1, 7.15), 7.15)
+    cart.rotation.y = -0.22
+    this.harbourStreet.add(cart)
+    this.addHarbourStreetBlocker(4.1, 7.15, 0.76)
+
+    const lamp = new Group()
+    const pole = new Mesh(new CylinderGeometry(0.06, 0.08, 1.72, 6), iron)
+    pole.position.y = 0.86
+    lamp.add(pole)
+    const bulb = new Mesh(new SphereGeometry(0.13, 7, 5), new MeshLambertMaterial({ color: '#f5d873', emissive: new Color('#bf7d38'), emissiveIntensity: 0.7, flatShading: true }))
+    bulb.position.y = 1.64
+    lamp.add(bulb)
+    lamp.position.set(2.78, harbourStreetHeight(2.78, 5.0), 5.0)
+    this.harbourStreet.add(lamp)
+
+    for (const [x, z, colour] of [[5.28, 7.72, '#c47447'], [5.85, 7.72, '#b76d43'], [6.4, 7.72, '#d19c52']] as Array<[number, number, string]>) {
+      const crate = new Mesh(new BoxGeometry(0.46, 0.42, 0.44), new MeshLambertMaterial({ color: colour, flatShading: true }))
+      crate.position.set(x, harbourStreetHeight(x, z) + 0.21, z)
+      this.harbourStreet.add(crate)
+      this.addHarbourStreetBlocker(x, z, 0.33)
+    }
+    for (const [x, z] of [[2.08, 5.45], [2.08, 6.55], [8.78, 5.45], [8.78, 6.55]] as Array<[number, number]>) {
+      const buffer = new Mesh(new BoxGeometry(0.16, 0.48, 0.22), iron)
+      buffer.position.set(x, harbourStreetHeight(x, z) + 0.24, z)
+      this.harbourStreet.add(buffer)
+      this.addHarbourStreetBlocker(x, z, 0.18)
+    }
+    const spurSign = this.createSign('FREIGHT SPUR', '#f1ebd4', 205, 48)
+    spurSign.scale.set(1.12, 0.28, 1)
+    spurSign.position.set(5.38, harbourStreetHeight(5.38, 4.72) + 1.18, 4.72)
+    this.harbourStreet.add(spurSign)
   }
 
   /** A local person gives the dock story a voice without becoming a schedule simulation. */

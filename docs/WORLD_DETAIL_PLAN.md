@@ -40,6 +40,8 @@ Tideyard now branches west from the same dock road. Its paved board route, net s
 
 Repair Quay balances the dockyard on its eastern side: a short planked branch reaches a purpose-built workshop, hauled fishing boat and lifting gantry. Its handrails and edge posts are collision-aware, but the centre remains open enough to read as a place for the player to walk through rather than a sealed scene.
 
+Harbour Works' inland shoulder now has a short freight spur and Rail Shed. Ballast, rails, buffers, a loading cart and a modest lamp show that the dockyard belongs to the Last Loop while the open middle still gives players a direct route down to the working quay.
+
 Moonhill now mirrors that depth with a Wind Lookout beyond the observatory terrace: a sheltered rest point, star-chart table, fire bowl and low parapet form a quiet outward-facing pocket while preserving a clear path to the telescope.
 
 Lens Path is Moonhill's westward branch from the observatory road. Low handrails and repeated stone slabs lead to a tiny three-star dais, while the nearby pine is held back from the marker's interaction radius so the first violet objective stays visible and reachable.

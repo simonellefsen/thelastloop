@@ -39,6 +39,7 @@
 - ✅ Expand Harbour Works with a collision-aware Outer Pier: planked dock, safety rails, cargo and a beacon tower form a walkable waterfront destination.
 - ✅ Connect Harbour Works' first quest marker to the main dock with Tideyard: paved approach, net shed, low rail, cargo and clear wayfinding make the tide valve reachable.
 - ✅ Add Harbour Works' Repair Quay: an east dock extension with workshop, hauled boat, lifting gantry, cargo and protected water edge gives the tide-clock route a second collision-aware waterfront pocket.
+- ✅ Add Harbour Works' Rail Shed: a compact freight spur, loading shed, hand cart, cargo and lamp make the playable dockyard visibly part of the railway loop.
 - ✅ Expand Moonhill with the collision-aware Wind Lookout: shelter, star-chart table, fire bowl, boundary parapet and mossy viewpoint edge.
 - ✅ Connect Moonhill's starlight lens to the observatory road with Lens Path: a paved branch, low handrails, sightline-clearing tree move and a small lens dais make the first violet marker clear and reachable.
 - ✅ Add Moonhill's Archive Terrace: an eastern observatory branch with a record shelter, brass orrery, chart desk, lamps and collision-aware parapet balances the hilltop with a second detailed destination.
