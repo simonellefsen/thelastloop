@@ -33,6 +33,21 @@ export function guideInput(clientX: number, clientY: number, bounds: ScreenBound
   return { x: x / distance * strength, y: y / distance * strength }
 }
 
+/**
+ * Translates touch/keyboard input into the current street-camera basis. This
+ * keeps "right" under the player's finger even while the third-person camera
+ * eases around a corner.
+ */
+export function screenRelativeStreetDirection(input: { x: number; y: number }, cameraForward: { x: number; z: number }): { x: number; z: number } {
+  const forwardLength = Math.hypot(cameraForward.x, cameraForward.z) || 1
+  const forwardX = cameraForward.x / forwardLength
+  const forwardZ = cameraForward.z / forwardLength
+  const x = forwardX * input.y - forwardZ * input.x
+  const z = forwardZ * input.y + forwardX * input.x
+  const length = Math.hypot(x, z)
+  return length > 1 ? { x: x / length, z: z / length } : { x, z }
+}
+
 /** Turns a guidance vector into the rotation for an upright touch arrow.
  * Zero degrees points forward, matching the character's screen-facing direction. */
 export function guidanceRotation(input: { x: number; y: number }): number {

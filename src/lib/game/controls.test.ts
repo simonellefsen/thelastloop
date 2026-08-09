@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { guidanceRotation, guideInput, objectiveDirection } from './controls'
+import { guidanceRotation, guideInput, objectiveDirection, screenRelativeStreetDirection } from './controls'
 
 const bounds = { left: 0, top: 0, width: 400, height: 800 }
 
@@ -13,6 +13,12 @@ describe('phone guidance input', () => {
     expect(guidanceRotation({ x: 0, y: 1 })).toBe(0)
     expect(guidanceRotation({ x: 1, y: 0 })).toBe(90)
     expect(guidanceRotation({ x: -1, y: 0 })).toBe(-90)
+  })
+
+  it('keeps held-finger directions relative to the camera through turns', () => {
+    expect(screenRelativeStreetDirection({ x: 0, y: 1 }, { x: 0, z: -1 })).toEqual({ x: 0, z: -1 })
+    expect(screenRelativeStreetDirection({ x: 1, y: 0 }, { x: 0, z: -1 })).toEqual({ x: 1, z: 0 })
+    expect(screenRelativeStreetDirection({ x: 0, y: 1 }, { x: 1, z: 0 })).toEqual({ x: 1, z: 0 })
   })
 })
 
