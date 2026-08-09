@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createRailJourney, railAtlasProgress, railJourneyLabel, railJourneyProgress } from './journey'
+import { createRailJourney, journeyAtlasProgress, railAtlasProgress, railJourneyLabel, railJourneyProgress } from './journey'
 
 describe('rail journeys', () => {
   it('clamps animated progress between the station and destination', () => {
@@ -24,5 +24,12 @@ describe('rail journeys', () => {
     expect(railAtlasProgress('hillside', 'harbour', 0.5)).toBe(0.125)
     expect(railAtlasProgress('observatory', 'hillside', 1)).toBe(0)
     expect(createRailJourney('hillside', 'harbour', 3, 4.2).phase).toBe('approach')
+  })
+
+  it('finishes the atlas movement before holding for the platform approach', () => {
+    expect(journeyAtlasProgress('hillside', 'harbour', 0.23)).toBeCloseTo(0.125)
+    expect(journeyAtlasProgress('hillside', 'harbour', 0.46)).toBe(0.25)
+    expect(journeyAtlasProgress('hillside', 'harbour', 1)).toBe(0.25)
+    expect(createRailJourney('harbour', 'observatory', 4.2, 4.2).atlasProgress).toBe(0.5)
   })
 })

@@ -34,11 +34,26 @@ export function railAtlasProgress(from: DistrictId, to: DistrictId, progress: nu
   return (start + (end - start) * Math.min(1, Math.max(0, progress))) % 1
 }
 
+/**
+ * The map travels the entire route while the globe is visible, then holds at
+ * the destination while the camera makes its close approach to the platform.
+ */
+export function journeyAtlasProgress(from: DistrictId, to: DistrictId, progress: number): number {
+  return railAtlasProgress(from, to, Math.min(1, Math.max(0, progress / ATLAS_JOURNEY_PORTION)))
+}
+
 export function railJourneyPhase(progress: number): RailJourneyPhase {
   return progress < ATLAS_JOURNEY_PORTION ? 'atlas' : 'approach'
 }
 
 export function createRailJourney(from: DistrictId, to: DistrictId, elapsed: number, duration: number): RailJourney {
   const progress = railJourneyProgress(elapsed, duration)
-  return { from, to, progress, label: railJourneyLabel(from, to), phase: railJourneyPhase(progress) }
+  return {
+    from,
+    to,
+    progress,
+    atlasProgress: journeyAtlasProgress(from, to, progress),
+    label: railJourneyLabel(from, to),
+    phase: railJourneyPhase(progress),
+  }
 }

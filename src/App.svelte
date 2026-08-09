@@ -172,6 +172,11 @@
   function isComplete(quest: QuestState) {
     return quest.stationNameRestored
   }
+
+  function atlasTrainPoint(progress: number) {
+    const angle = progress * Math.PI * 2 - Math.PI / 2
+    return { x: 90 + Math.cos(angle) * 37, y: 36 + Math.sin(angle) * 25 }
+  }
 </script>
 
 <svelte:head>
@@ -228,10 +233,22 @@
       </header>
 
       {#if hud.journey}
+      {@const trainPoint = atlasTrainPoint(hud.journey.atlasProgress)}
       <section class="journey-card" role="status" aria-live="polite">
         <p class="eyebrow">RIDING {hud.journey.label}</p>
         <h2>{titleWorlds[hud.journey.to].label}</h2>
         <p>{hud.journey.phase === 'atlas' ? 'Following the globe rail' : 'Approaching the platform'} · {Math.round(hud.journey.progress * 100)}%</p>
+        <svg class="journey-route-map" viewBox="0 0 180 72" role="img" aria-label={`The train is travelling from ${titleWorlds[hud.journey.from].label} to ${titleWorlds[hud.journey.to].label} on the globe rail`}>
+          <path class="journey-route-line" d="M90 11 C140 11 151 58 90 61 C29 58 40 11 90 11" />
+          <circle class:active={hud.journey.from === 'hillside' || hud.journey.to === 'hillside'} class="journey-route-stop" cx="90" cy="11" r="3.5" />
+          <circle class:active={hud.journey.from === 'harbour' || hud.journey.to === 'harbour'} class="journey-route-stop" cx="127" cy="36" r="3.5" />
+          <circle class:active={hud.journey.from === 'observatory' || hud.journey.to === 'observatory'} class="journey-route-stop" cx="90" cy="61" r="3.5" />
+          <text x="90" y="7" text-anchor="middle">RAVNBRO</text>
+          <text x="136" y="38.5">HARBOUR</text>
+          <text x="90" y="71" text-anchor="middle">MOONHILL</text>
+          <circle class="journey-train" cx={trainPoint.x} cy={trainPoint.y} r="4.5" />
+          <path class="journey-train-mark" d={`M ${trainPoint.x - 2.1} ${trainPoint.y} L ${trainPoint.x + 1.8} ${trainPoint.y - 2.1} L ${trainPoint.x + 1.8} ${trainPoint.y + 2.1} Z`} />
+        </svg>
         <div class="journey-progress" aria-label={`${Math.round(hud.journey.progress * 100)} percent to ${titleWorlds[hud.journey.to].label}`}><span style={`width: ${hud.journey.progress * 100}%`}></span></div>
         <small>The towns are connected by the same little railway.</small>
       </section>

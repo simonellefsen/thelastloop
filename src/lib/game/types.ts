@@ -87,6 +87,8 @@ export interface RailJourney {
   from: DistrictId
   to: DistrictId
   progress: number
+  /** Position on the shared loop during the atlas section of a journey. */
+  atlasProgress: number
   label: string
   phase: RailJourneyPhase
 }
