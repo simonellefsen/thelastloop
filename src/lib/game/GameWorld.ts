@@ -30,7 +30,7 @@ import {
 } from 'three'
 import { entryCameraProfile, streetArrivalProfile, type StreetCameraProfile } from './camera'
 import { objectiveDirection, screenRelativeStreetDirection } from './controls'
-import { ATLAS_JOURNEY_PORTION, createRailJourney, railAtlasProgress, RAIL_JOURNEY_SECONDS, REDUCED_MOTION_RAIL_JOURNEY_SECONDS } from './journey'
+import { ATLAS_JOURNEY_PORTION, createRailJourney, RAIL_JOURNEY_SECONDS, REDUCED_MOTION_RAIL_JOURNEY_SECONDS } from './journey'
 import { gentleStreetHeight, isOutsideSphericalBlockers, isOutsideStreetBlockers, isWithinWalkableCap, tangentForward } from './math'
 import { nextPassengerIdentity } from './presence'
 import { globalRailStops, nextGlobalRailStop } from './railway'
@@ -195,7 +195,9 @@ export class GameWorld implements PlayerController {
     this.createObservatoryStreetWorld()
     this.updateRestorationLighting()
     this.createStationInterior()
-    this.createRailJourneyScene()
+    // The old close-up travel set remains available for a later streamed
+    // route segment, but v1 journeys stay on the real globe atlas throughout
+    // so they never visually switch to an unrelated piece of rail.
     this.createAmbientLife()
     this.resize()
     this.resizeObserver = new ResizeObserver(this.onResize)
@@ -426,7 +428,7 @@ export class GameWorld implements PlayerController {
     this.harbourAmbient.visible = false
     this.stationInterior.visible = false
     this.player.visible = false
-    this.journeyScene.visible = true
+    this.journeyScene.visible = false
     this.playTone(to === 'observatory' ? 622 : 554)
     this.emitHud('The conductor closes the door and the little train eases onto the loop.', 'Enjoy the rails — controls return when the next town comes into view.')
   }
@@ -5345,45 +5347,34 @@ export class GameWorld implements PlayerController {
     this.findNearby(playerPosition)
   }
 
+  /**
+   * Stay on the atlas for the whole ride. The shared globe route is the only
+   * rail coordinate system visible in v1; the final camera descent gives the
+   * destination a sense of scale without implying a separate map exists.
+   */
   private updateRailJourney(delta: number): void {
     const journey = this.railJourney
-    const route = this.journeyRoute
-    if (!journey || !route) return
+    if (!journey || !this.titleRoute) return
     journey.elapsed += delta
     const state = createRailJourney(journey.from, journey.to, journey.elapsed, journey.duration)
-    if (state.phase === 'atlas' && this.titleRoute) {
-      this.journeyScene.visible = false
-      this.root.visible = true
-      const atlasProgress = railAtlasProgress(journey.from, journey.to, state.progress / ATLAS_JOURNEY_PORTION)
-      const localPosition = this.titleRoute.getPointAt(atlasProgress)
-      const localAhead = this.titleRoute.getPointAt((atlasProgress + 0.003) % 1)
-      this.titleTrain.position.copy(localPosition)
-      this.titleTrain.up.copy(localPosition.clone().normalize())
-      this.titleTrain.lookAt(localAhead)
-      const worldPosition = this.titleAtlas.localToWorld(localPosition.clone())
-      const worldNormal = worldPosition.clone().normalize()
-      const cameraPosition = worldNormal.multiplyScalar(27).add(new Vector3(0, 5.5, 0))
-      this.camera.position.lerp(cameraPosition, 0.1)
-      this.camera.up.copy(UP)
-      this.camera.lookAt(0, 0.3, 0)
-      const percent = Math.round(state.progress * 100)
-      if (percent !== this.journeyHudPercent) {
-        this.journeyHudPercent = percent
-        this.events.onHud(this.currentHud())
-      }
-      return
-    }
-    this.root.visible = false
-    this.journeyScene.visible = true
-    const position = route.getPointAt(state.progress)
-    const ahead = route.getPointAt(Math.min(1, state.progress + 0.012))
-    const tangent = ahead.clone().sub(position).normalize()
-    this.journeyTrain.position.copy(position)
-    this.journeyTrain.lookAt(ahead)
-    const cameraPosition = position.clone().add(new Vector3(0, 3.2, 0)).addScaledVector(tangent, -5.3)
+    this.journeyScene.visible = false
+    this.root.visible = true
+    const localPosition = this.titleRoute.getPointAt(state.atlasProgress)
+    const localAhead = this.titleRoute.getPointAt((state.atlasProgress + 0.003) % 1)
+    this.titleTrain.position.copy(localPosition)
+    this.titleTrain.up.copy(localPosition.clone().normalize())
+    this.titleTrain.lookAt(localAhead)
+    const worldPosition = this.titleAtlas.localToWorld(localPosition.clone())
+    const worldNormal = worldPosition.clone().normalize()
+    const approach = state.phase === 'approach'
+      ? (state.progress - ATLAS_JOURNEY_PORTION) / (1 - ATLAS_JOURNEY_PORTION)
+      : 0
+    const cameraDistance = 27 - approach * 9.2
+    const cameraLift = 5.5 - approach * 2.25
+    const cameraPosition = worldNormal.multiplyScalar(cameraDistance).add(new Vector3(0, cameraLift, 0))
     this.camera.position.lerp(cameraPosition, 0.1)
     this.camera.up.copy(UP)
-    this.camera.lookAt(position.clone().add(new Vector3(0, 0.85, 0)).addScaledVector(tangent, 3.2))
+    this.camera.lookAt(approach > 0 ? worldPosition : new Vector3(0, 0.3, 0))
     const percent = Math.round(state.progress * 100)
     if (percent !== this.journeyHudPercent) {
       this.journeyHudPercent = percent

@@ -82,7 +82,7 @@
 - ✅ Complete Ravnbro as the first finished town: Station Gate and North Yard join the outer through-line; Bell Orchard and the shallow Reedwater crossings are playable; Parcel Lane connects the station to the northern public walk; and Reedwater Row completes the second far-bank frontage.
 - ✅ Complete Harbour Works as the second finished town: Rail Shed joins the outer through-line, while the shallow tidal basin, marked low-tide ford and Tide Gardens form a second public route around the working water.
 - ✅ Complete Moonhill as the third finished town: Signal Terrace joins the outer through-line, while Spring Crossing, Almanac Green and the chartmaker/tea high street complete the public circuit.
-- ✅ Replace abrupt district-to-district changes with a short animated, rideable rail transfer: it first follows the complete title-globe rail atlas, then closes in on the local approach before streaming the destination and its arrival card.
+- ✅ Replace abrupt district-to-district changes with a short animated, rideable rail transfer: it follows the complete title-globe rail atlas for the whole ride, then descends toward the local stop before streaming the destination and its arrival card.
 - ✅ Keep the miniature global route atlas visible during every rail journey, with the train's live position on the shared loop.
 - ✅ Let players continue the real circular service from Harbour Works to Moonhill and from Moonhill back to Ravnbro; the direct return train remains available as a convenience service.
 - Replace the transfer scene with a continuous streamed global coordinate system, so the player can physically follow the entire rail line around the planet without a scene hand-off.

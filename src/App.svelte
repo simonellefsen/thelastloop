@@ -237,7 +237,7 @@
       <section class="journey-card" role="status" aria-live="polite">
         <p class="eyebrow">RIDING {hud.journey.label}</p>
         <h2>{titleWorlds[hud.journey.to].label}</h2>
-        <p>{hud.journey.phase === 'atlas' ? 'Following the globe rail' : 'Approaching the platform'} · {Math.round(hud.journey.progress * 100)}%</p>
+        <p>{hud.journey.phase === 'atlas' ? 'Following the globe rail' : 'Descending into the next stop'} · {Math.round(hud.journey.progress * 100)}%</p>
         <svg class="journey-route-map" viewBox="0 0 180 72" role="img" aria-label={`The train is travelling from ${titleWorlds[hud.journey.from].label} to ${titleWorlds[hud.journey.to].label} on the globe rail`}>
           <path class="journey-route-line" d="M90 11 C140 11 151 58 90 61 C29 58 40 11 90 11" />
           <circle class:active={hud.journey.from === 'hillside' || hud.journey.to === 'hillside'} class="journey-route-stop" cx="90" cy="11" r="3.5" />
