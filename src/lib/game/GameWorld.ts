@@ -2334,6 +2334,7 @@ export class GameWorld implements PlayerController {
     this.addHarbourTideyard()
     this.addHarbourRepairQuay()
     this.addHarbourRailShed()
+    this.addHarbourChandleryYard()
     this.addHarbourTidehouseRow()
     this.addHarbourDockKeeper(-0.9, -6.35)
     this.addHarbourStreetMarker('harbour-valve', 'Tide valve', 'first', -5.6, -3.5, 'A blue tide valve clicks free. The dock pump can hear the sea again.')
@@ -2662,6 +2663,125 @@ export class GameWorld implements PlayerController {
     spurSign.scale.set(1.12, 0.28, 1)
     spurSign.position.set(5.38, harbourStreetHeight(5.38, 4.72) + 1.18, 4.72)
     this.harbourStreet.add(spurSign)
+  }
+
+  /**
+   * The rail shed now leads somewhere useful: a compact chandlery keeps the
+   * north-east shoulder working while leaving a generous paved turn through
+   * its middle. It is a destination, not a decorative cul-de-sac.
+   */
+  private addHarbourChandleryYard(): void {
+    this.harbourStreet.add(this.createHarbourStreetSurface(7.4, 2.45, 11.05, 7.65, '#a98a67', 0.125))
+    this.harbourStreet.add(this.createHarbourStreetSurface(4.8, 3.7, 12.85, 9.32, '#b29a74', 0.135))
+
+    const paleStone = new MeshLambertMaterial({ color: '#d8c9a5', flatShading: true })
+    const warmStone = new MeshLambertMaterial({ color: '#a48b68', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#6b4c3b', flatShading: true })
+    const brick = new MeshLambertMaterial({ color: '#a85d49', flatShading: true })
+    const slate = new MeshLambertMaterial({ color: '#334f55', flatShading: true })
+    const iron = new MeshLambertMaterial({ color: '#34565d', flatShading: true })
+
+    for (let x = 9.0; x <= 15.05; x += 0.52) {
+      for (let z = 6.64; z <= 8.58; z += 0.48) {
+        const paver = new Mesh(new BoxGeometry(0.42, 0.04, 0.38), (Math.round((x + z) * 2) % 2 === 0) ? paleStone : warmStone)
+        paver.position.set(x, harbourStreetHeight(x, z) + 0.18, z)
+        this.harbourStreet.add(paver)
+      }
+    }
+    for (let x = 10.8; x <= 15.05; x += 0.5) {
+      for (let z = 8.42; z <= 10.55; z += 0.5) {
+        const paver = new Mesh(new BoxGeometry(0.4, 0.04, 0.4), (Math.round((x - z) * 2) % 2 === 0) ? warmStone : paleStone)
+        paver.position.set(x, harbourStreetHeight(x, z) + 0.185, z)
+        this.harbourStreet.add(paver)
+      }
+    }
+
+    const shopX = 15.0
+    const shopZ = 9.38
+    const shop = new Group()
+    const shopBody = new Mesh(new BoxGeometry(2.32, 1.7, 1.72), brick)
+    shopBody.position.y = 0.85
+    shop.add(shopBody)
+    const shopRoof = new Mesh(new ConeGeometry(1.6, 0.74, 4), slate)
+    shopRoof.rotation.y = Math.PI / 4
+    shopRoof.position.y = 2.04
+    shop.add(shopRoof)
+    const shopDoor = new Mesh(new PlaneGeometry(0.62, 0.96), new MeshLambertMaterial({ color: '#294d53', side: DoubleSide }))
+    shopDoor.position.set(-0.43, 0.5, 0.87)
+    shop.add(shopDoor)
+    const shopWindow = new Mesh(new PlaneGeometry(0.52, 0.52), new MeshLambertMaterial({ color: '#dbe8dc', side: DoubleSide }))
+    shopWindow.position.set(0.48, 1.01, 0.875)
+    shop.add(shopWindow)
+    const shopSign = this.createSign('CHANDLERY', '#f4ebd1', 190, 46)
+    shopSign.scale.set(1.05, 0.27, 1)
+    shopSign.position.set(0, 1.95, 0.88)
+    shop.add(shopSign)
+    const chimney = new Mesh(new BoxGeometry(0.25, 0.92, 0.25), new MeshLambertMaterial({ color: '#744138', flatShading: true }))
+    chimney.position.set(0.64, 2.12, -0.32)
+    shop.add(chimney)
+    shop.position.set(shopX, harbourStreetHeight(shopX, shopZ), shopZ)
+    this.harbourStreet.add(shop)
+    this.addHarbourStreetBlocker(shopX, shopZ, 1.32)
+
+    const sailRack = new Group()
+    for (const xOffset of [-0.78, 0.78]) {
+      const post = new Mesh(new BoxGeometry(0.11, 1.68, 0.11), timber)
+      post.position.set(xOffset, 0.84, 0)
+      sailRack.add(post)
+    }
+    const crossbar = new Mesh(new BoxGeometry(1.82, 0.1, 0.1), timber)
+    crossbar.position.y = 1.47
+    sailRack.add(crossbar)
+    for (const [xOffset, color] of [[-0.42, '#d4c56f'], [0.08, '#6f9c9a'], [0.47, '#d07b55']] as Array<[number, string]>) {
+      const sail = new Mesh(new PlaneGeometry(0.36, 0.82), new MeshLambertMaterial({ color, side: DoubleSide }))
+      sail.position.set(xOffset, 0.98, 0.06)
+      sailRack.add(sail)
+    }
+    sailRack.position.set(11.62, harbourStreetHeight(11.62, 9.42), 9.42)
+    this.harbourStreet.add(sailRack)
+    this.addHarbourStreetBlocker(11.62, 9.42, 0.94)
+
+    const capstan = new Group()
+    const base = new Mesh(new CylinderGeometry(0.34, 0.42, 0.38, 7), warmStone)
+    base.position.y = 0.19
+    capstan.add(base)
+    const post = new Mesh(new CylinderGeometry(0.12, 0.16, 0.8, 6), iron)
+    post.position.y = 0.58
+    capstan.add(post)
+    const arm = new Mesh(new BoxGeometry(1.05, 0.08, 0.09), timber)
+    arm.position.set(0, 0.84, 0)
+    arm.rotation.y = 0.24
+    capstan.add(arm)
+    capstan.position.set(13.15, harbourStreetHeight(13.15, 7.72), 7.72)
+    this.harbourStreet.add(capstan)
+    this.addHarbourStreetBlocker(13.15, 7.72, 0.48)
+
+    const crateStack = new Group()
+    for (const [xOffset, y, color] of [[-0.23, 0.23, '#b46e45'], [0.26, 0.23, '#ca934d'], [0.0, 0.67, '#d2a555']] as Array<[number, number, string]>) {
+      const crate = new Mesh(new BoxGeometry(0.46, 0.42, 0.44), new MeshLambertMaterial({ color, flatShading: true }))
+      crate.position.set(xOffset, y, 0)
+      crateStack.add(crate)
+    }
+    crateStack.position.set(14.36, harbourStreetHeight(14.36, 7.18), 7.18)
+    this.harbourStreet.add(crateStack)
+    this.addHarbourStreetBlocker(14.36, 7.18, 0.58)
+
+    for (const z of [7.0, 9.25, 10.48]) {
+      const lamp = new Group()
+      const pole = new Mesh(new CylinderGeometry(0.055, 0.075, 1.66, 6), iron)
+      pole.position.y = 0.83
+      lamp.add(pole)
+      const glow = new Mesh(new SphereGeometry(0.12, 7, 5), new MeshLambertMaterial({ color: '#f5d873', emissive: new Color('#bd7a37'), emissiveIntensity: 0.7, flatShading: true }))
+      glow.position.y = 1.58
+      lamp.add(glow)
+      lamp.position.set(10.35, harbourStreetHeight(10.35, z), z)
+      this.harbourStreet.add(lamp)
+    }
+
+    const yardSign = this.createSign('CHANDLERY YARD', '#f1ead4', 222, 48)
+    yardSign.scale.set(1.2, 0.28, 1)
+    yardSign.position.set(11.15, harbourStreetHeight(11.15, 6.45) + 1.16, 6.45)
+    this.harbourStreet.add(yardSign)
   }
 
   /**
