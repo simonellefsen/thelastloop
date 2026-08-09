@@ -4,7 +4,7 @@
 
 The Last Loop is one inhabited railway planet, not three disconnected dioramas. Every playable district has a complete town fabric: a station or halt, connected streets and paths, shops and homes, a public green space, a shallow water crossing, and a visible two-way section of the same rail loop. A district may stream in at street detail, but it must always read as a place the train can enter and leave.
 
-The present release makes the shared route explicit in the title atlas and in each street scene's through-section. The station map now boards the player onto a short animated rail transfer before the destination streams in: its first phase follows the complete title globe's authored rail atlas, then closes in on the local approach. A single uninterrupted global-coordinate journey around the whole planet remains the next scale-up milestone.
+The present release makes the shared route explicit in the title atlas and in each street scene's through-section. The station map now boards the player onto a short animated rail transfer that remains on the complete title globe's authored rail atlas, then descends toward the local stop. A single uninterrupted global-coordinate journey around the whole planet remains the next scale-up milestone.
 
 ## Global rail spine
 
@@ -15,7 +15,7 @@ Ravnbro ── Reedwater Viaduct ── Harbour Works
 Nightfall Cutting ◀──── Moonhill ◀─ Tideway Causeway
 ```
 
-The `globalRailStops` contract is the single source of truth for this order. Every new platform, siding, route board and title-map segment must attach to this loop; a spur must visibly join a through-track at both ends or be labelled as a genuine dead-end loading spur.
+The `globalRailStops` and ordered `globalRailRouteWaypoints` contracts are the single source of truth for this order and its globe coordinates. Every new platform, siding, route board and title-map segment must attach to this loop; a spur must visibly join a through-track at both ends or be labelled as a genuine dead-end loading spur. The same waypoint data now drives the title geometry and transfer camera, so it is ready to become the streaming seam rather than a renderer-only map.
 
 ## Detail and traversal contract
 
@@ -58,7 +58,7 @@ The `globalRailStops` contract is the single source of truth for this order. Eve
 
 ## Build order
 
-1. **Rail continuity foundation — in progress:** one code-owned global stop order; title route and visible local two-way through-sections.
+1. **Rail continuity foundation — complete:** one code-owned global stop order and globe waypoint route drive the title geometry, transfers and visible local two-way through-sections.
 2. **Ravnbro completion — complete:** Station Gate and North Yard visibly join the outer line; Bell Orchard and the marked shallow Reedwater ford are playable; Parcel Lane gives the station a paved public approach to North Yard; and Ferry House plus Reedwater Row give both crossings a real far-bank neighbourhood.
 3. **Harbour completion — complete:** Rail Shed joins the through-line; the tidal basin has a marked low-water ford, and Tide Gardens closes the landward public loop.
 4. **Moonhill completion — complete:** Signal Terrace joins the through-line; Spring Crossing, Almanac Green and the small chartmaker/tea high street finish the public circuit.

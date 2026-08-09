@@ -84,6 +84,7 @@
 - ✅ Complete Moonhill as the third finished town: Signal Terrace joins the outer through-line, while Spring Crossing, Almanac Green and the chartmaker/tea high street complete the public circuit.
 - ✅ Replace abrupt district-to-district changes with a short animated, rideable rail transfer: it follows the complete title-globe rail atlas for the whole ride, then descends toward the local stop before streaming the destination and its arrival card.
 - ✅ Keep the miniature global route atlas visible during every rail journey, with the train's live position on the shared loop.
+- ✅ Centralise every globe stop, waystation and trackside coordinate in the railway contract so the title atlas and journey camera share the same future streaming seam.
 - ✅ Let players continue the real circular service from Harbour Works to Moonhill and from Moonhill back to Ravnbro; the direct return train remains available as a convenience service.
 - Replace the transfer scene with a continuous streamed global coordinate system, so the player can physically follow the entire rail line around the planet without a scene hand-off.
 - Add recorded ambience and music after an original audio session.

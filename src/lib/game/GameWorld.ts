@@ -33,7 +33,7 @@ import { objectiveDirection, screenRelativeStreetDirection } from './controls'
 import { ATLAS_JOURNEY_PORTION, createRailJourney, RAIL_JOURNEY_SECONDS, REDUCED_MOTION_RAIL_JOURNEY_SECONDS } from './journey'
 import { gentleStreetHeight, isOutsideSphericalBlockers, isOutsideStreetBlockers, isWithinWalkableCap, tangentForward } from './math'
 import { nextPassengerIdentity } from './presence'
-import { globalRailStops, nextGlobalRailStop } from './railway'
+import { globalRailRouteWaypoints, globalRailStops, nextGlobalRailStop } from './railway'
 import { restorationLightProfile, type RestorationDistrict } from './restoration'
 import { animationTime, nextRenderResolution, shouldRender } from './runtime'
 import { advanceSideQuest, defaultQuest, isJourneyComplete, resolveClue, unlockHarbour, unlockObservatory } from './quest'
@@ -522,24 +522,20 @@ export class GameWorld implements PlayerController {
    */
   private createTitleAtlas(): void {
     this.root.add(this.titleAtlas)
-    this.addTitleSettlement('ravnbro', 0.74, -1.7, 0.25)
-    this.addTitleSettlement('harbour', 0.94, 0.18, -0.55)
-    this.addTitleSettlement('moonhill', 0.8, 1.82, 0.45)
-    this.addTitleWaystation(1.17, -0.78, '#d4ae57')
-    this.addTitleWaystation(1.14, 0.94, '#5f87a2')
-    this.addTitleWaystation(1.28, 2.68, '#8b74aa')
-    this.addTitleGrove(1.22, -2.62)
-    this.addTitleGrove(1.31, 2.27)
+    this.addTitleSettlement('ravnbro', globalRailStops[0].coordinate.latitude, globalRailStops[0].coordinate.longitude, 0.25)
+    this.addTitleSettlement('harbour', globalRailStops[1].coordinate.latitude, globalRailStops[1].coordinate.longitude, -0.55)
+    this.addTitleSettlement('moonhill', globalRailStops[2].coordinate.latitude, globalRailStops[2].coordinate.longitude, 0.45)
+    for (const waypoint of globalRailRouteWaypoints) {
+      if (waypoint.kind === 'waystation') this.addTitleWaystation(waypoint.coordinate.latitude, waypoint.coordinate.longitude, waypoint.color ?? '#d4ae57')
+      if (waypoint.kind === 'grove') this.addTitleGrove(waypoint.coordinate.latitude, waypoint.coordinate.longitude)
+    }
     this.addTitleRailRoute()
   }
 
   /** A continuous, visible route is the title world's connective tissue. */
   private addTitleRailRoute(): void {
-    const routePoints = [
-      [globalRailStops[0].titleLatitude, globalRailStops[0].titleLongitude], [1.17, -0.78],
-      [globalRailStops[1].titleLatitude, globalRailStops[1].titleLongitude], [1.14, 0.94],
-      [globalRailStops[2].titleLatitude, globalRailStops[2].titleLongitude], [1.28, 2.68], [1.31, 2.27], [1.22, -2.62],
-    ].map(([latitude, longitude]) => this.normalAt(latitude, longitude).multiplyScalar(10.62))
+    const routePoints = globalRailRouteWaypoints
+      .map(({ coordinate }) => this.normalAt(coordinate.latitude, coordinate.longitude).multiplyScalar(10.62))
     this.titleRoute = new CatmullRomCurve3(routePoints, true, 'centripetal')
     const ballast = new Mesh(
       new TubeGeometry(this.titleRoute, 160, 0.105, 5, true),
