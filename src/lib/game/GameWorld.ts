@@ -1,5 +1,6 @@
 import {
   AmbientLight,
+  BackSide,
   BoxGeometry,
   CatmullRomCurve3,
   CanvasTexture,
@@ -12,8 +13,10 @@ import {
   Group,
   HemisphereLight,
   Mesh,
+  MeshBasicMaterial,
   MeshLambertMaterial,
   MeshStandardMaterial,
+  MeshToonMaterial,
   Object3D,
   PerspectiveCamera,
   PlaneGeometry,
@@ -28,7 +31,7 @@ import {
   Vector3,
   WebGLRenderer,
 } from 'three'
-import { entryCameraProfile, streetArrivalProfile, type StreetCameraProfile } from './camera'
+import { occludedFollowDistance, streetArrivalProfile, type StreetCameraProfile } from './camera'
 import { objectiveDirection, screenRelativeStreetDirection } from './controls'
 import { ATLAS_JOURNEY_PORTION, createRailJourney, RAIL_JOURNEY_SECONDS, REDUCED_MOTION_RAIL_JOURNEY_SECONDS } from './journey'
 import { gentleStreetHeight, isOutsideSphericalBlockers, isOutsideStreetBlockers, isWithinWalkableCap, tangentForward } from './math'
@@ -37,7 +40,19 @@ import { globalRailRouteWaypoints, globalRailStops, nextGlobalRailStop } from '.
 import { restorationLightProfile, type RestorationDistrict } from './restoration'
 import { animationTime, nextRenderResolution, shouldRender } from './runtime'
 import { advanceSideQuest, defaultQuest, isJourneyComplete, resolveClue, unlockHarbour, unlockObservatory } from './quest'
-import { coatColors, nextCoatColor } from './style'
+import {
+  addMeshOutline,
+  artPalette,
+  celMaterial,
+  coatColors,
+  createGableRoofGeometry,
+  createSkyGradientTexture,
+  nextCoatColor,
+  paintKindForColor,
+  paintedMaterial,
+  type PaintKind,
+} from './style'
+import { kitLoader } from './kit'
 import { Soundscape, soundscapeProfile } from './soundscape'
 import { freshStorySave, readSave, writeSave } from './storage'
 import type { SphericalBlocker, StreetBlocker } from './math'
@@ -100,6 +115,9 @@ export class GameWorld implements PlayerController {
   private harbourGround: Mesh | undefined
   private observatoryGround: Mesh | undefined
   private readonly raycaster = new Raycaster()
+  /** Layer 0 = solid world (camera collision). Layer 1 = floating labels only. */
+  private static readonly SOLID_LAYER = 0
+  private static readonly LABEL_LAYER = 1
   private readonly clock = { last: performance.now(), elapsed: 0 }
   private readonly keys = new Set<string>()
   private readonly clues: Clue[] = []
@@ -144,7 +162,7 @@ export class GameWorld implements PlayerController {
   private streetStationSign: Sprite | undefined
   private stationDoorPosition = new Vector3()
   private streetStationDoorPosition = new Vector3(0, 0, 0.9)
-  private playerCoat: MeshLambertMaterial | undefined
+  private playerCoat: MeshToonMaterial | undefined
   private signalBulb: MeshLambertMaterial | undefined
   private streetSignalBulb: MeshLambertMaterial | undefined
   private streetBellGlow: MeshLambertMaterial | undefined
@@ -162,6 +180,12 @@ export class GameWorld implements PlayerController {
   private displayedHint = ''
   private displayedDialogue = ''
   private objectiveCueKey = ''
+  /**
+   * Explicit view mode — never infer play state only from mesh visibility.
+   * A started game stuck on the title globe was caused by hillsideStreet staying
+   * hidden while App HUD already thought we had entered the town.
+   */
+  private viewMode: 'title' | 'street' | 'station' | 'journey' = 'title'
 
   constructor(private readonly container: HTMLElement, private readonly events: GameWorldEvents) {
     this.save = readSave(window.localStorage)
@@ -176,13 +200,26 @@ export class GameWorld implements PlayerController {
     this.renderer.outputColorSpace = 'srgb'
     this.renderer.domElement.setAttribute('aria-hidden', 'true')
     container.appendChild(this.renderer.domElement)
+    // Labels sit on layer 1 so camera-occlusion rays (layer 0 only) never hit sprites.
+    this.camera.layers.enable(GameWorld.SOLID_LAYER)
+    this.camera.layers.enable(GameWorld.LABEL_LAYER)
+    this.raycaster.layers.set(GameWorld.SOLID_LAYER)
+    this.raycaster.camera = this.camera
 
-    this.scene.background = new Color('#65c7c3')
-    this.scene.fog = new Fog('#65c7c3', 26, 67)
+    // Soft mint atmosphere: gradient sky dome + matching fog, closer to the
+    // hand-drawn postcard look than a flat teal clear-colour.
+    this.scene.background = new Color(artPalette.sceneBackground)
+    this.scene.fog = new Fog(artPalette.fog, 18, 58)
     this.scene.add(this.root)
-    this.scene.add(new HemisphereLight('#d8fff0', '#2c6269', 2.6))
-    this.scene.add(new AmbientLight('#fff1cf', 0.6))
-    const sun = new DirectionalLight('#fff3bd', 3.5)
+    const sky = new Mesh(
+      new SphereGeometry(90, 20, 14),
+      new MeshBasicMaterial({ map: createSkyGradientTexture(), side: BackSide, fog: false, depthWrite: false }),
+    )
+    sky.renderOrder = -10
+    this.scene.add(sky)
+    this.scene.add(new HemisphereLight(artPalette.hemiSky, artPalette.hemiGround, 1.85))
+    this.scene.add(new AmbientLight(artPalette.ambient, 0.92))
+    const sun = new DirectionalLight(artPalette.sun, 1.55)
     sun.position.set(8, 14, 6)
     this.scene.add(sun)
 
@@ -230,7 +267,7 @@ export class GameWorld implements PlayerController {
   }
 
   setTitlePreview(district: DistrictId): void {
-    if (this.started) return
+    if (this.started || this.viewMode !== 'title') return
     this.titlePreviewDistrict = district
     this.hillsideStreet.visible = false
     this.harbourStreet.visible = false
@@ -248,29 +285,50 @@ export class GameWorld implements PlayerController {
     }
   }
 
+  /** Record which title route will be entered without touching visibility. */
+  setTitleRoute(district: DistrictId): void {
+    if (this.started || this.viewMode !== 'title') return
+    this.titlePreviewDistrict = district
+    this.titleAtlas.rotation.y = district === 'hillside' ? 0 : district === 'harbour' ? -0.24 : 0.24
+    for (const [beaconDistrict, material] of this.titleRouteBeacons) {
+      material.emissiveIntensity = beaconDistrict === district ? 1.1 : 0.16
+    }
+  }
+
   start(): void {
-    this.setTitlePreview(this.titlePreviewDistrict)
+    if (this.started && this.viewMode === 'street') return
     const resumesSelectedDistrict = this.save.district === this.titlePreviewDistrict
     this.started = true
     this.entryCameraProgress = 0
     this.save.district = this.titlePreviewDistrict
     this.save.quest.introductionSeen = true
-    this.soundscape.start(soundscapeProfile(this.save.quest))
+    try {
+      this.soundscape.start(soundscapeProfile(this.save.quest))
+    } catch {
+      // Audio must never block entering the town.
+    }
+    this.enterSelectedStreet(!resumesSelectedDistrict)
+    this.persist()
     if (this.titlePreviewDistrict === 'harbour') {
-      this.showHarbour(!resumesSelectedDistrict)
-      this.persist()
       this.emitHud('The tide clock is still waiting at Harbour Works.', 'Find the blue valve, then return it to the dock pump.')
+    } else if (this.titlePreviewDistrict === 'observatory') {
+      this.emitHud('Moonhill is quiet beneath the stars.', 'Find the starlight lens, then align the telescope.')
+    } else {
+      this.emitHud('Find three fragments of the station name.', 'Follow the amber beacons and tap Investigate when the button appears.')
+    }
+  }
+
+  /** Switch from the title globe into the chosen district street camera. */
+  private enterSelectedStreet(resetPosition: boolean): void {
+    if (this.titlePreviewDistrict === 'harbour') {
+      this.showHarbour(resetPosition)
       return
     }
     if (this.titlePreviewDistrict === 'observatory') {
-      this.showObservatory(!resumesSelectedDistrict)
-      this.persist()
-      this.emitHud('Moonhill is quiet beneath the stars.', 'Find the starlight lens, then align the telescope.')
+      this.showObservatory(resetPosition)
       return
     }
-    this.enterHillsideStreet(!resumesSelectedDistrict)
-    this.persist()
-    this.emitHud('Find three fragments of the station name.', 'Follow the amber beacons and tap Investigate when the button appears.')
+    this.enterHillsideStreet(resetPosition)
   }
 
   setJoystick(input: { x: number; y: number }): void {
@@ -415,6 +473,7 @@ export class GameWorld implements PlayerController {
       firstVisit,
     }
     this.journeyHudPercent = -1
+    this.viewMode = 'journey'
     this.inStation = false
     this.joystick.set(0, 0)
     this.nearby = undefined
@@ -668,33 +727,35 @@ export class GameWorld implements PlayerController {
     // This is intentionally much wider than the playable town. The terrain
     // falls gently toward the fog, keeping the street locally upright while
     // removing the old rectangular "end of the map" silhouette.
-    this.hillsideStreet.add(this.createStreetHorizon(138, 126, gentleStreetHeight, '#79bd68'))
+    this.hillsideStreet.add(this.createStreetHorizon(138, 126, gentleStreetHeight, artPalette.grass))
 
-    const road = this.createRollingStreetSurface(4.2, 28, 0, -1, '#516d71', 0.08)
+    const road = this.createRollingStreetSurface(4.2, 28, 0, -1, artPalette.road, 0.08)
     this.hillsideStreet.add(road)
     // A thin raised edge gives the main road a readable, walkable boundary without
     // turning the district into a corridor. These follow the same local ground as
     // the road so they keep the miniature rise-and-fall at street scale.
-    this.hillsideStreet.add(this.createRollingStreetSurface(0.16, 28, -2.18, -1, '#f0e8bd', 0.125))
-    this.hillsideStreet.add(this.createRollingStreetSurface(0.16, 28, 2.18, -1, '#f0e8bd', 0.125))
+    this.hillsideStreet.add(this.createRollingStreetSurface(0.16, 28, -2.18, -1, artPalette.kerb, 0.125))
+    this.hillsideStreet.add(this.createRollingStreetSurface(0.16, 28, 2.18, -1, artPalette.kerb, 0.125))
     for (const [x, z, width, length] of [[-6, -2, 2.2, 10], [6.2, -4.4, 2.2, 9], [0, -10, 6.5, 2.1]] as Array<[number, number, number, number]>) {
-      const path = this.createRollingStreetSurface(width, length, x, z, '#d8d2b2', 0.07)
+      const path = this.createRollingStreetSurface(width, length, x, z, artPalette.cobblePale, 0.07)
       this.hillsideStreet.add(path)
     }
-    const paint = new MeshLambertMaterial({ color: '#f2e7b9', flatShading: true })
+    const paint = celMaterial(artPalette.kerb)
     for (let z = -12; z <= 10; z += 2.2) {
       const dash = new Mesh(new BoxGeometry(0.1, 0.03, 0.75), paint)
       dash.position.set(0, gentleStreetHeight(0, z) + 0.15, z)
       this.hillsideStreet.add(dash)
     }
 
-    this.addFlatBuilding(0, -1.7, '#a4493b', '#303f46', 'STATION')
+    // Danish-warm wall/roof tokens via kit modules (glTF-swappable).
+    this.addFlatBuilding(0, -1.7, artPalette.roseBrick, artPalette.terracottaDeep, 'STATION')
     this.addStationGate()
     this.addStationRailCrossing()
     this.addStationShunter()
-    this.addFlatBuilding(6.8, -4.7, '#d8d4c5', '#be7654', 'BAKERY')
-    this.addFlatBuilding(-6.8, -7.3, '#e2c971', '#4e6970', 'HOME')
-    this.addFlatBuilding(-7.1, 5.3, '#c9ded6', '#50666a', 'DEPOT')
+    this.addFlatBuilding(6.8, -4.7, artPalette.cream, artPalette.terracotta, 'BAKERY')
+    this.addFlatBuilding(-6.8, -7.3, artPalette.ochre, artPalette.terracottaDeep, 'HOME')
+    this.addFlatBuilding(-7.1, 5.3, artPalette.whitewash, artPalette.terracotta, 'DEPOT')
+    this.addRavnbroHeroFrontage()
     this.addRavnbroLaneThreshold()
     this.addRavnbroParcelLane()
     this.addRavnbroDepotYard()
@@ -727,6 +788,10 @@ export class GameWorld implements PlayerController {
     this.addStreetBlocker(6.8, -4.7, 1.75)
     this.addStreetBlocker(-6.8, -7.3, 1.75)
     this.addStreetBlocker(-7.1, 5.3, 1.75)
+    // Hero frontage blockers (east + west of main road)
+    for (const [x, z] of [[5.55, -0.6], [5.65, -2.5], [-5.55, -1.1], [-5.6, -3.4]] as Array<[number, number]>) {
+      this.addStreetBlocker(x, z, 1.35)
+    }
     this.addFlatStreetFurniture()
     this.createStreetLife()
     this.scene.add(this.hillsideStreet)
@@ -794,16 +859,16 @@ export class GameWorld implements PlayerController {
    * readable destination rather than an invisible world boundary.
    */
   private addReedwaterEdge(): void {
-    const water = this.createRollingStreetSurface(40, 4.8, 0, -16.45, '#4d9a9a', 0.1)
+    const water = this.createRollingStreetSurface(40, 4.8, 0, -16.45, artPalette.marshWater, 0.1, 'water')
     this.hillsideStreet.add(water)
-    const shore = this.createRollingStreetSurface(40, 0.52, 0, -14.08, '#b9af77', 0.14)
+    const shore = this.createRollingStreetSurface(40, 0.52, 0, -14.08, '#b9af77', 0.14, 'cobble')
     this.hillsideStreet.add(shore)
 
-    const timber = new MeshLambertMaterial({ color: '#694d3c', flatShading: true })
+    const timber = celMaterial(artPalette.timberSoft)
     const bridgeX = -7
     const bridgeStart = -11.45
     const bridgeLength = 3.95
-    const bridgeDeck = this.createRollingStreetSurface(1.75, bridgeLength, bridgeX, bridgeStart - bridgeLength / 2, '#765942', 0.17)
+    const bridgeDeck = this.createRollingStreetSurface(1.75, bridgeLength, bridgeX, bridgeStart - bridgeLength / 2, '#765942', 0.17, 'plank')
     this.hillsideStreet.add(bridgeDeck)
     for (let index = 0; index < 9; index += 1) {
       const z = bridgeStart - index * 0.43
@@ -1181,7 +1246,7 @@ export class GameWorld implements PlayerController {
     const fountain = new Mesh(new CylinderGeometry(0.54, 0.68, 0.28, 8), new MeshLambertMaterial({ color: '#a7b5aa', flatShading: true }))
     fountain.position.set(7.85, gentleStreetHeight(7.85, -7.6) + 0.14, -7.6)
     this.hillsideStreet.add(fountain)
-    const water = new Mesh(new CylinderGeometry(0.36, 0.36, 0.035, 8), new MeshLambertMaterial({ color: '#70b6b2', emissive: new Color('#4b8d91'), emissiveIntensity: 0.12, flatShading: true }))
+    const water = new Mesh(new CylinderGeometry(0.36, 0.36, 0.035, 8), paintedMaterial('water', artPalette.marshWater, { emissive: '#4b8d91', emissiveIntensity: 0.12 }))
     water.position.set(7.85, gentleStreetHeight(7.85, -7.6) + 0.3, -7.6)
     this.hillsideStreet.add(water)
     this.addStreetBlocker(7.85, -7.6, 0.48)
@@ -1195,31 +1260,32 @@ export class GameWorld implements PlayerController {
   private addMarketFold(): void {
     const marketX = 7.5
     const marketZ = -1.85
-    this.hillsideStreet.add(this.createRollingStreetSurface(4.9, 4.2, marketX, marketZ, '#d7c9a7', 0.095))
+    this.hillsideStreet.add(this.createRollingStreetSurface(4.9, 4.2, marketX, marketZ, artPalette.cobblePale, 0.095, 'cobble'))
 
     const wallX = 9.05
     const wallZ = -3.2
     const wallHeight = 1.58
-    const brick = new MeshLambertMaterial({ color: '#a64e3e', flatShading: true })
-    const darkBrick = new MeshLambertMaterial({ color: '#783b35', flatShading: true })
+    const brick = celMaterial(artPalette.roseBrick)
+    const darkBrick = celMaterial('#783b35')
     const wall = new Mesh(new BoxGeometry(2.65, wallHeight, 0.16), brick)
     wall.position.set(wallX, gentleStreetHeight(wallX, wallZ) + wallHeight / 2, wallZ)
     this.hillsideStreet.add(wall)
+    addMeshOutline(wall, 1.03)
     for (const yOffset of [0.35, 1.05]) {
       const brickBand = new Mesh(new BoxGeometry(2.78, 0.08, 0.19), darkBrick)
       brickBand.position.set(wallX, gentleStreetHeight(wallX, wallZ) + yOffset, wallZ + 0.09)
       this.hillsideStreet.add(brickBand)
     }
 
-    const muralBackdrop = new Mesh(new PlaneGeometry(2.12, 0.96), new MeshLambertMaterial({ color: '#2f7780', side: DoubleSide }))
+    const muralBackdrop = new Mesh(new PlaneGeometry(2.12, 0.96), celMaterial('#2f7780', { side: DoubleSide }))
     muralBackdrop.position.set(wallX, gentleStreetHeight(wallX, wallZ) + 0.94, wallZ + 0.102)
     this.hillsideStreet.add(muralBackdrop)
-    const muralSun = new Mesh(new CylinderGeometry(0.23, 0.23, 0.025, 10), new MeshLambertMaterial({ color: '#f3c95d', flatShading: true }))
+    const muralSun = new Mesh(new CylinderGeometry(0.23, 0.23, 0.025, 10), celMaterial('#f3c95d'))
     muralSun.rotation.x = Math.PI / 2
     muralSun.position.set(wallX + 0.5, gentleStreetHeight(wallX, wallZ) + 1.08, wallZ + 0.12)
     this.hillsideStreet.add(muralSun)
     for (const [offsetX, height, color] of [[-0.54, 0.26, '#d77a4c'], [-0.07, 0.38, '#d77a4c'], [0.75, 0.22, '#4c8d6a']] as Array<[number, number, string]>) {
-      const paintedRoof = new Mesh(new ConeGeometry(0.42, height, 3), new MeshLambertMaterial({ color, flatShading: true }))
+      const paintedRoof = new Mesh(new ConeGeometry(0.42, height, 3), celMaterial(color))
       paintedRoof.rotation.y = Math.PI / 6
       paintedRoof.position.set(wallX + offsetX, gentleStreetHeight(wallX, wallZ) + 0.58, wallZ + 0.125)
       this.hillsideStreet.add(paintedRoof)
@@ -1229,11 +1295,11 @@ export class GameWorld implements PlayerController {
     muralSign.position.set(wallX, gentleStreetHeight(wallX, wallZ) + 1.92, wallZ + 0.1)
     this.hillsideStreet.add(muralSign)
 
-    const awningMaterial = new MeshLambertMaterial({ color: '#d7984d', flatShading: true })
-    const canopy = new Mesh(new BoxGeometry(2.5, 0.16, 0.56), awningMaterial)
+    const canopy = new Mesh(new BoxGeometry(2.5, 0.16, 0.56), celMaterial(artPalette.ochre))
     canopy.position.set(6.0, gentleStreetHeight(6.0, -2.72) + 1.28, -2.72)
     this.hillsideStreet.add(canopy)
-    const timber = new MeshLambertMaterial({ color: '#6b4d3c', flatShading: true })
+    addMeshOutline(canopy, 1.04)
+    const timber = celMaterial(artPalette.timberSoft)
     for (const x of [5.0, 7.0]) {
       const post = new Mesh(new BoxGeometry(0.09, 1.28, 0.09), timber)
       post.position.set(x, gentleStreetHeight(x, -2.72) + 0.64, -2.72)
@@ -1242,16 +1308,26 @@ export class GameWorld implements PlayerController {
     const table = new Mesh(new BoxGeometry(1.7, 0.14, 0.58), timber)
     table.position.set(6.0, gentleStreetHeight(6.0, -2.25) + 0.54, -2.25)
     this.hillsideStreet.add(table)
-    for (const [x, z] of [[5.45, -2.1], [6.48, -2.35], [5.82, -2.9]] as Array<[number, number]>) {
-      const crate = new Mesh(new BoxGeometry(0.42, 0.36, 0.42), new MeshLambertMaterial({ color: '#a67243', flatShading: true }))
+    for (const [x, z] of [[5.45, -2.1], [6.48, -2.35], [5.82, -2.9], [7.15, -2.05], [6.9, -2.75]] as Array<[number, number]>) {
+      const crate = new Mesh(new BoxGeometry(0.42, 0.36, 0.42), celMaterial('#a67243'))
       crate.position.set(x, gentleStreetHeight(x, z) + 0.18, z)
       this.hillsideStreet.add(crate)
+      addMeshOutline(crate, 1.05)
     }
-    const bunting = new Mesh(new BoxGeometry(3.65, 0.035, 0.035), new MeshLambertMaterial({ color: '#5a5152', flatShading: true }))
+    // Produce baskets on the stall table.
+    for (const x of [5.55, 6.0, 6.45]) {
+      const basket = new Mesh(new CylinderGeometry(0.16, 0.18, 0.16, 6), celMaterial(artPalette.ochre))
+      basket.position.set(x, gentleStreetHeight(x, -2.25) + 0.72, -2.25)
+      this.hillsideStreet.add(basket)
+      const fruit = new Mesh(new SphereGeometry(0.1, 6, 5), celMaterial(x > 6 ? '#d85d67' : '#6fad62'))
+      fruit.position.set(x, gentleStreetHeight(x, -2.25) + 0.86, -2.25)
+      this.hillsideStreet.add(fruit)
+    }
+    const bunting = new Mesh(new BoxGeometry(3.65, 0.035, 0.035), celMaterial('#5a5152'))
     bunting.position.set(7.55, gentleStreetHeight(7.55, -1.1) + 1.85, -1.1)
     this.hillsideStreet.add(bunting)
     for (let index = 0; index < 6; index += 1) {
-      const flag = new Mesh(new ConeGeometry(0.11, 0.24, 3), new MeshLambertMaterial({ color: index % 2 ? '#e6c55d' : '#d86954', flatShading: true }))
+      const flag = new Mesh(new ConeGeometry(0.11, 0.24, 3), celMaterial(index % 2 ? '#e6c55d' : '#d86954'))
       flag.rotation.x = Math.PI
       const x = 5.9 + index * 0.66
       flag.position.set(x, gentleStreetHeight(x, -1.1) + 1.7, -1.1)
@@ -1710,10 +1786,10 @@ export class GameWorld implements PlayerController {
 
   /** Arrival props and rail hardware make the station the town's lived-in anchor. */
   private addStationGate(): void {
-    const platform = this.createRollingStreetSurface(8.75, 1.08, 0, -3.42, '#c7bd9d', 0.1)
+    const platform = this.createRollingStreetSurface(8.75, 1.08, 0, -3.42, artPalette.cobblePale, 0.1, 'cobble')
     this.hillsideStreet.add(platform)
-    const iron = new MeshLambertMaterial({ color: '#405b5e', flatShading: true })
-    const sleeperMaterial = new MeshLambertMaterial({ color: '#704f3d', flatShading: true })
+    const iron = celMaterial('#405b5e')
+    const sleeperMaterial = celMaterial(artPalette.timberSoft)
     for (const z of [-4.18, -4.72]) {
       const rail = new Mesh(new BoxGeometry(9.1, 0.07, 0.08), iron)
       rail.position.set(0, gentleStreetHeight(0, z) + 0.18, z)
@@ -1727,14 +1803,15 @@ export class GameWorld implements PlayerController {
 
     const timetableX = 3.18
     const timetableZ = 0.42
-    const boardFrame = new Mesh(new BoxGeometry(1.12, 1.28, 0.11), new MeshLambertMaterial({ color: '#34545a', flatShading: true }))
+    const boardFrame = new Mesh(new BoxGeometry(1.12, 1.28, 0.11), celMaterial('#34545a'))
     boardFrame.position.set(timetableX, gentleStreetHeight(timetableX, timetableZ) + 0.83, timetableZ)
     this.hillsideStreet.add(boardFrame)
-    const boardFace = new Mesh(new PlaneGeometry(0.88, 0.9), new MeshLambertMaterial({ color: '#f0ead1', side: DoubleSide }))
+    addMeshOutline(boardFrame, 1.03)
+    const boardFace = new Mesh(new PlaneGeometry(0.88, 0.9), celMaterial('#f0ead1', { side: DoubleSide }))
     boardFace.position.set(timetableX, gentleStreetHeight(timetableX, timetableZ) + 0.86, timetableZ + 0.062)
     this.hillsideStreet.add(boardFace)
     for (let index = 0; index < 4; index += 1) {
-      const routeLine = new Mesh(new BoxGeometry(0.58, 0.045, 0.025), new MeshLambertMaterial({ color: index === 1 ? '#c5654e' : '#6d8583', flatShading: true }))
+      const routeLine = new Mesh(new BoxGeometry(0.58, 0.045, 0.025), celMaterial(index === 1 ? '#c5654e' : '#6d8583'))
       routeLine.position.set(timetableX, gentleStreetHeight(timetableX, timetableZ) + 1.12 - index * 0.19, timetableZ + 0.077)
       this.hillsideStreet.add(routeLine)
     }
@@ -1745,24 +1822,25 @@ export class GameWorld implements PlayerController {
 
     const cartX = -3.18
     const cartZ = 0.3
-    const cartWood = new MeshLambertMaterial({ color: '#855e43', flatShading: true })
+    const cartWood = celMaterial('#855e43')
     const cartBed = new Mesh(new BoxGeometry(1.18, 0.2, 0.72), cartWood)
     cartBed.position.set(cartX, gentleStreetHeight(cartX, cartZ) + 0.48, cartZ)
     this.hillsideStreet.add(cartBed)
+    addMeshOutline(cartBed, 1.04)
     for (const xOffset of [-0.42, 0.42]) {
       const wheel = new Mesh(new TorusGeometry(0.16, 0.045, 5, 9), iron)
       wheel.rotation.y = Math.PI / 2
       wheel.position.set(cartX + xOffset, gentleStreetHeight(cartX + xOffset, cartZ) + 0.26, cartZ - 0.34)
       this.hillsideStreet.add(wheel)
     }
-    const caseOne = new Mesh(new BoxGeometry(0.45, 0.42, 0.42), new MeshLambertMaterial({ color: '#b46e45', flatShading: true }))
+    const caseOne = new Mesh(new BoxGeometry(0.45, 0.42, 0.42), celMaterial('#b46e45'))
     caseOne.position.set(cartX - 0.18, gentleStreetHeight(cartX, cartZ) + 0.79, cartZ)
     this.hillsideStreet.add(caseOne)
-    const caseTwo = new Mesh(new BoxGeometry(0.38, 0.28, 0.36), new MeshLambertMaterial({ color: '#d0a257', flatShading: true }))
+    const caseTwo = new Mesh(new BoxGeometry(0.38, 0.28, 0.36), celMaterial('#d0a257'))
     caseTwo.position.set(cartX + 0.28, gentleStreetHeight(cartX, cartZ) + 0.72, cartZ + 0.06)
     this.hillsideStreet.add(caseTwo)
 
-    const benchMaterial = new MeshLambertMaterial({ color: '#765440', flatShading: true })
+    const benchMaterial = celMaterial('#765440')
     for (const [x, z] of [[-4.55, -0.2], [4.55, -0.45]] as Array<[number, number]>) {
       const seat = new Mesh(new BoxGeometry(1.22, 0.14, 0.36), benchMaterial)
       seat.position.set(x, gentleStreetHeight(x, z) + 0.42, z)
@@ -1772,12 +1850,126 @@ export class GameWorld implements PlayerController {
       this.hillsideStreet.add(back)
     }
     for (const x of [-4.1, 4.1]) {
-      const bollard = new Mesh(new CylinderGeometry(0.09, 0.12, 0.74, 6), new MeshLambertMaterial({ color: '#4a6265', flatShading: true }))
+      const bollard = new Mesh(new CylinderGeometry(0.09, 0.12, 0.74, 6), celMaterial('#4a6265'))
       bollard.position.set(x, gentleStreetHeight(x, 0.9) + 0.37, 0.9)
       this.hillsideStreet.add(bollard)
     }
     this.addStreetBlocker(timetableX, timetableZ, 0.64)
     this.addStreetBlocker(cartX, cartZ, 0.72)
+    this.addRavnbroLivedInProps()
+  }
+
+  /**
+   * Continuous gable frontage on the main road so the hero corridor stops
+   * reading as four isolated Lego houses on a lawn.
+   */
+  private addRavnbroHeroFrontage(): void {
+    const east: Array<{ id: 'house-cream' | 'house-ochre' | 'house-brick'; x: number; z: number; yaw: number }> = [
+      { id: 'house-cream', x: 5.55, z: -0.55, yaw: -0.08 },
+      { id: 'house-ochre', x: 5.7, z: -2.55, yaw: -0.04 },
+      { id: 'house-brick', x: 5.5, z: -6.9, yaw: -0.02 },
+    ]
+    for (const entry of east) {
+      // Skip if too close to bakery kit already at 6.8, -4.7
+      if (entry.z > -5.5 && entry.z < -3.8) continue
+      const house = kitLoader.create(entry.id)
+      house.position.set(entry.x, gentleStreetHeight(entry.x, entry.z), entry.z)
+      house.rotation.y = entry.yaw
+      this.hillsideStreet.add(house)
+    }
+    const west: Array<{ id: 'house-cream' | 'house-ochre' | 'house-brick'; x: number; z: number; yaw: number }> = [
+      { id: 'house-brick', x: -5.55, z: -1.05, yaw: 0.1 },
+      { id: 'house-cream', x: -5.65, z: -3.35, yaw: 0.06 },
+      { id: 'house-ochre', x: -5.45, z: -5.55, yaw: 0.04 },
+    ]
+    for (const entry of west) {
+      const house = kitLoader.create(entry.id)
+      house.position.set(entry.x, gentleStreetHeight(entry.x, entry.z), entry.z)
+      house.rotation.y = entry.yaw + Math.PI
+      this.hillsideStreet.add(house)
+    }
+  }
+
+  /**
+   * Small original street clutter between Station Gate and Market Fold.
+   * Collision is reserved for the denser props so the road centre stays open.
+   */
+  private addRavnbroLivedInProps(): void {
+    const timber = celMaterial(artPalette.timber)
+    const timberSoft = celMaterial(artPalette.timberSoft)
+    const cream = celMaterial(artPalette.cream)
+    const ochre = celMaterial(artPalette.ochre)
+    const grass = celMaterial(artPalette.grassDeep)
+
+    // Bicycle leant near the station forecourt (kit module).
+    const bike = kitLoader.create('prop-bike')
+    bike.position.set(2.15, gentleStreetHeight(2.15, 1.15), 1.15)
+    bike.rotation.y = -0.4
+    this.hillsideStreet.add(bike)
+    this.addStreetBlocker(2.15, 1.15, 0.42)
+
+    // Sandwich board pointing toward the market.
+    const board = new Group()
+    const panel = new Mesh(new BoxGeometry(0.55, 0.72, 0.08), cream)
+    panel.position.y = 0.42
+    panel.rotation.x = -0.18
+    board.add(panel)
+    addMeshOutline(panel, 1.05)
+    const boardSign = this.createSign('MARKET →', '#fff5d8', 140, 48)
+    boardSign.scale.set(0.72, 0.24, 1)
+    boardSign.position.set(0, 0.5, 0.06)
+    board.add(boardSign)
+    board.position.set(4.35, gentleStreetHeight(4.35, -0.85), -0.85)
+    this.hillsideStreet.add(board)
+    this.addStreetBlocker(4.35, -0.85, 0.35)
+
+    // Laundry line between bakery lane and market approach.
+    for (const x of [5.55, 6.85]) {
+      const post = new Mesh(new CylinderGeometry(0.045, 0.055, 1.55, 5), timberSoft)
+      post.position.set(x, gentleStreetHeight(x, -3.35) + 0.78, -3.35)
+      this.hillsideStreet.add(post)
+    }
+    const line = new Mesh(new BoxGeometry(1.35, 0.03, 0.03), celMaterial('#6a6660'))
+    line.position.set(6.2, gentleStreetHeight(6.2, -3.35) + 1.42, -3.35)
+    this.hillsideStreet.add(line)
+    for (const [x, color] of [[5.85, '#d85d67'], [6.2, '#f5be3e'], [6.55, '#3f8d9f']] as Array<[number, string]>) {
+      const cloth = new Mesh(new PlaneGeometry(0.22, 0.34), celMaterial(color, { side: DoubleSide }))
+      cloth.position.set(x, gentleStreetHeight(x, -3.35) + 1.2, -3.32)
+      this.hillsideStreet.add(cloth)
+    }
+
+    // Flower planters along the main road kerb (east side toward market).
+    for (const z of [-0.8, -2.4, -4.0]) {
+      const pot = new Mesh(new CylinderGeometry(0.16, 0.2, 0.28, 6), timberSoft)
+      pot.position.set(2.05, gentleStreetHeight(2.05, z) + 0.14, z)
+      this.hillsideStreet.add(pot)
+      const leaves = new Mesh(new SphereGeometry(0.18, 6, 5), grass)
+      leaves.position.set(2.05, gentleStreetHeight(2.05, z) + 0.38, z)
+      this.hillsideStreet.add(leaves)
+    }
+
+    // Barrel and crate stack near the bakery corner.
+    const barrel = new Mesh(new CylinderGeometry(0.28, 0.32, 0.7, 8), celMaterial('#8a5a3c'))
+    barrel.position.set(5.55, gentleStreetHeight(5.55, -5.35) + 0.35, -5.35)
+    this.hillsideStreet.add(barrel)
+    addMeshOutline(barrel, 1.04)
+    this.addStreetBlocker(5.55, -5.35, 0.36)
+    const crate = new Mesh(new BoxGeometry(0.48, 0.38, 0.42), ochre)
+    crate.position.set(6.15, gentleStreetHeight(6.15, -5.55) + 0.19, -5.55)
+    this.hillsideStreet.add(crate)
+    this.addStreetBlocker(6.15, -5.55, 0.34)
+
+    // Hanging shop sign arm near market fold.
+    const armPost = new Mesh(new CylinderGeometry(0.05, 0.07, 1.9, 5), timber)
+    armPost.position.set(8.35, gentleStreetHeight(8.35, -0.55) + 0.95, -0.55)
+    this.hillsideStreet.add(armPost)
+    const arm = new Mesh(new BoxGeometry(0.7, 0.06, 0.06), timber)
+    arm.position.set(8.65, gentleStreetHeight(8.65, -0.55) + 1.7, -0.55)
+    this.hillsideStreet.add(arm)
+    const hangSign = this.createSign('SUNSET GOODS', '#fff0ce', 170, 48)
+    hangSign.scale.set(0.9, 0.26, 1)
+    hangSign.position.set(8.95, gentleStreetHeight(8.95, -0.55) + 1.45, -0.55)
+    this.hillsideStreet.add(hangSign)
   }
 
   /** The town's main pedestrian route crosses the rails at one deliberate, safe point. */
@@ -1868,7 +2060,7 @@ export class GameWorld implements PlayerController {
     this.addStreetBlocker(4.7, -5.25, 0.42)
   }
 
-  private createRollingStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number): Mesh {
+  private createRollingStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number, paint?: PaintKind): Mesh {
     const geometry = new PlaneGeometry(width, length, Math.max(2, Math.ceil(width)), Math.max(4, Math.ceil(length / 1.5)))
     const positions = geometry.getAttribute('position')
     for (let index = 0; index < positions.count; index += 1) {
@@ -1876,7 +2068,7 @@ export class GameWorld implements PlayerController {
     }
     geometry.computeVertexNormals()
     geometry.rotateX(-Math.PI / 2)
-    const surface = new Mesh(geometry, new MeshLambertMaterial({ color, flatShading: true, side: DoubleSide }))
+    const surface = new Mesh(geometry, paintedMaterial(paint ?? paintKindForColor(color), color, { side: DoubleSide }))
     surface.position.set(x, 0, z)
     return surface
   }
@@ -1894,7 +2086,7 @@ export class GameWorld implements PlayerController {
     }
     geometry.computeVertexNormals()
     geometry.rotateX(-Math.PI / 2)
-    return new Mesh(geometry, new MeshLambertMaterial({ color, flatShading: true, side: DoubleSide }))
+    return new Mesh(geometry, paintedMaterial(paintKindForColor(color), color, { side: DoubleSide }))
   }
 
   /**
@@ -1995,8 +2187,38 @@ export class GameWorld implements PlayerController {
   }
 
   private addFlatBuilding(x: number, z: number, wall: string, roofColor: string, label: string): void {
+    // Hero corridor buildings go through the kit API so glTF can replace procedural later.
     if (label === 'STATION') {
       this.addRavnbroStation(x, z, wall, roofColor)
+      return
+    }
+    if (label === 'BAKERY') {
+      const bakery = kitLoader.create('bakery')
+      bakery.position.set(x, gentleStreetHeight(x, z), z)
+      bakery.rotation.y = -0.03
+      this.hillsideStreet.add(bakery)
+      const shopSign = this.createSign('BAKEHOUSE', '#fff5d8', 190, 52)
+      shopSign.scale.set(1.1, 0.3, 1)
+      shopSign.position.set(x, gentleStreetHeight(x, z) + 1.58, z + 1.1)
+      this.hillsideStreet.add(shopSign)
+      return
+    }
+    if (label === 'DEPOT') {
+      const depot = kitLoader.create('depot')
+      depot.position.set(x, gentleStreetHeight(x, z), z)
+      depot.rotation.y = 0.02
+      this.hillsideStreet.add(depot)
+      const depotSign = this.createSign('YARD', '#eaf2dc', 150, 48)
+      depotSign.scale.set(0.86, 0.27, 1)
+      depotSign.position.set(x, gentleStreetHeight(x, z) + 1.58, z + 1.08)
+      this.hillsideStreet.add(depotSign)
+      return
+    }
+    if (label === 'HOME') {
+      const home = kitLoader.create('home-passage')
+      home.position.set(x, gentleStreetHeight(x, z), z)
+      home.rotation.y = 0.04
+      this.hillsideStreet.add(home)
       return
     }
     this.addRavnbroFrontage(x, z, wall, roofColor, label)
@@ -2008,16 +2230,23 @@ export class GameWorld implements PlayerController {
     const width = label === 'DEPOT' ? 3.35 : label === 'BAKERY' ? 3.05 : 2.72
     const bodyHeight = label === 'DEPOT' ? 1.82 : 1.68
     const depth = 2.05
-    const wallMaterial = new MeshLambertMaterial({ color: wall, flatShading: true })
-    const frameMaterial = new MeshLambertMaterial({ color: label === 'DEPOT' ? '#6b4840' : '#574239', flatShading: true })
-    const roofMaterial = new MeshLambertMaterial({ color: roofColor, flatShading: true })
+    const wallMaterial = celMaterial(wall)
+    const frameMaterial = celMaterial(label === 'DEPOT' ? artPalette.timberSoft : artPalette.timber)
+    const roofMaterial = celMaterial(roofColor)
     const body = new Mesh(new BoxGeometry(width, bodyHeight, depth), wallMaterial)
     body.position.y = bodyHeight / 2
     building.add(body)
-    const roof = new Mesh(new ConeGeometry(width * 0.68, 0.82, 4), roofMaterial)
-    roof.rotation.y = Math.PI / 4
-    roof.position.y = bodyHeight + 0.42
+    addMeshOutline(body, 1.03)
+
+    // Gable prism reads as Danish street roofing; terracotta family is preferred.
+    const roof = new Mesh(createGableRoofGeometry(width + 0.18, 0.78, depth + 0.22), roofMaterial)
+    roof.position.y = bodyHeight
     building.add(roof)
+    addMeshOutline(roof, 1.02)
+    const chimney = new Mesh(new BoxGeometry(0.22, 0.55, 0.24), celMaterial(artPalette.roseBrick))
+    chimney.position.set(width * 0.28, bodyHeight + 0.72, -depth * 0.12)
+    building.add(chimney)
+    addMeshOutline(chimney, 1.05)
 
     // Timber grid: deliberately slightly uneven spans make a compact row feel
     // hand-built rather than a repeated suburban house asset.
@@ -2033,21 +2262,40 @@ export class GameWorld implements PlayerController {
       beam.position.set(0, frameY, frontZ)
       building.add(beam)
     }
+    // Window frames + pale glass (not a single floating plane).
     const windowXs = label === 'DEPOT' ? [-1.0, 1.0] : [-width * 0.27, width * 0.27]
     for (const windowX of windowXs) {
-      const window = new Mesh(new PlaneGeometry(0.43, 0.5), new MeshLambertMaterial({ color: '#dce8df', side: DoubleSide }))
-      window.position.set(windowX, bodyHeight * 0.62, frontZ + 0.006)
-      building.add(window)
+      const frame = new Mesh(new BoxGeometry(0.52, 0.58, 0.06), frameMaterial)
+      frame.position.set(windowX, bodyHeight * 0.62, frontZ + 0.01)
+      building.add(frame)
+      const glass = new Mesh(new PlaneGeometry(0.38, 0.44), celMaterial(artPalette.glass, { side: DoubleSide }))
+      glass.position.set(windowX, bodyHeight * 0.62, frontZ + 0.045)
+      building.add(glass)
     }
     const doorWidth = label === 'DEPOT' ? 0.86 : 0.58
-    const door = new Mesh(new PlaneGeometry(doorWidth, 0.92), new MeshLambertMaterial({ color: label === 'BAKERY' ? '#47666c' : '#31555b', side: DoubleSide }))
-    door.position.set(0, 0.47, frontZ + 0.008)
+    const doorFrame = new Mesh(new BoxGeometry(doorWidth + 0.1, 1.02, 0.07), frameMaterial)
+    doorFrame.position.set(0, 0.5, frontZ + 0.01)
+    building.add(doorFrame)
+    const door = new Mesh(new PlaneGeometry(doorWidth, 0.92), celMaterial(label === 'BAKERY' ? '#47666c' : artPalette.door, { side: DoubleSide }))
+    door.position.set(0, 0.47, frontZ + 0.05)
     building.add(door)
+    // Small step + flower box so the threshold feels lived-in.
+    const step = new Mesh(new BoxGeometry(doorWidth + 0.28, 0.08, 0.28), celMaterial(artPalette.cobbleWarm))
+    step.position.set(0, 0.04, frontZ + 0.18)
+    building.add(step)
+    if (label !== 'DEPOT') {
+      const box = new Mesh(new BoxGeometry(0.42, 0.16, 0.2), celMaterial(artPalette.timberSoft))
+      box.position.set(width * 0.34, 0.58, frontZ + 0.12)
+      building.add(box)
+      const leaves = new Mesh(new BoxGeometry(0.38, 0.14, 0.16), celMaterial(artPalette.grassDeep))
+      leaves.position.set(width * 0.34, 0.72, frontZ + 0.12)
+      building.add(leaves)
+    }
     if (label === 'BAKERY') {
-      const awningMaterial = new MeshLambertMaterial({ color: '#d5a34d', flatShading: true })
-      const awning = new Mesh(new BoxGeometry(width - 0.3, 0.16, 0.48), awningMaterial)
+      const awning = new Mesh(new BoxGeometry(width - 0.3, 0.16, 0.48), celMaterial(artPalette.ochre))
       awning.position.set(0, 1.12, 1.27)
       building.add(awning)
+      addMeshOutline(awning, 1.04)
       const shopSign = this.createSign('BAKEHOUSE', '#fff5d8', 190, 52)
       shopSign.scale.set(1.1, 0.3, 1)
       shopSign.position.set(0, 1.53, 1.08)
@@ -2063,11 +2311,13 @@ export class GameWorld implements PlayerController {
       const passage = new Mesh(new BoxGeometry(0.76, 0.82, 0.12), frameMaterial)
       passage.position.set(0, 0.41, frontZ + 0.025)
       building.add(passage)
-      const passageInset = new Mesh(new PlaneGeometry(0.5, 0.62), new MeshLambertMaterial({ color: '#263f45', side: DoubleSide }))
+      const passageInset = new Mesh(new PlaneGeometry(0.5, 0.62), celMaterial('#263f45', { side: DoubleSide }))
       passageInset.position.set(0, 0.36, frontZ + 0.09)
       building.add(passageInset)
     }
     building.position.set(x, gentleStreetHeight(x, z), z)
+    // Slight yaw keeps a short frontage row from looking stamped.
+    building.rotation.y = label === 'HOME' ? 0.04 : label === 'BAKERY' ? -0.03 : 0.02
     this.hillsideStreet.add(building)
   }
 
@@ -2479,80 +2729,24 @@ export class GameWorld implements PlayerController {
    * The proportions are intentionally stylised rather than a model of any real
    * station building.
    */
-  private addRavnbroStation(x: number, z: number, brick: string, roofColor: string): void {
-    const station = new Group()
-    const brickMaterial = new MeshLambertMaterial({ color: brick, flatShading: true })
-    const darkBrickMaterial = new MeshLambertMaterial({ color: '#7f362f', flatShading: true })
-    const roofMaterial = new MeshLambertMaterial({ color: roofColor, flatShading: true })
-    const windowMaterial = new MeshLambertMaterial({ color: '#dbe6df', side: DoubleSide })
-    const doorMaterial = new MeshLambertMaterial({ color: '#254955', side: DoubleSide })
-
-    const wing = new Mesh(new BoxGeometry(6.8, 1.48, 1.92), brickMaterial)
-    wing.position.y = 0.74
-    station.add(wing)
-    const centralHall = new Mesh(new BoxGeometry(2.5, 2.18, 2.12), brickMaterial)
-    centralHall.position.y = 1.09
-    station.add(centralHall)
-    const wingRoof = new Mesh(new ConeGeometry(3.85, 0.72, 4), roofMaterial)
-    wingRoof.rotation.y = Math.PI / 4
-    wingRoof.position.y = 1.82
-    station.add(wingRoof)
-    const gableRoof = new Mesh(new ConeGeometry(1.75, 0.94, 4), roofMaterial)
-    gableRoof.rotation.y = Math.PI / 4
-    gableRoof.position.y = 2.25
-    station.add(gableRoof)
-
-    for (const windowX of [-2.8, -1.88, -0.76, 0.76, 1.88, 2.8]) {
-      const window = new Mesh(new PlaneGeometry(0.45, 0.54), windowMaterial)
-      window.position.set(windowX, 0.86, 0.971)
-      station.add(window)
-    }
-    for (const windowX of [-0.62, 0.62]) {
-      const upperWindow = new Mesh(new PlaneGeometry(0.38, 0.52), windowMaterial)
-      upperWindow.position.set(windowX, 1.68, 1.081)
-      station.add(upperWindow)
-    }
-    const clockRim = new Mesh(new CylinderGeometry(0.26, 0.26, 0.06, 12), new MeshLambertMaterial({ color: '#f3eed7', flatShading: true }))
-    clockRim.rotation.x = Math.PI / 2
-    clockRim.position.set(0, 2.15, 1.105)
-    station.add(clockRim)
-    for (const doorX of [-0.43, 0.43]) {
-      const door = new Mesh(new PlaneGeometry(0.52, 0.94), doorMaterial)
-      door.position.set(doorX, 0.5, 1.085)
-      station.add(door)
-    }
-    for (const chimneyX of [-2.55, -1.1, 1.1, 2.55]) {
-      const chimney = new Mesh(new BoxGeometry(0.2, 0.7, 0.22), darkBrickMaterial)
-      chimney.position.set(chimneyX, 2.45, 0)
-      station.add(chimney)
-    }
-    const canopy = new Mesh(new BoxGeometry(2.25, 0.11, 0.62), new MeshLambertMaterial({ color: '#d8d2b2', flatShading: true }))
-    canopy.position.set(0, 1.05, 1.3)
-    station.add(canopy)
+  private addRavnbroStation(x: number, z: number, _brick: string, _roofColor: string): void {
+    const station = kitLoader.create('station-civic')
     const sign = this.createSign(this.save.quest.stationNameRestored ? 'SUNSET LOOP' : '____ ____', this.save.quest.stationNameRestored ? '#f8d34e' : '#efeee2')
-    sign.position.set(0, 2.72, 1.22)
+    sign.position.set(0, 3.05, 1.22)
     station.add(sign)
     this.streetStationSign = sign
-
-    const forecourt = new Mesh(new CylinderGeometry(2.5, 2.78, 0.08, 12), new MeshLambertMaterial({ color: '#b99d78', flatShading: true }))
-    forecourt.position.set(0, gentleStreetHeight(x, z + 1.8) - gentleStreetHeight(x, z) + 0.04, 1.8)
-    station.add(forecourt)
     station.position.set(x, gentleStreetHeight(x, z), z)
     this.hillsideStreet.add(station)
     this.streetStationDoorPosition.set(x, gentleStreetHeight(x, z + 1.22), z + 1.22)
   }
 
   private addFlatKeeper(x: number, z: number): void {
-    const keeper = new Group()
-    const coat = new Mesh(new CylinderGeometry(0.3, 0.37, 0.92, 6), new MeshLambertMaterial({ color: '#d25f4b', flatShading: true }))
-    coat.position.y = 0.56
-    keeper.add(coat)
-    const head = new Mesh(new SphereGeometry(0.26, 8, 6), new MeshLambertMaterial({ color: '#dca48a', flatShading: true }))
-    head.position.y = 1.2
-    keeper.add(head)
-    const hat = new Mesh(new CylinderGeometry(0.34, 0.34, 0.11, 8), new MeshLambertMaterial({ color: '#314955', flatShading: true }))
-    hat.position.y = 1.44
-    keeper.add(hat)
+    const keeper = kitLoader.create('char-npc', {
+      coat: '#d25f4b',
+      hat: true,
+      hatColor: '#314955',
+      bag: false,
+    })
     keeper.position.set(x, gentleStreetHeight(x, z), z)
     this.hillsideStreet.add(keeper)
   }
@@ -2647,13 +2841,13 @@ export class GameWorld implements PlayerController {
   }
 
   private addFlatStreetFurniture(): void {
-    const poleMaterial = new MeshLambertMaterial({ color: '#36535a', flatShading: true })
+    const poleMaterial = celMaterial('#36535a')
     for (const [x, z] of [[-2.5, 3.5], [2.5, -6.8], [-4.8, -4.6], [4.9, -1.2]]) {
       const lamp = new Group()
       const pole = new Mesh(new CylinderGeometry(0.055, 0.08, 1.8, 6), poleMaterial)
       pole.position.y = 0.9
       lamp.add(pole)
-      const bulb = new Mesh(new SphereGeometry(0.12, 7, 5), new MeshLambertMaterial({ color: '#ffe38c', emissive: new Color('#d89b48'), emissiveIntensity: 0.72, flatShading: true }))
+      const bulb = new Mesh(new SphereGeometry(0.12, 7, 5), celMaterial('#ffe38c', { emissive: '#d89b48', emissiveIntensity: 0.72 }))
       bulb.position.y = 1.72
       lamp.add(bulb)
       lamp.position.set(x, gentleStreetHeight(x, z), z)
@@ -2661,7 +2855,7 @@ export class GameWorld implements PlayerController {
     }
     for (const [x, z] of [[-2.5, -2.2], [3.2, -8.7]]) {
       const bench = new Group()
-      const wood = new MeshLambertMaterial({ color: '#805a43', flatShading: true })
+      const wood = celMaterial('#805a43')
       const seat = new Mesh(new BoxGeometry(1.15, 0.14, 0.36), wood)
       seat.position.y = 0.42
       bench.add(seat)
@@ -2672,33 +2866,33 @@ export class GameWorld implements PlayerController {
       this.hillsideStreet.add(bench)
       this.addStreetBlocker(x, z, 0.68)
     }
-    for (const [x, z] of [[-3.6, 0.8], [3.8, -3.3], [-4.2, -8.5], [4.2, -8.8]]) {
-      const tree = new Group()
-      const trunk = new Mesh(new CylinderGeometry(0.1, 0.15, 1.05, 5), new MeshLambertMaterial({ color: '#6b5041', flatShading: true }))
-      trunk.position.y = 0.52
-      tree.add(trunk)
-      const crown = new Mesh(new ConeGeometry(0.95, 1.8, 6), new MeshLambertMaterial({ color: '#3e815e', flatShading: true }))
-      crown.position.y = 1.7
-      tree.add(crown)
+    for (const [x, z, height] of [[-3.6, 0.8, 2.5], [3.8, -3.3, 2.2], [-4.2, -8.5, 2.7], [4.2, -8.8, 2.35]] as Array<[number, number, number]>) {
+      const tree = kitLoader.create('tree-broad')
+      tree.scale.setScalar(height / 2.45)
       tree.position.set(x, gentleStreetHeight(x, z), z)
       this.hillsideStreet.add(tree)
       this.addStreetBlocker(x, z, 0.78)
+    }
+    // Extra broad trees tighten the hero corridor silhouette (less empty lawn).
+    for (const [x, z] of [[-5.4, -2.2], [5.2, -6.4], [1.8, 3.6]] as Array<[number, number]>) {
+      const tree = kitLoader.create('tree-broad')
+      tree.scale.setScalar(0.9)
+      tree.position.set(x, gentleStreetHeight(x, z), z)
+      this.hillsideStreet.add(tree)
+      this.addStreetBlocker(x, z, 0.7)
     }
   }
 
   /** Decorative local activity only: it has no simulation, collision or network state. */
   private createStreetLife(): void {
     const addWalker = (coatColor: string, hatColor: string, from: [number, number], to: [number, number], phase: number): void => {
-      const walker = new Group()
-      const coat = new Mesh(new CylinderGeometry(0.22, 0.29, 0.7, 5), new MeshLambertMaterial({ color: coatColor, flatShading: true }))
-      coat.position.y = 0.52
-      walker.add(coat)
-      const head = new Mesh(new SphereGeometry(0.2, 7, 6), new MeshLambertMaterial({ color: '#d6a179', flatShading: true }))
-      head.position.y = 1.02
-      walker.add(head)
-      const hat = new Mesh(new CylinderGeometry(0.22, 0.25, 0.08, 6), new MeshLambertMaterial({ color: hatColor, flatShading: true }))
-      hat.position.y = 1.2
-      walker.add(hat)
+      const walker = kitLoader.create('char-npc', {
+        coat: coatColor,
+        hat: true,
+        hatColor,
+        bag: false,
+      })
+      walker.scale.setScalar(0.92)
       walker.userData = { kind: 'walker', from, to, phase }
       this.streetLife.add(walker)
     }
@@ -2707,13 +2901,13 @@ export class GameWorld implements PlayerController {
     addWalker('#b66d4c', '#4e514c', [-5.2, 2.2], [-8.1, -1.25], 0.53)
 
     for (let index = 0; index < 4; index += 1) {
-      const bird = new Mesh(new ConeGeometry(0.08, 0.34, 3), new MeshLambertMaterial({ color: '#294b50', flatShading: true }))
+      const bird = new Mesh(new ConeGeometry(0.08, 0.34, 3), celMaterial('#294b50'))
       bird.rotation.x = Math.PI / 2
       bird.userData = { kind: 'bird', phase: index * 1.47 }
       this.streetLife.add(bird)
     }
     for (let index = 0; index < 5; index += 1) {
-      const butterfly = new Mesh(new PlaneGeometry(0.13, 0.09), new MeshLambertMaterial({ color: index % 2 === 0 ? '#ef8a67' : '#f5ce55', side: DoubleSide, flatShading: true }))
+      const butterfly = new Mesh(new PlaneGeometry(0.13, 0.09), celMaterial(index % 2 === 0 ? '#ef8a67' : '#f5ce55', { side: DoubleSide }))
       butterfly.userData = { kind: 'butterfly', phase: index * 1.21 }
       this.streetLife.add(butterfly)
     }
@@ -2723,13 +2917,13 @@ export class GameWorld implements PlayerController {
   /** Harbour motion stays deliberately small: gulls, ripples and no simulation state. */
   private createHarbourStreetLife(): void {
     for (let index = 0; index < 5; index += 1) {
-      const gull = new Mesh(new ConeGeometry(0.09, 0.38, 3), new MeshLambertMaterial({ color: '#f4efd9', flatShading: true }))
+      const gull = new Mesh(new ConeGeometry(0.09, 0.38, 3), celMaterial('#f4efd9'))
       gull.rotation.x = Math.PI / 2
       gull.userData = { kind: 'harbour-gull', phase: index * 1.29 }
       this.harbourStreetLife.add(gull)
     }
     for (let index = 0; index < 4; index += 1) {
-      const ripple = new Mesh(new TorusGeometry(0.22, 0.025, 4, 10), new MeshLambertMaterial({ color: '#8ac5c4', flatShading: true }))
+      const ripple = new Mesh(new TorusGeometry(0.22, 0.025, 4, 10), celMaterial('#8ac5c4'))
       ripple.rotation.x = Math.PI / 2
       ripple.userData = { kind: 'harbour-ripple', phase: index * 1.71 }
       this.harbourStreetLife.add(ripple)
@@ -2739,14 +2933,14 @@ export class GameWorld implements PlayerController {
 
   /** Moonhill has a few visible, local night details rather than a persistent NPC simulation. */
   private createObservatoryStreetLife(): void {
-    const glow = new MeshLambertMaterial({ color: '#f5d87a', emissive: new Color('#c69142'), emissiveIntensity: 0.72, flatShading: true })
+    const glow = celMaterial('#f5d87a', { emissive: '#c69142', emissiveIntensity: 0.72 })
     for (let index = 0; index < 7; index += 1) {
       const firefly = new Mesh(new SphereGeometry(0.06, 6, 5), glow)
       firefly.userData = { kind: 'moon-firefly', phase: index * 0.9 }
       this.observatoryStreetLife.add(firefly)
     }
     for (let index = 0; index < 3; index += 1) {
-      const swift = new Mesh(new ConeGeometry(0.075, 0.32, 3), new MeshLambertMaterial({ color: '#313e57', flatShading: true }))
+      const swift = new Mesh(new ConeGeometry(0.075, 0.32, 3), celMaterial('#313e57'))
       swift.rotation.x = Math.PI / 2
       swift.userData = { kind: 'moon-swift', phase: index * 2.1 }
       this.observatoryStreetLife.add(swift)
@@ -2782,42 +2976,59 @@ export class GameWorld implements PlayerController {
   /** Street-scale counterpart to the title globe: an upright dockyard with a shallow local roll. */
   private createHarbourStreetWorld(): void {
     this.harbourStreet.visible = false
-    this.harbourStreet.add(this.createStreetHorizon(142, 130, harbourStreetHeight, '#708b7d'))
+    this.harbourStreet.add(this.createStreetHorizon(142, 130, harbourStreetHeight, artPalette.grassDeep))
     // The sea runs under the outer terrain shell. The land slopes into it
     // beyond the authored dock, so it reads as a coast instead of a clipped
     // rectangular plane at the far edge of the district.
-    const water = new Mesh(new PlaneGeometry(142, 94), new MeshLambertMaterial({ color: '#347f8b', flatShading: true, side: DoubleSide }))
+    const water = new Mesh(new PlaneGeometry(142, 94), paintedMaterial('water', artPalette.marshWater, { side: DoubleSide }))
     water.rotation.x = -Math.PI / 2
     water.position.set(0, -0.18, -50)
     this.harbourStreet.add(water)
-    this.harbourStreet.add(this.createHarbourStreetSurface(5.4, 25, 0, -1.4, '#697f79', 0.09))
+    this.harbourStreet.add(this.createHarbourStreetSurface(5.4, 25, 0, -1.4, artPalette.road, 0.09))
     this.harbourStreet.add(this.createHarbourStreetSurface(8.4, 1.35, 0, -9.2, '#9f835f', 0.15))
-    const warehouse = new Mesh(new BoxGeometry(3.5, 2.05, 2.25), new MeshLambertMaterial({ color: '#ad624c', flatShading: true }))
-    warehouse.position.set(-4.05, harbourStreetHeight(-4.05, -0.7) + 1.03, -0.7)
-    this.harbourStreet.add(warehouse)
-    const roof = new Mesh(new ConeGeometry(2.15, 0.9, 4), new MeshLambertMaterial({ color: '#294a51', flatShading: true }))
-    roof.rotation.y = Math.PI / 4
-    roof.position.set(-4.05, harbourStreetHeight(-4.05, -0.7) + 2.28, -0.7)
-    this.harbourStreet.add(roof)
+    const warehouseGroup = new Group()
+    const warehouse = new Mesh(new BoxGeometry(3.5, 2.05, 2.25), celMaterial(artPalette.roseBrick))
+    warehouse.position.y = 1.03
+    warehouseGroup.add(warehouse)
+    addMeshOutline(warehouse, 1.025)
+    const roof = new Mesh(createGableRoofGeometry(3.75, 0.95, 2.45), celMaterial(artPalette.terracottaDeep))
+    roof.position.y = 2.05
+    warehouseGroup.add(roof)
+    addMeshOutline(roof, 1.02)
+    for (const windowX of [-0.9, 0.9]) {
+      const frame = new Mesh(new BoxGeometry(0.55, 0.62, 0.06), celMaterial(artPalette.timber))
+      frame.position.set(windowX, 1.15, 1.15)
+      warehouseGroup.add(frame)
+      const glass = new Mesh(new PlaneGeometry(0.42, 0.48), celMaterial(artPalette.glass, { side: DoubleSide }))
+      glass.position.set(windowX, 1.15, 1.19)
+      warehouseGroup.add(glass)
+    }
+    const door = new Mesh(new PlaneGeometry(0.7, 1.1), celMaterial(artPalette.door, { side: DoubleSide }))
+    door.position.set(0, 0.55, 1.14)
+    warehouseGroup.add(door)
+    warehouseGroup.position.set(-4.05, harbourStreetHeight(-4.05, -0.7), -0.7)
+    this.harbourStreet.add(warehouseGroup)
     const warehouseSign = this.createSign('HARBOUR WORKS', '#f4d46a', 260, 58)
     warehouseSign.scale.set(1.5, 0.34, 1)
-    warehouseSign.position.set(-4.05, harbourStreetHeight(-4.05, -0.7) + 2.95, -0.7)
+    warehouseSign.position.set(-4.05, harbourStreetHeight(-4.05, -0.7) + 3.15, -0.7)
     this.harbourStreet.add(warehouseSign)
     const crane = new Group()
-    const orange = new MeshLambertMaterial({ color: '#d57d4d', flatShading: true })
+    const orange = celMaterial('#d57d4d')
     const mast = new Mesh(new BoxGeometry(0.25, 4.1, 0.25), orange)
     mast.position.y = 2.05
     crane.add(mast)
+    addMeshOutline(mast, 1.04)
     const arm = new Mesh(new BoxGeometry(3.4, 0.18, 0.18), orange)
     arm.position.set(-1.35, 3.82, 0)
     crane.add(arm)
     crane.position.set(4.35, harbourStreetHeight(4.35, -4.8), -4.8)
     this.harbourStreet.add(crane)
-    const boat = new Mesh(new BoxGeometry(2.0, 0.46, 3.2), new MeshLambertMaterial({ color: '#e6ddc3', flatShading: true }))
+    const boat = new Mesh(new BoxGeometry(2.0, 0.46, 3.2), celMaterial(artPalette.cream))
     boat.position.set(-5.6, 0.05, -13.25)
     this.harbourStreet.add(boat)
+    addMeshOutline(boat, 1.04)
     for (const [x, z] of [[-2.5, -8.8], [2.5, -8.8], [-2.5, -10.1], [2.5, -10.1]] as Array<[number, number]>) {
-      const post = new Mesh(new CylinderGeometry(0.11, 0.15, 1.2, 5), new MeshLambertMaterial({ color: '#704f3d', flatShading: true }))
+      const post = new Mesh(new CylinderGeometry(0.11, 0.15, 1.2, 5), celMaterial(artPalette.timberSoft))
       post.position.set(x, harbourStreetHeight(x, z) + 0.6, z)
       this.harbourStreet.add(post)
     }
@@ -3589,19 +3800,16 @@ export class GameWorld implements PlayerController {
 
   /** A local person gives the dock story a voice without becoming a schedule simulation. */
   private addHarbourDockKeeper(x: number, z: number): void {
-    const keeper = new Group()
-    const coat = new Mesh(new CylinderGeometry(0.28, 0.36, 0.9, 6), new MeshLambertMaterial({ color: '#3e7b83', flatShading: true }))
-    coat.position.y = 0.54
-    keeper.add(coat)
-    const apron = new Mesh(new BoxGeometry(0.42, 0.52, 0.08), new MeshLambertMaterial({ color: '#d7b45a', flatShading: true }))
-    apron.position.set(0, 0.48, 0.31)
+    const keeper = kitLoader.create('char-npc', {
+      coat: '#3e7b83',
+      hat: true,
+      hatColor: '#294e55',
+      bag: false,
+    })
+    const apron = new Mesh(new BoxGeometry(0.42, 0.52, 0.08), celMaterial('#d7b45a'))
+    apron.position.set(0, 0.72, 0.32)
     keeper.add(apron)
-    const head = new Mesh(new SphereGeometry(0.24, 8, 6), new MeshLambertMaterial({ color: '#c88f70', flatShading: true }))
-    head.position.y = 1.15
-    keeper.add(head)
-    const cap = new Mesh(new CylinderGeometry(0.29, 0.31, 0.1, 7), new MeshLambertMaterial({ color: '#294e55', flatShading: true }))
-    cap.position.y = 1.36
-    keeper.add(cap)
+    addMeshOutline(apron, 1.06)
     keeper.position.set(x, harbourStreetHeight(x, z), z)
     this.harbourStreet.add(keeper)
     this.addHarbourStreetBlocker(x, z, 0.38)
@@ -3613,7 +3821,7 @@ export class GameWorld implements PlayerController {
     for (let index = 0; index < positions.count; index += 1) positions.setZ(index, harbourStreetHeight(x + positions.getX(index), z - positions.getY(index)) + offset)
     geometry.computeVertexNormals()
     geometry.rotateX(-Math.PI / 2)
-    const surface = new Mesh(geometry, new MeshLambertMaterial({ color, flatShading: true, side: DoubleSide }))
+    const surface = new Mesh(geometry, paintedMaterial(paintKindForColor(color), color, { side: DoubleSide }))
     surface.position.set(x, 0, z)
     return surface
   }
@@ -3693,21 +3901,22 @@ export class GameWorld implements PlayerController {
   /** Street-scale Moonhill: a stable, shallowly rolling hilltop around the observatory. */
   private createObservatoryStreetWorld(): void {
     this.observatoryStreet.visible = false
-    this.observatoryStreet.add(this.createStreetHorizon(138, 126, observatoryStreetHeight, '#718a78'))
-    this.observatoryStreet.add(this.createObservatoryStreetSurface(4.8, 25, 0, -1.1, '#5b6975', 0.09))
-    this.observatoryStreet.add(this.createObservatoryStreetSurface(9.4, 5.2, 0, -7.2, '#b9ad93', 0.13))
+    this.observatoryStreet.add(this.createStreetHorizon(138, 126, observatoryStreetHeight, artPalette.grassDeep))
+    this.observatoryStreet.add(this.createObservatoryStreetSurface(4.8, 25, 0, -1.1, artPalette.road, 0.09))
+    this.observatoryStreet.add(this.createObservatoryStreetSurface(9.4, 5.2, 0, -7.2, artPalette.cobblePale, 0.13))
 
-    const stone = new MeshLambertMaterial({ color: '#d9d5bf', flatShading: true })
-    const slate = new MeshLambertMaterial({ color: '#424c75', flatShading: true })
-    const brass = new MeshLambertMaterial({ color: '#d6ad62', flatShading: true })
+    const stone = celMaterial('#d9d5bf')
+    const slate = celMaterial('#424c75')
     const dome = new Group()
     const base = new Mesh(new CylinderGeometry(2.15, 2.35, 1.7, 10), stone)
     base.position.y = 0.85
     dome.add(base)
+    addMeshOutline(base, 1.02)
     const roof = new Mesh(new SphereGeometry(2.18, 12, 7, 0, Math.PI * 2, 0, Math.PI / 2), slate)
     roof.position.y = 1.72
     dome.add(roof)
-    const door = new Mesh(new PlaneGeometry(0.72, 1.05), new MeshLambertMaterial({ color: '#315a65', side: DoubleSide }))
+    addMeshOutline(roof, 1.02)
+    const door = new Mesh(new PlaneGeometry(0.72, 1.05), celMaterial(artPalette.door, { side: DoubleSide }))
     door.position.set(0, 0.58, 2.18)
     dome.add(door)
     const domeSign = this.createSign('MOONHILL', '#f0dc83', 250, 58)
@@ -3719,14 +3928,16 @@ export class GameWorld implements PlayerController {
     this.addObservatoryStreetBlocker(0, -7.35, 2.45)
 
     const telescope = new Group()
-    const pedestal = new Mesh(new CylinderGeometry(0.3, 0.47, 1.18, 7), new MeshLambertMaterial({ color: '#6d5b8a', flatShading: true }))
+    const pedestal = new Mesh(new CylinderGeometry(0.3, 0.47, 1.18, 7), celMaterial('#6d5b8a'))
     pedestal.position.y = 0.59
     telescope.add(pedestal)
-    const tube = new Mesh(new CylinderGeometry(0.18, 0.28, 2.2, 8), new MeshLambertMaterial({ color: '#d9d3e9', flatShading: true }))
+    addMeshOutline(pedestal, 1.05)
+    const tube = new Mesh(new CylinderGeometry(0.18, 0.28, 2.2, 8), celMaterial('#d9d3e9'))
     tube.rotation.z = Math.PI / 3.1
     tube.position.set(0.68, 1.5, 0)
     telescope.add(tube)
-    const localLens = new Mesh(new SphereGeometry(0.22, 8, 6), this.observatoryBeacon ?? new MeshLambertMaterial({ color: '#8975bc', flatShading: true }))
+    addMeshOutline(tube, 1.05)
+    const localLens = new Mesh(new SphereGeometry(0.22, 8, 6), this.observatoryBeacon ?? celMaterial('#8975bc'))
     localLens.position.set(1.28, 1.94, 0)
     telescope.add(localLens)
     telescope.position.set(1.5, observatoryStreetHeight(1.5, -3.85), -3.85)
@@ -4523,20 +4734,17 @@ export class GameWorld implements PlayerController {
 
   /** Moonhill's quiet warden is decorative until the player enters a short talk radius. */
   private addMoonhillWarden(x: number, z: number): void {
-    const warden = new Group()
-    const cloak = new Mesh(new ConeGeometry(0.43, 1.05, 6), new MeshLambertMaterial({ color: '#65568c', flatShading: true }))
-    cloak.position.y = 0.52
-    warden.add(cloak)
-    const head = new Mesh(new SphereGeometry(0.23, 8, 6), new MeshLambertMaterial({ color: '#d1a084', flatShading: true }))
-    head.position.y = 1.14
-    warden.add(head)
-    const hood = new Mesh(new ConeGeometry(0.31, 0.32, 6), new MeshLambertMaterial({ color: '#3f4c76', flatShading: true }))
-    hood.position.y = 1.38
-    warden.add(hood)
-    const starBook = new Mesh(new BoxGeometry(0.23, 0.32, 0.1), new MeshLambertMaterial({ color: '#d9c77b', flatShading: true }))
-    starBook.position.set(0.31, 0.62, 0.2)
+    const warden = kitLoader.create('char-npc', {
+      coat: '#65568c',
+      hat: true,
+      hatColor: '#3f4c76',
+      bag: false,
+    })
+    const starBook = new Mesh(new BoxGeometry(0.23, 0.32, 0.1), celMaterial('#d9c77b'))
+    starBook.position.set(0.31, 0.72, 0.22)
     starBook.rotation.z = -0.24
     warden.add(starBook)
+    addMeshOutline(starBook, 1.06)
     warden.position.set(x, observatoryStreetHeight(x, z), z)
     this.observatoryStreet.add(warden)
     this.addObservatoryStreetBlocker(x, z, 0.38)
@@ -4550,7 +4758,7 @@ export class GameWorld implements PlayerController {
     }
     geometry.computeVertexNormals()
     geometry.rotateX(-Math.PI / 2)
-    const surface = new Mesh(geometry, new MeshLambertMaterial({ color, flatShading: true, side: DoubleSide }))
+    const surface = new Mesh(geometry, paintedMaterial(paintKindForColor(color), color, { side: DoubleSide }))
     surface.position.set(x, 0, z)
     return surface
   }
@@ -5007,16 +5215,16 @@ export class GameWorld implements PlayerController {
   }
 
   private createPlayer(): void {
-    this.playerCoat = new MeshLambertMaterial({ color: coatColors[this.save.coatColor], flatShading: true })
-    const torso = new Mesh(new CylinderGeometry(0.3, 0.38, 0.85, 6), this.playerCoat)
-    torso.position.y = 0.55
-    this.player.add(torso)
-    const bag = new Mesh(new BoxGeometry(0.3, 0.43, 0.14), new MeshLambertMaterial({ color: '#784c36', flatShading: true }))
-    bag.position.set(0.26, 0.65, 0.13)
-    this.player.add(bag)
-    const head = new Mesh(new SphereGeometry(0.25, 8, 6), new MeshLambertMaterial({ color: '#edaf8f', flatShading: true }))
-    head.position.y = 1.18
-    this.player.add(head)
+    this.playerCoat = celMaterial(coatColors[this.save.coatColor])
+    const figure = kitLoader.create('char-player', {
+      coat: coatColors[this.save.coatColor],
+      coatMaterial: this.playerCoat,
+      bag: true,
+      hat: false,
+    })
+    while (figure.children.length > 0) {
+      this.player.add(figure.children[0])
+    }
     this.root.add(this.player)
   }
 
@@ -5059,7 +5267,7 @@ export class GameWorld implements PlayerController {
   private createRailJourneyScene(): void {
     this.journeyScene.visible = false
 
-    const water = new Mesh(new PlaneGeometry(72, 72), new MeshLambertMaterial({ color: '#327e89', flatShading: true }))
+    const water = new Mesh(new PlaneGeometry(72, 72), paintedMaterial('water', artPalette.marshWater, { side: DoubleSide }))
     water.rotation.x = -Math.PI / 2
     water.position.y = -0.22
     this.journeyScene.add(water)
@@ -5171,14 +5379,18 @@ export class GameWorld implements PlayerController {
   }
 
   private showHarbour(resetPosition: boolean): void {
+    this.viewMode = 'street'
     this.stationInterior.visible = false
     this.inStation = false
+    this.railJourney = undefined
     this.root.visible = false
     this.hillsideStreet.visible = false
     this.observatoryStreet.visible = false
     this.harbourWorld.visible = false
+    this.observatoryWorld.visible = false
     this.ambient.visible = false
     this.harbourAmbient.visible = false
+    this.journeyScene.visible = false
     this.root.remove(this.player)
     this.hillsideStreet.remove(this.player)
     this.observatoryStreet.remove(this.player)
@@ -5195,11 +5407,17 @@ export class GameWorld implements PlayerController {
     this.entryCameraProgress = 0
     this.updateSideQuestMarkers()
     this.soundscape.setProfile(soundscapeProfile(this.save.quest))
+    this.snapToStreetCamera(
+      this.streetPosition.clone().setY(harbourStreetHeight(this.streetPosition.x, this.streetPosition.z) + 0.04),
+      { height: 3.1, followDistance: 5.2, lookAhead: 2.7, lookHeight: 0.84 },
+    )
   }
 
   private showObservatory(resetPosition: boolean): void {
+    this.viewMode = 'street'
     this.stationInterior.visible = false
     this.inStation = false
+    this.railJourney = undefined
     this.root.visible = false
     this.hillsideStreet.visible = false
     this.harbourStreet.visible = false
@@ -5207,6 +5425,8 @@ export class GameWorld implements PlayerController {
     this.ambient.visible = false
     this.harbourWorld.visible = false
     this.harbourAmbient.visible = false
+    this.observatoryWorld.visible = false
+    this.journeyScene.visible = false
     this.root.remove(this.player)
     this.hillsideStreet.remove(this.player)
     this.harbourStreet.remove(this.player)
@@ -5224,6 +5444,10 @@ export class GameWorld implements PlayerController {
     this.entryCameraProgress = 0
     this.updateSideQuestMarkers()
     this.soundscape.setProfile(soundscapeProfile(this.save.quest))
+    this.snapToStreetCamera(
+      this.streetPosition.clone().setY(observatoryStreetHeight(this.streetPosition.x, this.streetPosition.z) + 0.04),
+      { height: 3.2, followDistance: 5.4, lookAhead: 2.8, lookHeight: 0.88 },
+    )
   }
 
   private placeOnPlanet(object: Object3D, latitude: number, longitude: number, heading: number): void {
@@ -5258,6 +5482,10 @@ export class GameWorld implements PlayerController {
     const material = new SpriteMaterial({ map: new CanvasTexture(canvas), transparent: true, depthWrite: false })
     const sprite = new Sprite(material)
     sprite.scale.set(2.2, 0.6, 1)
+    // Labels render on layer 1 (camera sees them) but camera-collision rays only
+    // test layer 0, so sprites never enter Raycaster and never need camera set.
+    sprite.layers.set(GameWorld.LABEL_LAYER)
+    sprite.raycast = () => undefined
     return sprite
   }
 
@@ -5273,28 +5501,39 @@ export class GameWorld implements PlayerController {
   }
 
   private tick = (): void => {
-    this.animationFrame = 0
-    if (!shouldRender(document.visibilityState)) return
-    const now = performance.now()
-    const frameSeconds = (now - this.clock.last) / 1000
-    const delta = Math.min(frameSeconds, 0.05)
-    this.clock.last = now
-    this.updateRenderResolution(frameSeconds)
-    this.clock.elapsed += delta
-    if (this.started) {
-      if (this.railJourney) this.updateRailJourney(delta)
-      else if (this.inStation) this.updateStation()
-      else this.updatePlayer(delta)
-    }
-    else this.updateTitleCamera()
-    this.updateAmbient()
-    this.updateStreetLife()
-    this.soundscape.update(this.clock.elapsed)
-    this.renderer.render(this.scene, this.camera)
+    // Always re-schedule first. An early return or thrown update must never
+    // kill the render loop (that froze the title globe while the HUD updated).
     this.animationFrame = requestAnimationFrame(this.tick)
+    if (!shouldRender(document.visibilityState)) return
+    try {
+      const now = performance.now()
+      const frameSeconds = (now - this.clock.last) / 1000
+      const delta = Math.min(frameSeconds, 0.05)
+      this.clock.last = now
+      this.updateRenderResolution(frameSeconds)
+      this.clock.elapsed += delta
+      if (this.started) {
+        if (this.railJourney) this.updateRailJourney(delta)
+        else if (this.inStation) this.updateStation()
+        else this.updatePlayer(delta)
+      } else {
+        this.updateTitleCamera()
+      }
+      this.updateAmbient()
+      this.updateStreetLife()
+      this.soundscape.update(this.clock.elapsed)
+      this.renderer.render(this.scene, this.camera)
+    } catch (error) {
+      console.error('[The Last Loop] frame update failed', error)
+    }
   }
 
   private updatePlayer(delta: number): void {
+    // Self-heal: if the HUD thinks we started but the title globe is still up,
+    // force the selected street scene instead of the legacy spherical walk.
+    if (this.viewMode !== 'street' || (!this.hillsideStreet.visible && !this.harbourStreet.visible && !this.observatoryStreet.visible)) {
+      this.enterSelectedStreet(false)
+    }
     if (this.hillsideStreet.visible) {
       this.updateHillsideStreetPlayer(delta)
       return
@@ -5307,40 +5546,9 @@ export class GameWorld implements PlayerController {
       this.updateObservatoryStreetPlayer(delta)
       return
     }
-    this.entryCameraProgress = Math.min(1, this.entryCameraProgress + delta / 1.05)
-    const keyboard = new Vector2(
-      (this.keys.has('d') || this.keys.has('arrowright') ? 1 : 0) - (this.keys.has('a') || this.keys.has('arrowleft') ? 1 : 0),
-      (this.keys.has('w') || this.keys.has('arrowup') ? 1 : 0) - (this.keys.has('s') || this.keys.has('arrowdown') ? 1 : 0),
-    )
-    const input = this.joystick.lengthSq() > 0.002 ? this.joystick.clone() : keyboard
-    if (input.lengthSq() > 0) {
-      input.normalize()
-      const cameraForward = tangentForward(this.camera.getWorldDirection(new Vector3()), this.currentNormal)
-      const cameraRight = new Vector3().crossVectors(cameraForward, this.currentNormal).normalize()
-      const direction = cameraForward.multiplyScalar(input.y).add(cameraRight.multiplyScalar(input.x)).normalize()
-      const candidateNormal = this.currentNormal.clone().addScaledVector(direction, delta * 0.36).normalize()
-      if (isWithinWalkableCap(candidateNormal, WALKABLE_ANCHOR, WALKABLE_ANGLE) && isOutsideSphericalBlockers(candidateNormal, this.blockersByDistrict[this.save.district])) {
-        this.raycaster.set(candidateNormal.clone().multiplyScalar(PLANET_RADIUS + 2), candidateNormal.clone().negate())
-        const activeGround = this.save.district === 'harbour' ? this.harbourGround ?? this.ground : this.save.district === 'observatory' ? this.observatoryGround ?? this.ground : this.ground
-        const hit = this.raycaster.intersectObject(activeGround, false)[0]
-        if (hit) this.currentNormal.copy(hit.point).normalize()
-        this.playerForward.lerp(direction, 0.16).normalize()
-        this.persist(false)
-      }
-    }
-    const playerPosition = this.currentNormal.clone().multiplyScalar(PLANET_RADIUS + 0.04)
-    this.player.position.copy(playerPosition)
-    this.player.quaternion.setFromUnitVectors(UP, this.currentNormal)
-    const facing = tangentForward(this.playerForward, this.currentNormal)
-    this.player.lookAt(playerPosition.clone().add(facing))
-    this.player.rotateY(Math.PI)
-
-    const profile = entryCameraProfile(this.entryCameraProgress)
-    const cameraPosition = playerPosition.clone().addScaledVector(this.currentNormal, profile.height).addScaledVector(facing, -profile.followDistance)
-    this.camera.position.lerp(cameraPosition, 0.13)
-    this.camera.up.copy(this.currentNormal)
-    this.camera.lookAt(playerPosition.clone().addScaledVector(facing, profile.lookAhead).addScaledVector(this.currentNormal, 0.42))
-    this.findNearby(playerPosition)
+    // Last resort — never stay on the title globe while started.
+    this.enterHillsideStreet(false)
+    this.updateHillsideStreetPlayer(delta)
   }
 
   /**
@@ -5380,21 +5588,45 @@ export class GameWorld implements PlayerController {
   }
 
   private enterHillsideStreet(resetPosition = true): void {
+    this.viewMode = 'street'
+    this.inStation = false
+    this.railJourney = undefined
     this.root.visible = false
     this.ambient.visible = false
+    this.harbourWorld.visible = false
+    this.harbourAmbient.visible = false
+    this.observatoryWorld.visible = false
     this.harbourStreet.visible = false
     this.observatoryStreet.visible = false
+    this.stationInterior.visible = false
+    this.journeyScene.visible = false
     this.hillsideStreet.visible = true
     this.root.remove(this.player)
     this.harbourStreet.remove(this.player)
     this.observatoryStreet.remove(this.player)
+    this.harbourWorld.remove(this.player)
     this.hillsideStreet.add(this.player)
     this.player.visible = true
+    this.save.district = 'hillside'
     this.restoreStreetPosition(0, 7.4, resetPosition)
     this.streetForward.set(0, 0, -1)
     this.streetCameraForward.set(0, 0, -1)
     this.streetVelocity.set(0, 0, 0)
     this.entryCameraProgress = 0
+    this.updateSideQuestMarkers()
+    this.snapToStreetCamera(
+      this.streetPosition.clone().setY(gentleStreetHeight(this.streetPosition.x, this.streetPosition.z) + 0.04),
+      { height: 3.25, followDistance: 5.55, lookAhead: 2.75, lookHeight: 0.85 },
+    )
+  }
+
+  /** Jump the follow camera onto the street rig immediately (no title-orbit lerp). */
+  private snapToStreetCamera(playerPosition: Vector3, settled: StreetCameraProfile): void {
+    this.player.position.copy(playerPosition)
+    this.player.quaternion.identity()
+    this.player.rotation.y = Math.atan2(this.streetForward.x, this.streetForward.z)
+    const profile = streetArrivalProfile(0, settled)
+    this.updateStreetCamera(1 / 60, playerPosition, profile, true)
   }
 
   /** Restores only a versioned, validated street coordinate from the active district. */
@@ -5489,18 +5721,81 @@ export class GameWorld implements PlayerController {
   }
 
   /** A close third-person rig follows heading gently, never the planet's curve. */
-  private updateStreetCamera(delta: number, playerPosition: Vector3, profile: StreetCameraProfile): void {
+  private updateStreetCamera(delta: number, playerPosition: Vector3, profile: StreetCameraProfile, snap = false): void {
     if (this.streetVelocity.lengthSq() > 0.002) {
       this.streetCameraForward.lerp(this.streetForward, Math.min(1, delta * 3.8)).normalize()
     }
-    const cameraPosition = playerPosition.clone()
-      .add(new Vector3(0, profile.height, 0))
-      .addScaledVector(this.streetCameraForward, -profile.followDistance)
-    this.camera.position.lerp(cameraPosition, 0.18)
+    const lookTarget = playerPosition.clone().add(new Vector3(0, profile.lookHeight, 0))
+    // Ideal rig sits behind-and-above the player; occlusion may pull it closer.
+    const pivot = playerPosition.clone().add(new Vector3(0, Math.max(1.15, profile.lookHeight + 0.25), 0))
+    const back = this.streetCameraForward.clone().multiplyScalar(-1)
+    const idealOffset = back.clone().multiplyScalar(profile.followDistance).add(new Vector3(0, profile.height - (pivot.y - playerPosition.y), 0))
+    const idealDistance = idealOffset.length()
+    const idealDirection = idealDistance > 0.001 ? idealOffset.clone().normalize() : new Vector3(0, 0.35, 1).normalize()
+    let blockedDistance: number | undefined
+    try {
+      blockedDistance = this.firstCameraBlockDistance(pivot, idealDirection, idealDistance)
+    } catch {
+      blockedDistance = undefined
+    }
+    const followDistance = occludedFollowDistance(idealDistance, blockedDistance)
+    const cameraPosition = pivot.clone().addScaledVector(idealDirection, followDistance)
+    if (snap || this.entryCameraProgress < 0.02) {
+      // First frames after Begin: jump off the title orbit onto the street rig.
+      this.camera.position.copy(cameraPosition)
+    } else {
+      const blend = followDistance < idealDistance - 0.05 ? Math.min(1, delta * 14) : 0.18
+      this.camera.position.lerp(cameraPosition, blend)
+    }
     this.camera.up.copy(UP)
-    this.camera.lookAt(playerPosition.clone()
-      .add(new Vector3(0, profile.lookHeight, 0))
-      .addScaledVector(this.streetCameraForward, profile.lookAhead))
+    this.camera.lookAt(lookTarget.clone().addScaledVector(this.streetCameraForward, profile.lookAhead))
+  }
+
+  /** Active walkable district mesh root used for camera collision. */
+  private activeStreetVisualRoot(): Group | undefined {
+    if (this.inStation || this.railJourney || !this.started || this.viewMode !== 'street') return undefined
+    if (this.harbourStreet.visible) return this.harbourStreet
+    if (this.observatoryStreet.visible) return this.observatoryStreet
+    if (this.hillsideStreet.visible) return this.hillsideStreet
+    return undefined
+  }
+
+  /**
+   * Distance along a ray from the player pivot to the first solid street mesh.
+   * Player meshes are excluded so the avatar cannot block its own follow camera.
+   */
+  private firstCameraBlockDistance(origin: Vector3, direction: Vector3, maxDistance: number): number | undefined {
+    const root = this.activeStreetVisualRoot()
+    if (!root || maxDistance < 0.2) return undefined
+
+    this.raycaster.set(origin, direction)
+    this.raycaster.near = 0.35
+    this.raycaster.far = maxDistance
+    this.raycaster.camera = this.camera
+    // Layer mask: solid world only (LABEL_LAYER sprites are excluded entirely).
+    this.raycaster.layers.set(GameWorld.SOLID_LAYER)
+    const hits = this.raycaster.intersectObject(root, true)
+    for (const hit of hits) {
+      if (!(hit.object as Mesh).isMesh) continue
+      if ((hit.object as Sprite).isSprite) continue
+      let ancestor: Object3D | null = hit.object
+      let skip = false
+      while (ancestor) {
+        if (
+          ancestor === this.streetLife
+          || ancestor === this.harbourStreetLife
+          || ancestor === this.observatoryStreetLife
+          || ancestor === this.player
+        ) {
+          skip = true
+          break
+        }
+        ancestor = ancestor.parent
+      }
+      if (skip) continue
+      if (hit.distance >= 0.35) return hit.distance
+    }
+    return undefined
   }
 
   private nextStreetArrivalProfile(delta: number, settled: StreetCameraProfile): StreetCameraProfile {
@@ -5839,10 +6134,13 @@ export class GameWorld implements PlayerController {
 
   private enterStation(): void {
     if (!this.save.quest.stationNameRestored) return
+    this.viewMode = 'station'
     this.inStation = true
     this.joystick.set(0, 0)
     this.root.visible = false
     this.hillsideStreet.visible = false
+    this.harbourStreet.visible = false
+    this.observatoryStreet.visible = false
     this.ambient.visible = false
     this.player.visible = false
     this.stationInterior.visible = true
@@ -5886,10 +6184,10 @@ export class GameWorld implements PlayerController {
   }
 
   private handleVisibilityChange(): void {
-    if (!shouldRender(document.visibilityState) || this.animationFrame) return
+    if (!shouldRender(document.visibilityState)) return
     this.clock.last = performance.now()
     this.slowFrames = 0
     this.fastFrames = 0
-    this.tick()
+    // RAF is continuous; just reset the clock so the next frame is not a huge delta.
   }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { entryCameraProfile, streetArrivalProfile } from './camera'
+import { entryCameraProfile, occludedFollowDistance, streetArrivalProfile } from './camera'
 
 describe('street-level entry camera', () => {
   it('moves from a wide arrival view to a close, low street view', () => {
@@ -19,5 +19,19 @@ describe('local street arrival camera', () => {
   it('starts elevated and wider than the settled street frame', () => {
     expect(streetArrivalProfile(0, settled)).toEqual({ height: 8.4, followDistance: 13.4, lookAhead: 5.2, lookHeight: 0.7 })
     expect(streetArrivalProfile(1, settled)).toEqual(settled)
+  })
+})
+
+describe('camera occlusion follow distance', () => {
+  it('keeps the ideal distance when nothing is hit', () => {
+    expect(occludedFollowDistance(5.5, undefined)).toBe(5.5)
+  })
+
+  it('pulls the camera in front of a blocking surface with clearance', () => {
+    expect(occludedFollowDistance(5.5, 3.2, 0.4, 1.05)).toBeCloseTo(2.8)
+  })
+
+  it('never collapses closer than the minimum readable distance', () => {
+    expect(occludedFollowDistance(5.5, 0.5, 0.4, 1.05)).toBe(1.05)
   })
 })

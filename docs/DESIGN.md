@@ -42,6 +42,7 @@ Ravnbro has a small local street-life layer: two non-interactive townsfolk walk 
 - Each globe is readable at a glance: rail loop, compact district, visible landmarks, paths and steps.
 - The world is small enough to become familiar, never a procedurally generated open world.
 - The title opens with the whole mini-globe and its water silhouette in frame; entry then drops into a lower street-level camera. See the [world detail plan](WORLD_DETAIL_PLAN.md) for the local terrain and detail-level path.
+- The full graphic contract (cel shading, outlines, Ribe-inspired palette, character kit) lives in [ART_DIRECTION.md](ART_DIRECTION.md).
 
 ### Hillside: Ravnbro, a fictional old river town
 

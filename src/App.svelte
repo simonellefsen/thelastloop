@@ -3,12 +3,17 @@
   import { GameWorld } from './lib/game/GameWorld'
   import { arrivalCopy } from './lib/game/arrival'
   import { guidanceRotation, guideInput } from './lib/game/controls'
+  import { HERO_KIT_IDS, kitLoader } from './lib/game/kit'
   import type { DistrictId, GameHud, QuestState } from './lib/game/types'
   import { isJourneyComplete, sideQuestLabel } from './lib/game/quest'
 
   let gameHost: HTMLDivElement
   let game: GameWorld | undefined
   let started = false
+  /** False until kits preload and GameWorld is constructed. */
+  let worldReady = false
+  /** User hit Begin before the world finished loading. */
+  let pendingEnter = false
   let soundEnabled = true
   let reducedMotion = false
   let error = ''
@@ -50,6 +55,8 @@
   }
 
   onMount(() => {
+    // Build the world immediately with procedural kits so Begin always works.
+    // glTF assets preload in the background for later sessions — never block start.
     try {
       game = new GameWorld(gameHost, {
         onHud: (next) => (hud = next),
@@ -60,9 +67,14 @@
       })
       soundEnabled = game.getSoundEnabled()
       reducedMotion = game.getReducedMotion()
+      worldReady = true
     } catch {
       error = 'This tiny world needs a browser with WebGL support.'
     }
+
+    void kitLoader.preload(HERO_KIT_IDS).catch(() => {
+      // Procedural fallback already in use.
+    })
 
     return () => {
       if (arrivalTimer) clearTimeout(arrivalTimer)
@@ -81,9 +93,26 @@
   }
 
   function enterWorld() {
-    game?.start()
-    started = true
-    showArrival(titleDistrict)
+    if (!game || !worldReady) {
+      pendingEnter = true
+      return
+    }
+    beginStory()
+  }
+
+  function beginStory() {
+    if (!game || started) return
+    try {
+      // Only set the selected route — never setTitlePreview (that forces the globe on).
+      game.setTitleRoute(titleDistrict)
+      game.start()
+      started = true
+      showArrival(titleDistrict)
+    } catch (err) {
+      console.error('[The Last Loop] failed to enter town', err)
+      error = 'Could not enter the town. Try Start fresh, then Begin again.'
+      started = false
+    }
   }
 
   function startFresh() {
@@ -94,7 +123,7 @@
 
   function previewWorld(district: DistrictId) {
     titleDistrict = district
-    game?.setTitlePreview(district)
+    if (!started) game?.setTitlePreview(district)
   }
 
   function interact() {
@@ -179,10 +208,7 @@
   }
 </script>
 
-<svelte:head>
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-</svelte:head>
+<!-- PWA / iOS meta tags live in index.html so they are never missing on first paint. -->
 
 <main class:playing={started} class:reduced-motion={reducedMotion}>
   <div
@@ -213,8 +239,10 @@
           <button class:active={titleDistrict === district} onclick={() => previewWorld(district)}>{titleWorlds[district].label}</button>
         {/each}
       </div>
-      <button class="enter-button" onclick={enterWorld}>Begin the story</button>
-      <button class="new-loop-button" onclick={startFresh}>Start fresh · clear progress</button>
+      <button class="enter-button" onclick={enterWorld} disabled={!worldReady}>
+        Begin the story
+      </button>
+      <button class="new-loop-button" onclick={startFresh} disabled={!worldReady}>Start fresh · clear progress</button>
       <p class="title-tip">Choose a route to light its beacon · touch to guide your walk · headphones optional</p>
     </section>
   {:else}

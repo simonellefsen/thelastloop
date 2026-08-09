@@ -14,7 +14,7 @@ body, main { overscroll-behavior: none; touch-action: none; -webkit-user-select:
 button { font: inherit; }
 button:focus-visible, [role="application"]:focus-visible { outline: 3px solid #fff3a0; outline-offset: 3px; }
 
-.game-host { position: absolute; inset: 0; background: radial-gradient(circle at 50% 30%, #8edbd0, #317e89 67%, #143943); }
+.game-host { position: absolute; inset: 0; background: radial-gradient(circle at 50% 28%, #b5e2dc, #7eb8b0 55%, #2f5f62); }
 .game-host canvas { display: block; width: 100%; height: 100%; }
 
 .title-screen, .unsupported { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); color: #fff9df; pointer-events: none; }
@@ -25,7 +25,8 @@ h1 span { display: inline-block; font-size: .39em; letter-spacing: -.08em; verti
 .title-copy { max-width: 410px; margin: 26px auto 14px; color: #effbdc; font-size: clamp(.95rem, 2vw, 1.2rem); line-height: 1.35; }
 .world-picker { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 0 auto 18px; pointer-events: auto; }.world-picker button { border: 2px solid rgba(255, 248, 216, .72); border-radius: 999px; padding: 6px 10px; background: rgba(20, 57, 67, .78); color: #fff8dd; cursor: pointer; font-size: clamp(.57rem, 1.2vw, .68rem); font-weight: 900; letter-spacing: .05em; text-transform: uppercase; }.world-picker button.active { border-color: #f6d05a; background: #f6d05a; color: #1d3a42; box-shadow: 2px 2px 0 rgba(11, 40, 48, .72); }
 .enter-button { pointer-events: auto; justify-self: center; border: 3px solid #27393e; border-radius: 7px; padding: 13px 28px; background: #f5c94d; box-shadow: 0 5px 0 #b66b2d, 0 9px 18px rgba(0,0,0,.28); color: #1d3439; cursor: pointer; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; transform: rotate(-1deg); }
-.enter-button:hover { background: #ffe075; transform: translateY(-2px) rotate(-1deg); }
+.enter-button:hover:not(:disabled) { background: #ffe075; transform: translateY(-2px) rotate(-1deg); }
+.enter-button:disabled { opacity: .72; cursor: wait; box-shadow: 0 3px 0 #b66b2d; }
 .new-loop-button { pointer-events: auto; justify-self: center; margin-top: 10px; border: 0; background: transparent; color: rgba(255, 249, 223, .9); cursor: pointer; font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-decoration: underline; text-underline-offset: 3px; }
 .title-tip { margin: 23px 0 0; color: rgba(255,255,255,.78); font-size: .72rem; letter-spacing: .08em; }
 

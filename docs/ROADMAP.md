@@ -7,6 +7,17 @@
 - iPhone landscape controls and desktop keyboard fallback.
 - Station-name quest, local save, ambient birds, butterflies, clouds and interaction chimes.
 
+## Next: art surface (Messenger-like)
+
+- ✅ Write art direction contract for cel lighting, outlines, Danish-warm palette and character silhouettes.
+- ✅ First visual prototype: mint sky/fog, shared cel materials, character outlines, readable player/keeper, Ravnbro gable + timber frontage kit with terracotta roofs.
+- ✅ Painted grass/cobble/water/road/plank textures applied to district surfaces.
+- ✅ Prop density on Station Gate → Market Fold (bike, laundry, planters, stall goods, sandwich board).
+- ✅ Harbour Works and Moonhill landmarks/NPCs/surfaces on the same cel + outline language.
+- ✅ **Art pipeline handoff** (`docs/ART_PIPELINE.md`): kit registry, procedural multi-volume modules, glTF drop-in folder, hero corridor continuous frontage, blob trees, improved character kit.
+- Drop original `.glb` assets into `public/assets/gltf/` using stable KitIds (no code change required if URLs match registry).
+- Continue prop density and kit modules deeper into side pockets; then Harbour/Moonhill full re-kit.
+
 ## Next: richer town
 
 - ✅ Add the unlockable station interior, route map and railway-coat customisation.

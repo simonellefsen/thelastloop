@@ -32,3 +32,17 @@ export function streetArrivalProfile(progress: number, settled: StreetCameraProf
     lookHeight: 0.7 + (settled.lookHeight - 0.7) * eased,
   }
 }
+
+/**
+ * When scenery sits between the player and the ideal third-person rig, pull the
+ * follow distance in so the avatar stays on screen instead of vanishing behind roofs.
+ */
+export function occludedFollowDistance(
+  idealDistance: number,
+  hitDistance: number | undefined,
+  clearance = 0.4,
+  minDistance = 1.05,
+): number {
+  if (hitDistance === undefined || !Number.isFinite(hitDistance)) return idealDistance
+  return Math.max(minDistance, Math.min(idealDistance, hitDistance - clearance))
+}

@@ -27,4 +27,5 @@ dist-ssr
 .env*
 
 # Private gameplay reference recordings stay local and are never source assets.
-MessengerVideoPhone.MP4
+Messenger/*
+CityImages/*

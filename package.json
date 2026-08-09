@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "assets:export": "/Applications/Blender.app/Contents/MacOS/Blender --background --python tools/blender/export_ravnbro_kits.py"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.2.0",
