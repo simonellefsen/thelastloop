@@ -79,7 +79,7 @@
 - ✅ Replace the visible street-map cutoff with wide, fog-bound rolling terrain shells and an extended Harbour sea, preserving a shallow local curve while restoring the mini-globe horizon feeling.
 - ✅ Keep reload-safe browser saves while exposing an explicit, confirmed Start fresh action that clears story progress and routes without discarding player preferences.
 - ✅ Define the single global railway backbone in code and give each street district a visible, two-way local loop section rather than another disconnected decorative spur.
-- ⏳ Complete Ravnbro as the first finished town: Station Gate now joins the outer through-line, while Bell Orchard and a marked shallow Reedwater ford/bridge route are playable. Next connect North Yard and complete the far-bank frontage.
+- ⏳ Complete Ravnbro as the first finished town: Station Gate and North Yard now join the outer through-line, while Bell Orchard, the shallow Reedwater ford/bridge route and Ferry House far-bank frontage are playable. Next complete the river-side frontage and final station-to-yard public path.
 - Complete Harbour Works as the second finished town: join Rail Shed to the outer through-line; add a walkable tidal-basin crossing and Tide Gardens.
 - Complete Moonhill as the third finished town: join Signal Terrace to the outer through-line; add the spring crossing, Almanac Green and finished high-street frontages.
 - Replace district-to-district scene changes with streamed, rideable rail travel only after all three local town plans are complete.

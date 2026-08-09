@@ -625,6 +625,7 @@ export class GameWorld implements PlayerController {
     this.addRavnbroLaneThreshold()
     this.addRavnbroDepotYard()
     this.addRavnbroFreightSpur()
+    this.addRavnbroNorthYardLoopLink()
     this.addStreetLoopSection('hillside', this.hillsideStreet, gentleStreetHeight, [
       [-14.5, 8.4], [-15.2, 1.5], [-13.8, -6.5], [-8.8, -12.2], [0, -14.1], [8.8, -12.2], [14.2, -6], [15.1, 2.4], [12.2, 9.4], [4.5, 13.2], [-5.5, 13.6],
     ], 'TO REEDWATER VIADUCT', -11.2, 10.2)
@@ -643,6 +644,7 @@ export class GameWorld implements PlayerController {
     this.addBellRise()
     this.addReedwaterEdge()
     this.addReedwaterFord()
+    this.addReedwaterFarBank()
     this.addRiverTradeLane()
     this.addBellOrchard()
     this.addFlatSideRouteLandmarks()
@@ -825,6 +827,75 @@ export class GameWorld implements PlayerController {
     const sign = this.createSign('SHALLOW FORD', '#eef2dc', 175, 44)
     sign.scale.set(0.94, 0.25, 1)
     sign.position.set(fordX, gentleStreetHeight(fordX, -14.12) + 1.02, -14.12)
+    this.hillsideStreet.add(sign)
+  }
+
+  /** A tiny far-bank row completes the river crossing with a real town destination. */
+  private addReedwaterFarBank(): void {
+    const bankZ = -16.72
+    this.hillsideStreet.add(this.createRollingStreetSurface(12.8, 1.38, -0.35, bankZ, '#b8ad80', 0.16))
+    const paver = new MeshLambertMaterial({ color: '#d1c39d', flatShading: true })
+    for (let x = -6.1; x <= 5.5; x += 0.52) {
+      const slab = new Mesh(new BoxGeometry(0.42, 0.045, 0.76), paver)
+      slab.position.set(x, gentleStreetHeight(x, bankZ) + 0.23, bankZ)
+      this.hillsideStreet.add(slab)
+    }
+
+    const ferryHouse = new Group()
+    const brick = new MeshLambertMaterial({ color: '#a75b43', flatShading: true })
+    const slate = new MeshLambertMaterial({ color: '#38545a', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#65463b', flatShading: true })
+    const body = new Mesh(new BoxGeometry(2.32, 1.52, 1.56), brick)
+    body.position.y = 0.76
+    ferryHouse.add(body)
+    const roof = new Mesh(new ConeGeometry(1.64, 0.7, 4), slate)
+    roof.rotation.y = Math.PI / 4
+    roof.position.y = 1.87
+    ferryHouse.add(roof)
+    const door = new Mesh(new PlaneGeometry(0.58, 0.96), new MeshLambertMaterial({ color: '#294e53', side: DoubleSide }))
+    door.position.set(-0.36, 0.5, 0.79)
+    ferryHouse.add(door)
+    const window = new Mesh(new PlaneGeometry(0.46, 0.5), new MeshLambertMaterial({ color: '#dce8dc', side: DoubleSide }))
+    window.position.set(0.52, 1.02, 0.79)
+    ferryHouse.add(window)
+    const houseSign = this.createSign('FERRY HOUSE', '#f5edcf', 165, 42)
+    houseSign.scale.set(0.92, 0.23, 1)
+    houseSign.position.set(0, 1.79, 0.8)
+    ferryHouse.add(houseSign)
+    ferryHouse.position.set(-2.2, gentleStreetHeight(-2.2, -16.78), -16.78)
+    this.hillsideStreet.add(ferryHouse)
+    this.addStreetBlocker(-2.2, -16.78, 1.33)
+
+    const stall = new Group()
+    const counter = new Mesh(new BoxGeometry(1.25, 0.62, 0.58), timber)
+    counter.position.y = 0.31
+    stall.add(counter)
+    const canopy = new Mesh(new ConeGeometry(0.92, 0.42, 4), new MeshLambertMaterial({ color: '#d0a156', flatShading: true }))
+    canopy.rotation.y = Math.PI / 4
+    canopy.position.y = 1.08
+    stall.add(canopy)
+    const basket = new Mesh(new CylinderGeometry(0.15, 0.18, 0.16, 6), new MeshLambertMaterial({ color: '#c67c45', flatShading: true }))
+    basket.position.set(0.22, 0.72, 0.06)
+    stall.add(basket)
+    stall.position.set(2.65, gentleStreetHeight(2.65, -16.6), -16.6)
+    this.hillsideStreet.add(stall)
+    this.addStreetBlocker(2.65, -16.6, 0.78)
+
+    for (const x of [-5.5, 4.85]) {
+      const lamp = new Group()
+      const post = new Mesh(new CylinderGeometry(0.06, 0.08, 1.45, 6), new MeshLambertMaterial({ color: '#40585a', flatShading: true }))
+      post.position.y = 0.72
+      lamp.add(post)
+      const glow = new Mesh(new SphereGeometry(0.12, 7, 5), new MeshLambertMaterial({ color: '#f5ce67', emissive: new Color('#bf7d34'), emissiveIntensity: 0.65, flatShading: true }))
+      glow.position.y = 1.45
+      lamp.add(glow)
+      lamp.position.set(x, gentleStreetHeight(x, bankZ), bankZ)
+      this.hillsideStreet.add(lamp)
+      this.addStreetBlocker(x, bankZ, 0.18)
+    }
+    const sign = this.createSign('REEDWATER FAR BANK', '#eef2dc', 235, 46)
+    sign.scale.set(1.22, 0.27, 1)
+    sign.position.set(0.6, gentleStreetHeight(0.6, -17.42) + 1.06, -17.42)
     this.hillsideStreet.add(sign)
   }
 
@@ -2070,21 +2141,47 @@ export class GameWorld implements PlayerController {
     this.hillsideStreet.add(scale)
     this.addStreetBlocker(scaleX, scaleZ, 0.68)
 
-    for (const zOffset of [-0.28, 0.28]) {
-      const bufferPost = new Mesh(new BoxGeometry(1.38, 0.16, 0.14), iron)
-      bufferPost.position.set(spurX, gentleStreetHeight(spurX, endZ + zOffset) + 0.48 + zOffset * 0.12, endZ + zOffset)
-      this.hillsideStreet.add(bufferPost)
-    }
-    for (const xOffset of [-0.58, 0.58]) {
-      const bufferLeg = new Mesh(new BoxGeometry(0.12, 0.72, 0.12), iron)
-      bufferLeg.position.set(spurX + xOffset, gentleStreetHeight(spurX + xOffset, endZ) + 0.36, endZ)
-      this.hillsideStreet.add(bufferLeg)
-      this.addStreetBlocker(spurX + xOffset, endZ, 0.2)
-    }
-    const spurSign = this.createSign('FREIGHT SPUR', '#edf0d8', 180, 44)
+    const spurSign = this.createSign('FREIGHT LINE', '#edf0d8', 180, 44)
     spurSign.scale.set(1.0, 0.25, 1)
     spurSign.position.set(-10.92, gentleStreetHeight(-10.92, 2.72) + 1.1, 2.72)
     this.hillsideStreet.add(spurSign)
+  }
+
+  /** The former dead-end freight spur now turns north and joins the through-line. */
+  private addRavnbroNorthYardLoopLink(): void {
+    const route = new CatmullRomCurve3([
+      new Vector3(-12.3, gentleStreetHeight(-12.3, 7.75) + 0.22, 7.75),
+      new Vector3(-12.72, gentleStreetHeight(-12.72, 8.26) + 0.22, 8.26),
+      new Vector3(-13.42, gentleStreetHeight(-13.42, 8.62) + 0.22, 8.62),
+      new Vector3(-14.5, gentleStreetHeight(-14.5, 8.4) + 0.22, 8.4),
+    ], false, 'centripetal')
+    this.hillsideStreet.add(new Mesh(new TubeGeometry(route, 32, 0.37, 5, false), new MeshLambertMaterial({ color: '#8e856d', flatShading: true })))
+    const iron = new MeshLambertMaterial({ color: '#365258', flatShading: true })
+    for (const offset of [-0.27, 0.27]) {
+      const railPoints: Vector3[] = []
+      for (let index = 0; index <= 20; index += 1) {
+        const progress = index / 20
+        const point = route.getPointAt(progress)
+        const ahead = route.getPointAt(Math.min(1, progress + 0.02))
+        const tangent = ahead.sub(point).normalize()
+        railPoints.push(point.add(new Vector3(-tangent.z * offset, 0.03, tangent.x * offset)))
+      }
+      this.hillsideStreet.add(new Mesh(new TubeGeometry(new CatmullRomCurve3(railPoints, false, 'centripetal'), 32, 0.055, 5, false), iron))
+    }
+    const timber = new MeshLambertMaterial({ color: '#64493a', flatShading: true })
+    for (let index = 0; index < 13; index += 1) {
+      const progress = index / 13
+      const point = route.getPointAt(progress)
+      const ahead = route.getPointAt(Math.min(1, progress + 0.02))
+      const sleeper = new Mesh(new BoxGeometry(0.98, 0.075, 0.13), timber)
+      sleeper.position.copy(point).add(new Vector3(0, -0.055, 0))
+      sleeper.rotation.y = Math.atan2(ahead.z - point.z, ahead.x - point.x) + Math.PI / 2
+      this.hillsideStreet.add(sleeper)
+    }
+    const sign = this.createSign('NORTH YARD → LOOP', '#f4ecd5', 205, 44)
+    sign.scale.set(1.08, 0.26, 1)
+    sign.position.set(-13.55, gentleStreetHeight(-13.55, 9.65) + 1.12, 9.65)
+    this.hillsideStreet.add(sign)
   }
 
   /**
