@@ -129,6 +129,10 @@
     game?.travelToObservatory()
   }
 
+  function continueRailLoop() {
+    game?.continueRailLoop()
+  }
+
   function returnToStation() {
     game?.returnToStation()
   }
@@ -256,6 +260,7 @@
         <p class="eyebrow">HARBOUR WORKS</p>
         <h2>{hud.quest.harbour === 'complete' ? 'Tide clock restored' : 'Wake the tide clock'}</h2>
         <p class:done={hud.quest.harbour === 'complete'}><span>{hud.quest.harbour === 'complete' ? '✓' : '○'}</span>{sideQuestLabel('harbour', hud.quest.harbour)}</p>
+        <button class="loop-button" onclick={continueRailLoop}>Ride onward · Moonhill</button>
         <button class="return-button" onclick={returnToStation}>Return to station</button>
       </aside>
       {:else if !hud.inStation}
@@ -263,6 +268,7 @@
         <p class="eyebrow">MOONHILL OBSERVATORY</p>
         <h2>{hud.quest.observatory === 'complete' ? 'Moon signal restored' : 'Align the moon signal'}</h2>
         <p class:done={hud.quest.observatory === 'complete'}><span>{hud.quest.observatory === 'complete' ? '✓' : '○'}</span>{sideQuestLabel('observatory', hud.quest.observatory)}</p>
+        <button class="loop-button" onclick={continueRailLoop}>Ride onward · Ravnbro</button>
         <button class="return-button" onclick={returnToStation}>Return to station</button>
       </aside>
       {:else}

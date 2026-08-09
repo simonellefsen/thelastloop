@@ -366,21 +366,39 @@ export class GameWorld implements PlayerController {
 
   travelToHarbour(): void {
     if (!this.inStation || this.railJourney || !this.save.quest.stationNameRestored) return
-    const firstVisit = this.save.quest.harbour === 'locked'
-    this.save.quest = unlockHarbour(this.save.quest)
-    this.beginRailJourney('harbour', firstVisit)
+    this.boardDistrict('harbour')
   }
 
   travelToObservatory(): void {
     if (!this.inStation || this.railJourney || !this.save.quest.stationNameRestored) return
-    const firstVisit = this.save.quest.observatory === 'locked'
-    this.save.quest = unlockObservatory(this.save.quest)
-    this.beginRailJourney('observatory', firstVisit)
+    this.boardDistrict('observatory')
+  }
+
+  /** Continues in the authoritative circle: Ravnbro → Harbour → Moonhill → Ravnbro. */
+  continueRailLoop(): void {
+    if (this.railJourney || this.inStation || !this.save.quest.stationNameRestored) return
+    this.boardDistrict(nextGlobalRailStop(this.save.district).nextDistrict)
   }
 
   returnToStation(): void {
     if (this.railJourney || this.inStation || this.save.district === 'hillside') return
     this.beginRailJourney('hillside', false)
+  }
+
+  private boardDistrict(to: DistrictId): void {
+    if (to === 'harbour') {
+      const firstVisit = this.save.quest.harbour === 'locked'
+      this.save.quest = unlockHarbour(this.save.quest)
+      this.beginRailJourney(to, firstVisit)
+      return
+    }
+    if (to === 'observatory') {
+      const firstVisit = this.save.quest.observatory === 'locked'
+      this.save.quest = unlockObservatory(this.save.quest)
+      this.beginRailJourney(to, firstVisit)
+      return
+    }
+    this.beginRailJourney(to, false)
   }
 
   private beginRailJourney(to: DistrictId, firstVisit: boolean): void {

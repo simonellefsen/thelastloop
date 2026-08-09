@@ -62,6 +62,7 @@ export interface PlayerController {
   setTitlePreview(district: DistrictId): void
   travelToHarbour(): void
   travelToObservatory(): void
+  continueRailLoop(): void
   returnToStation(): void
 }
 

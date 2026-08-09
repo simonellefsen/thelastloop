@@ -6,6 +6,7 @@ describe('global railway spine', () => {
     expect(hasCompleteGlobalRailLoop()).toBe(true)
     expect(globalRailStops.map((stop) => stop.district)).toEqual(['hillside', 'harbour', 'observatory'])
     expect(nextGlobalRailStop('harbour')).toMatchObject({ nextDistrict: 'observatory', nextLink: 'TIDEWAY CAUSEWAY' })
+    expect(nextGlobalRailStop('observatory')).toMatchObject({ nextDistrict: 'hillside', nextLink: 'NIGHTFALL CUTTING' })
   })
 
   it('rejects a rail plan that does not return to its first stop', () => {
