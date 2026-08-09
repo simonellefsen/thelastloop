@@ -111,6 +111,7 @@ export class GameWorld implements PlayerController {
   private readonly harbourStreetLife = new Group()
   private readonly observatoryStreetLife = new Group()
   private readonly resizeObserver: ResizeObserver
+  private readonly visualViewport = window.visualViewport
   private readonly onKeyDown = (event: KeyboardEvent) => this.keys.add(event.key.toLowerCase())
   private readonly onKeyUp = (event: KeyboardEvent) => this.keys.delete(event.key.toLowerCase())
   private readonly onResize = () => this.resize()
@@ -184,6 +185,12 @@ export class GameWorld implements PlayerController {
     this.resize()
     this.resizeObserver = new ResizeObserver(this.onResize)
     this.resizeObserver.observe(container)
+    // Safari can change its visible viewport when the address bar expands or
+    // collapses without delivering the element resize at the same instant.
+    // Listen to both signals so the camera projection and renderer never use
+    // the stale, taller viewport for a frame.
+    this.visualViewport?.addEventListener('resize', this.onResize)
+    this.visualViewport?.addEventListener('scroll', this.onResize)
     window.addEventListener('keydown', this.onKeyDown)
     window.addEventListener('keyup', this.onKeyUp)
     document.addEventListener('visibilitychange', this.onVisibilityChange)
@@ -376,6 +383,8 @@ export class GameWorld implements PlayerController {
   dispose(): void {
     cancelAnimationFrame(this.animationFrame)
     this.resizeObserver.disconnect()
+    this.visualViewport?.removeEventListener('resize', this.onResize)
+    this.visualViewport?.removeEventListener('scroll', this.onResize)
     window.removeEventListener('keydown', this.onKeyDown)
     window.removeEventListener('keyup', this.onKeyUp)
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
