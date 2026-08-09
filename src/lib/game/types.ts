@@ -27,15 +27,21 @@ export interface QuestState {
 }
 
 export interface GameSave {
-  version: 6
+  version: 7
   soundEnabled: boolean
   reducedMotion: boolean
   coatColor: CoatColor
   identity: PassengerIdentity
   district: DistrictId
   playerNormal: [number, number, number]
-  /** Last validated local X/Z position for the active street district. */
+  /**
+   * Compatibility mirror of the active district position. New code uses
+   * streetPositions so changing trains can never restore a different town's
+   * coordinates into the current scene.
+   */
   streetPosition: [number, number]
+  /** Last validated local X/Z position for each street district. */
+  streetPositions: Record<DistrictId, [number, number]>
   quest: QuestState
 }
 

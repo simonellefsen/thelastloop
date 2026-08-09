@@ -4,6 +4,12 @@ import type { CoatColor, DistrictId, GameSave, QuestState, SideQuestStage } from
 
 export const SAVE_KEY = 'thelastloop.save.v1'
 
+const defaultStreetPositions = (): GameSave['streetPositions'] => ({
+  hillside: [0, 7.4],
+  harbour: [0, 8],
+  observatory: [0, 8],
+})
+
 export interface StorageLike {
   getItem(key: string): string | null
   setItem(key: string, value: string): void
@@ -11,7 +17,7 @@ export interface StorageLike {
 
 export function defaultSave(): GameSave {
   return {
-    version: 6,
+    version: 7,
     soundEnabled: true,
     reducedMotion: false,
     coatColor: 'gold',
@@ -19,6 +25,7 @@ export function defaultSave(): GameSave {
     district: 'hillside',
     playerNormal: [0.19, 0.96, 0.2],
     streetPosition: [0, 7.4],
+    streetPositions: defaultStreetPositions(),
     quest: defaultQuest(),
   }
 }
@@ -42,21 +49,38 @@ export function readSave(storage: StorageLike): GameSave {
   const fallback = defaultSave()
   try {
     const parsed = JSON.parse(storage.getItem(SAVE_KEY) ?? '') as Omit<Partial<GameSave>, 'version'> & { version?: number }
-    if ((parsed.version !== 1 && parsed.version !== 2 && parsed.version !== 3 && parsed.version !== 4 && parsed.version !== 5 && parsed.version !== 6) || !Array.isArray(parsed.playerNormal) || parsed.playerNormal.length !== 3 || !parsed.quest) return fallback
+    if ((parsed.version !== 1 && parsed.version !== 2 && parsed.version !== 3 && parsed.version !== 4 && parsed.version !== 5 && parsed.version !== 6 && parsed.version !== 7) || !Array.isArray(parsed.playerNormal) || parsed.playerNormal.length !== 3 || !parsed.quest) return fallback
+    const district = isDistrict(parsed.district) ? parsed.district : fallback.district
+    const legacyStreetPosition = isStreetPosition(parsed.streetPosition) ? parsed.streetPosition : fallback.streetPosition
+    const streetPositions = hydrateStreetPositions(parsed.streetPositions, parsed.version, district, legacyStreetPosition)
     return {
-      version: 6,
+      version: 7,
       soundEnabled: typeof parsed.soundEnabled === 'boolean' ? parsed.soundEnabled : fallback.soundEnabled,
       reducedMotion: typeof parsed.reducedMotion === 'boolean' ? parsed.reducedMotion : fallback.reducedMotion,
       coatColor: isCoatColor(parsed.coatColor) ? parsed.coatColor : fallback.coatColor,
       identity: isPassengerIdentity(parsed.identity) ? parsed.identity : fallback.identity,
-      district: isDistrict(parsed.district) ? parsed.district : fallback.district,
+      district,
       playerNormal: parsed.playerNormal as GameSave['playerNormal'],
-      streetPosition: isStreetPosition(parsed.streetPosition) ? parsed.streetPosition : fallback.streetPosition,
+      streetPosition: streetPositions[district],
+      streetPositions,
       quest: hydrateQuest(parsed.quest),
     }
   } catch {
     return fallback
   }
+}
+
+/**
+ * v6 stored one local X/Z pair while moves between districts changed the
+ * active scene. That makes old cross-district saves ambiguous, so migrations
+ * deliberately keep the dependable Hillside point and use safe arrivals for
+ * the other towns. v7 persists every town independently.
+ */
+function hydrateStreetPositions(value: unknown, version: number | undefined, district: DistrictId, legacyPosition: [number, number]): GameSave['streetPositions'] {
+  const fallback = defaultStreetPositions()
+  if (version === 7 && isStreetPositions(value)) return value
+  if (district === 'hillside') fallback.hillside = legacyPosition
+  return fallback
 }
 
 function hydrateQuest(quest: Partial<QuestState>): QuestState {
@@ -89,6 +113,14 @@ function isStreetPosition(value: unknown): value is GameSave['streetPosition'] {
   return Array.isArray(value)
     && value.length === 2
     && value.every((coordinate) => typeof coordinate === 'number' && Number.isFinite(coordinate) && Math.abs(coordinate) <= 18)
+}
+
+function isStreetPositions(value: unknown): value is GameSave['streetPositions'] {
+  if (!value || typeof value !== 'object') return false
+  const positions = value as Partial<GameSave['streetPositions']>
+  return isStreetPosition(positions.hillside)
+    && isStreetPosition(positions.harbour)
+    && isStreetPosition(positions.observatory)
 }
 
 export function writeSave(storage: StorageLike, save: GameSave): void {

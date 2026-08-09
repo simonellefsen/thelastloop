@@ -4517,17 +4517,20 @@ export class GameWorld implements PlayerController {
     const counter = new Mesh(new BoxGeometry(5.7, 1.3, 1), new MeshLambertMaterial({ color: '#7f5a49', flatShading: true }))
     counter.position.set(-1.5, 0.65, -1.35)
     this.stationInterior.add(counter)
-    const map = this.createSign('SUNSET LOOP  •  ROUTE MAP', '#f8d34e', 620, 125)
+    // Keep these intentionally short. Canvas labels do not wrap themselves,
+    // so long route names used to clip inside their textures and look like an
+    // enormous broken sign when the interior camera arrived.
+    const map = this.createSign('SUNSET LOOP  •  ROUTES', '#f8d34e', 620, 125)
     map.position.set(0.7, 3.15, -3.16)
-    map.scale.set(5.5, 1.1, 1)
+    map.scale.set(3.85, 0.78, 1)
     this.stationInterior.add(map)
-    const harbour = this.createSign('HARBOUR WORKS  —  LATER', '#dbe9dd', 350, 70)
+    const harbour = this.createSign('HARBOUR  •  LATER', '#dbe9dd', 350, 70)
     harbour.position.set(-1.25, 1.86, -3.14)
-    harbour.scale.set(3.15, 0.62, 1)
+    harbour.scale.set(2.15, 0.43, 1)
     this.stationInterior.add(harbour)
-    const observatory = this.createSign('MOONHILL OBSERVATORY  —  LATER', '#dbe9dd', 420, 70)
+    const observatory = this.createSign('MOONHILL  •  LATER', '#dbe9dd', 420, 70)
     observatory.position.set(1.2, 1.17, -3.14)
-    observatory.scale.set(3.8, 0.62, 1)
+    observatory.scale.set(2.35, 0.43, 1)
     this.stationInterior.add(observatory)
     const lamp = new Mesh(new SphereGeometry(0.32, 8, 6), new MeshLambertMaterial({ color: '#ffe477', emissive: new Color('#e7a943'), emissiveIntensity: 0.9 }))
     lamp.position.set(3.9, 3.7, -2.6)
@@ -4766,8 +4769,19 @@ export class GameWorld implements PlayerController {
 
   /** Restores only a versioned, validated street coordinate from the active district. */
   private restoreStreetPosition(defaultX: number, defaultZ: number, resetPosition: boolean): void {
-    const [savedX, savedZ] = this.save.streetPosition
-    this.streetPosition.set(resetPosition ? defaultX : savedX, 0, resetPosition ? defaultZ : savedZ)
+    const [savedX, savedZ] = this.save.streetPositions[this.save.district]
+    const useSavedPosition = !resetPosition && this.isStreetPositionWalkable(this.save.district, savedX, savedZ)
+    this.streetPosition.set(useSavedPosition ? savedX : defaultX, 0, useSavedPosition ? savedZ : defaultZ)
+    this.save.streetPosition = [this.streetPosition.x, this.streetPosition.z]
+    this.save.streetPositions[this.save.district] = this.save.streetPosition
+  }
+
+  /** Reject a stale arrival before it can put the player or follow camera inside scenery. */
+  private isStreetPositionWalkable(district: DistrictId, x: number, z: number): boolean {
+    const point = new Vector3(x, 0, z)
+    if (district === 'hillside') return Math.abs(x) < 18.5 && z < 14.5 && z > -17.55 && isOutsideStreetBlockers(point, this.streetBlockers)
+    if (district === 'harbour') return Math.abs(x) < 15.5 && z < 11.5 && z > -10.5 && isOutsideStreetBlockers(point, this.harbourStreetBlockers)
+    return Math.abs(x) < 15.5 && z < 11.5 && z > -10.8 && isOutsideStreetBlockers(point, this.observatoryStreetBlockers)
   }
 
   private updateHillsideStreetPlayer(delta: number): void {
@@ -4892,9 +4906,9 @@ export class GameWorld implements PlayerController {
   }
 
   private updateStation(): void {
-    this.camera.position.set(0, 3.6, 7.3)
+    this.camera.position.set(0, 3.35, 9.5)
     this.camera.up.copy(UP)
-    this.camera.lookAt(0, 1.8, -2.6)
+    this.camera.lookAt(0, 1.72, -2.75)
     const lamp = this.stationInterior.children.at(-1)
     if (lamp) lamp.position.y = 3.7 + Math.sin(animationTime(this.clock.elapsed, this.prefersReducedMotion()) * 2) * 0.07
   }
@@ -5204,7 +5218,10 @@ export class GameWorld implements PlayerController {
 
   private persist(write = true): void {
     this.save.playerNormal = [this.currentNormal.x, this.currentNormal.y, this.currentNormal.z]
-    if (this.started && !this.inStation) this.save.streetPosition = [this.streetPosition.x, this.streetPosition.z]
+    if (this.started && !this.inStation) {
+      this.save.streetPosition = [this.streetPosition.x, this.streetPosition.z]
+      this.save.streetPositions[this.save.district] = this.save.streetPosition
+    }
     if (write) writeSave(window.localStorage, this.save)
   }
 
