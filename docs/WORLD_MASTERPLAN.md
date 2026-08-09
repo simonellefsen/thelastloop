@@ -59,7 +59,7 @@ The `globalRailStops` contract is the single source of truth for this order. Eve
 ## Build order
 
 1. **Rail continuity foundation — in progress:** one code-owned global stop order; title route and visible local two-way through-sections.
-2. **Ravnbro completion — in progress:** Station Gate and North Yard now visibly join the outer line, while Bell Orchard plus the marked shallow Reedwater ford are playable. Reedwater's far bank now has a small Ferry House frontage, so both crossings resolve in a place rather than a world edge. Next, complete a second river-side frontage and the final station-to-yard public path.
+2. **Ravnbro completion — complete:** Station Gate and North Yard visibly join the outer line; Bell Orchard and the marked shallow Reedwater ford are playable; Parcel Lane gives the station a paved public approach to North Yard; and Ferry House plus Reedwater Row give both crossings a real far-bank neighbourhood.
 3. **Harbour completion — complete:** Rail Shed joins the through-line; the tidal basin has a marked low-water ford, and Tide Gardens closes the landward public loop.
 4. **Moonhill completion — complete:** Signal Terrace joins the through-line; Spring Crossing, Almanac Green and the small chartmaker/tea high street finish the public circuit.
 5. **Rideable transfer — complete:** station and return services use a visible rail journey state before the streamed destination appears.

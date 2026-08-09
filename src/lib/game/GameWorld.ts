@@ -698,6 +698,7 @@ export class GameWorld implements PlayerController {
     this.addFlatBuilding(-6.8, -7.3, '#e2c971', '#4e6970', 'HOME')
     this.addFlatBuilding(-7.1, 5.3, '#c9ded6', '#50666a', 'DEPOT')
     this.addRavnbroLaneThreshold()
+    this.addRavnbroParcelLane()
     this.addRavnbroDepotYard()
     this.addRavnbroFreightSpur()
     this.addRavnbroNorthYardLoopLink()
@@ -720,6 +721,7 @@ export class GameWorld implements PlayerController {
     this.addReedwaterEdge()
     this.addReedwaterFord()
     this.addReedwaterFarBank()
+    this.addReedwaterBoathouseRow()
     this.addRiverTradeLane()
     this.addBellOrchard()
     this.addFlatSideRouteLandmarks()
@@ -972,6 +974,66 @@ export class GameWorld implements PlayerController {
     sign.scale.set(1.22, 0.27, 1)
     sign.position.set(0.6, gentleStreetHeight(0.6, -17.42) + 1.06, -17.42)
     this.hillsideStreet.add(sign)
+  }
+
+  /** A second far-bank frontage gives the river crossing a small neighbourhood, not a single prop. */
+  private addReedwaterBoathouseRow(): void {
+    const rowZ = -16.82
+    this.hillsideStreet.add(this.createRollingStreetSurface(6.0, 1.42, -8.65, rowZ, '#b8ad80', 0.16))
+    const timber = new MeshLambertMaterial({ color: '#65473a', flatShading: true })
+    const brick = new MeshLambertMaterial({ color: '#b5684c', flatShading: true })
+    const slate = new MeshLambertMaterial({ color: '#355258', flatShading: true })
+    const cream = new MeshLambertMaterial({ color: '#dde3d3', side: DoubleSide })
+
+    const boathouse = new Group()
+    const body = new Mesh(new BoxGeometry(1.86, 1.42, 1.46), brick)
+    body.position.y = 0.71
+    boathouse.add(body)
+    const roof = new Mesh(new ConeGeometry(1.32, 0.68, 4), slate)
+    roof.rotation.y = Math.PI / 4
+    roof.position.y = 1.75
+    boathouse.add(roof)
+    const doubleDoor = new Mesh(new PlaneGeometry(0.9, 0.88), new MeshLambertMaterial({ color: '#2d5557', side: DoubleSide }))
+    doubleDoor.position.set(0.18, 0.48, 0.74)
+    boathouse.add(doubleDoor)
+    const window = new Mesh(new PlaneGeometry(0.38, 0.42), cream)
+    window.position.set(-0.54, 0.95, 0.745)
+    boathouse.add(window)
+    const sign = this.createSign('BOAT HOUSE', '#f5edcf', 160, 42)
+    sign.scale.set(0.9, 0.23, 1)
+    sign.position.set(0, 1.7, 0.75)
+    boathouse.add(sign)
+    boathouse.position.set(-9.45, gentleStreetHeight(-9.45, rowZ), rowZ)
+    this.hillsideStreet.add(boathouse)
+    this.addStreetBlocker(-9.45, rowZ, 1.12)
+
+    const netRack = new Group()
+    for (const xOffset of [-0.44, 0.44]) {
+      const post = new Mesh(new BoxGeometry(0.08, 1.1, 0.08), timber)
+      post.position.set(xOffset, 0.55, 0)
+      netRack.add(post)
+    }
+    const beam = new Mesh(new BoxGeometry(1.02, 0.08, 0.08), timber)
+    beam.position.set(0, 0.98, 0)
+    netRack.add(beam)
+    for (const xOffset of [-0.22, 0.22]) {
+      const net = new Mesh(new PlaneGeometry(0.32, 0.52), new MeshLambertMaterial({ color: '#7ea49b', transparent: true, opacity: 0.78, side: DoubleSide }))
+      net.position.set(xOffset, 0.57, 0.05)
+      netRack.add(net)
+    }
+    netRack.position.set(-6.75, gentleStreetHeight(-6.75, -16.72), -16.72)
+    this.hillsideStreet.add(netRack)
+    this.addStreetBlocker(-6.75, -16.72, 0.62)
+
+    const boat = new Mesh(new BoxGeometry(0.86, 0.2, 1.55), new MeshLambertMaterial({ color: '#d18550', flatShading: true }))
+    boat.position.set(-11.15, gentleStreetHeight(-11.15, -16.02) + 0.24, -16.02)
+    boat.rotation.y = -0.35
+    this.hillsideStreet.add(boat)
+    this.addStreetBlocker(-11.15, -16.02, 0.68)
+    const rowSign = this.createSign('REEDWATER ROW', '#eef1d8', 200, 46)
+    rowSign.scale.set(1.08, 0.26, 1)
+    rowSign.position.set(-8.25, gentleStreetHeight(-8.25, -15.92) + 1.06, -15.92)
+    this.hillsideStreet.add(rowSign)
   }
 
   /** Turns the old bridge's view point into a small usable landing by the reeds. */
@@ -2030,6 +2092,58 @@ export class GameWorld implements PlayerController {
     gate.add(lantern)
     gate.position.set(-5.1, gentleStreetHeight(-5.1, 2.55), 2.55)
     this.hillsideStreet.add(gate)
+  }
+
+  /** A visible public pavement finally joins Station Gate to North Yard and the north market. */
+  private addRavnbroParcelLane(): void {
+    const paleStone = new MeshLambertMaterial({ color: '#d8caa5', flatShading: true })
+    const warmStone = new MeshLambertMaterial({ color: '#aa956f', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#68483b', flatShading: true })
+    const iron = new MeshLambertMaterial({ color: '#3e595c', flatShading: true })
+
+    this.hillsideStreet.add(this.createRollingStreetSurface(5.6, 1.38, -2.72, 2.12, '#c6b58d', 0.102))
+    this.hillsideStreet.add(this.createRollingStreetSurface(1.38, 2.58, -5.1, 6.08, '#c6b58d', 0.104))
+    for (let x = -5.15; x <= -0.38; x += 0.48) {
+      for (let z = 1.62; z <= 2.62; z += 0.42) {
+        const paver = new Mesh(new BoxGeometry(0.4, 0.036, 0.32), (Math.round((x + z) * 2) % 2 === 0) ? paleStone : warmStone)
+        paver.position.set(x, gentleStreetHeight(x, z) + 0.145, z)
+        this.hillsideStreet.add(paver)
+      }
+    }
+    for (let z = 5.0; z <= 7.1; z += 0.42) {
+      const paver = new Mesh(new BoxGeometry(0.4, 0.036, 0.32), (Math.round(z * 2) % 2 === 0) ? warmStone : paleStone)
+      paver.position.set(-5.1, gentleStreetHeight(-5.1, z) + 0.147, z)
+      this.hillsideStreet.add(paver)
+    }
+
+    const postGate = new Group()
+    for (const xOffset of [-0.64, 0.64]) {
+      const post = new Mesh(new BoxGeometry(0.1, 1.22, 0.1), timber)
+      post.position.set(xOffset, 0.61, 0)
+      postGate.add(post)
+    }
+    const lintel = new Mesh(new BoxGeometry(1.5, 0.14, 0.13), timber)
+    lintel.position.y = 1.16
+    postGate.add(lintel)
+    const lamp = new Mesh(new SphereGeometry(0.1, 7, 5), new MeshLambertMaterial({ color: '#f5cf67', emissive: new Color('#bd7f36'), emissiveIntensity: 0.66, flatShading: true }))
+    lamp.position.set(0, 0.96, 0.08)
+    postGate.add(lamp)
+    postGate.position.set(-4.35, gentleStreetHeight(-4.35, 2.12), 2.12)
+    this.hillsideStreet.add(postGate)
+
+    for (const [x, z] of [[-1.05, 2.82], [-4.55, 3.28], [-5.82, 6.2]] as Array<[number, number]>) {
+      const post = new Mesh(new CylinderGeometry(0.06, 0.08, 1.16, 6), iron)
+      post.position.set(x, gentleStreetHeight(x, z) + 0.58, z)
+      this.hillsideStreet.add(post)
+      const glow = new Mesh(new SphereGeometry(0.1, 7, 5), new MeshLambertMaterial({ color: '#f3cf69', emissive: new Color('#bc7b35'), emissiveIntensity: 0.62, flatShading: true }))
+      glow.position.set(x, gentleStreetHeight(x, z) + 1.16, z)
+      this.hillsideStreet.add(glow)
+      this.addStreetBlocker(x, z, 0.16)
+    }
+    const parcelSign = this.createSign('PARCEL LANE', '#eef1d8', 185, 44)
+    parcelSign.scale.set(1.0, 0.25, 1)
+    parcelSign.position.set(-2.9, gentleStreetHeight(-2.9, 1.48) + 1.06, 1.48)
+    this.hillsideStreet.add(parcelSign)
   }
 
   /**
