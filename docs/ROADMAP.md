@@ -69,6 +69,7 @@
 - ✅ Extend Ravnbro's railway into the depot with a physical Freight Spur: ballast, rails, sleepers, wagon cargo, scales, buffers and a safe pedestrian crossing make North Yard part of the loop.
 - ✅ Add Tidehouse Row to Harbour Works: a collision-aware north-west dock branch with a tidehouse, net rack, gauge, barrels, lamps and paving turns its quiet shoulder into a readable local street.
 - ✅ Add Moonhill's Almanac Garden: an open collision-aware eastern hill branch with a moon dial, weather pavilion, herb beds, lamps and protected edge balances Signal Terrace across the high road.
+- ✅ Add non-blocking, timed district arrival cards so the selected route is legible at street-scale entry without creating a permanent dialogue panel.
 - Extend L2/L3 with rail hardware, dense interaction pockets and collision-aware terrain.
 - Add recorded ambience and music after an original audio session.
 

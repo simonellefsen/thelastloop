@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { GameWorld } from './lib/game/GameWorld'
+  import { arrivalCopy } from './lib/game/arrival'
   import { guidanceRotation, guideInput } from './lib/game/controls'
   import type { DistrictId, GameHud, QuestState } from './lib/game/types'
   import { sideQuestLabel } from './lib/game/quest'
@@ -16,6 +17,9 @@
   let guideX = 0
   let guideY = 0
   let guideRotation = 0
+  let arrivalDistrict: DistrictId | undefined
+  let arrivalNonce = 0
+  let arrivalTimer: ReturnType<typeof setTimeout> | undefined
   let titleDistrict: DistrictId = 'hillside'
   let hud: GameHud = {
     hint: 'Enter the town when you are ready.',
@@ -58,12 +62,26 @@
       error = 'This tiny world needs a browser with WebGL support.'
     }
 
-    return () => game?.dispose()
+    return () => {
+      if (arrivalTimer) clearTimeout(arrivalTimer)
+      game?.dispose()
+    }
   })
+
+  function showArrival(district: DistrictId) {
+    if (arrivalTimer) clearTimeout(arrivalTimer)
+    arrivalDistrict = district
+    arrivalNonce += 1
+    arrivalTimer = setTimeout(() => {
+      arrivalDistrict = undefined
+      arrivalTimer = undefined
+    }, 3200)
+  }
 
   function enterWorld() {
     game?.start()
     started = true
+    showArrival(titleDistrict)
   }
 
   function previewWorld(district: DistrictId) {
@@ -97,10 +115,12 @@
 
   function travelToHarbour() {
     game?.travelToHarbour()
+    showArrival('harbour')
   }
 
   function travelToObservatory() {
     game?.travelToObservatory()
+    showArrival('observatory')
   }
 
   function returnToStation() {
@@ -257,6 +277,16 @@
           <p>{hud.dialogue}</p>
           <small>{hud.hint}</small>
         </div>
+      {/if}
+
+      {#if arrivalDistrict}
+        {#key arrivalNonce}
+          <section class="arrival-card" role="status" aria-live="polite">
+            <p class="eyebrow">{arrivalCopy[arrivalDistrict].route}</p>
+            <h2>{arrivalCopy[arrivalDistrict].place}</h2>
+            <p>{arrivalCopy[arrivalDistrict].copy}</p>
+          </section>
+        {/key}
       {/if}
 
       {#if !hud.inStation && guideActive}<div class="touch-guide" style={`left: ${guideX}px; top: ${guideY}px; --guide-turn: ${guideRotation}deg`} aria-hidden="true"><span>↑</span></div>{/if}
