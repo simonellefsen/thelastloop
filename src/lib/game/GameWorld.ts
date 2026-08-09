@@ -584,15 +584,10 @@ export class GameWorld implements PlayerController {
 
   private createHillsideStreetWorld(): void {
     this.hillsideStreet.visible = false
-    const groundGeometry = new PlaneGeometry(42, 38, 24, 20)
-    const groundPositions = groundGeometry.getAttribute('position')
-    for (let index = 0; index < groundPositions.count; index += 1) {
-      groundPositions.setZ(index, gentleStreetHeight(groundPositions.getX(index), -groundPositions.getY(index)))
-    }
-    groundGeometry.computeVertexNormals()
-    const ground = new Mesh(groundGeometry, new MeshLambertMaterial({ color: '#79bd68', flatShading: true, side: DoubleSide }))
-    ground.rotation.x = -Math.PI / 2
-    this.hillsideStreet.add(ground)
+    // This is intentionally much wider than the playable town. The terrain
+    // falls gently toward the fog, keeping the street locally upright while
+    // removing the old rectangular "end of the map" silhouette.
+    this.hillsideStreet.add(this.createStreetHorizon(138, 126, gentleStreetHeight, '#79bd68'))
 
     const road = this.createRollingStreetSurface(4.2, 28, 0, -1, '#516d71', 0.08)
     this.hillsideStreet.add(road)
@@ -1596,6 +1591,22 @@ export class GameWorld implements PlayerController {
     return surface
   }
 
+  /**
+   * A low-poly terrain shell reaches beyond the playable collision bounds.
+   * It retains the district's own height function, so streets and props stay
+   * aligned while the distant ground rolls away like a small globe.
+   */
+  private createStreetHorizon(width: number, length: number, heightAt: (x: number, z: number) => number, color: string): Mesh {
+    const geometry = new PlaneGeometry(width, length, Math.max(24, Math.ceil(width / 4.8)), Math.max(22, Math.ceil(length / 4.8)))
+    const positions = geometry.getAttribute('position')
+    for (let index = 0; index < positions.count; index += 1) {
+      positions.setZ(index, heightAt(positions.getX(index), -positions.getY(index)))
+    }
+    geometry.computeVertexNormals()
+    geometry.rotateX(-Math.PI / 2)
+    return new Mesh(geometry, new MeshLambertMaterial({ color, flatShading: true, side: DoubleSide }))
+  }
+
   private addFlatBuilding(x: number, z: number, wall: string, roofColor: string, label: string): void {
     if (label === 'STATION') {
       this.addRavnbroStation(x, z, wall, roofColor)
@@ -2306,9 +2317,13 @@ export class GameWorld implements PlayerController {
   /** Street-scale counterpart to the title globe: an upright dockyard with a shallow local roll. */
   private createHarbourStreetWorld(): void {
     this.harbourStreet.visible = false
-    const water = new Mesh(new PlaneGeometry(42, 14), new MeshLambertMaterial({ color: '#347f8b', flatShading: true, side: DoubleSide }))
+    this.harbourStreet.add(this.createStreetHorizon(142, 130, harbourStreetHeight, '#708b7d'))
+    // The sea runs under the outer terrain shell. The land slopes into it
+    // beyond the authored dock, so it reads as a coast instead of a clipped
+    // rectangular plane at the far edge of the district.
+    const water = new Mesh(new PlaneGeometry(142, 94), new MeshLambertMaterial({ color: '#347f8b', flatShading: true, side: DoubleSide }))
     water.rotation.x = -Math.PI / 2
-    water.position.set(0, -0.18, -14)
+    water.position.set(0, -0.18, -50)
     this.harbourStreet.add(water)
     this.harbourStreet.add(this.createHarbourStreetSurface(5.4, 25, 0, -1.4, '#697f79', 0.09))
     this.harbourStreet.add(this.createHarbourStreetSurface(8.4, 1.35, 0, -9.2, '#9f835f', 0.15))
@@ -3049,15 +3064,7 @@ export class GameWorld implements PlayerController {
   /** Street-scale Moonhill: a stable, shallowly rolling hilltop around the observatory. */
   private createObservatoryStreetWorld(): void {
     this.observatoryStreet.visible = false
-    const groundGeometry = new PlaneGeometry(42, 38, 24, 20)
-    const positions = groundGeometry.getAttribute('position')
-    for (let index = 0; index < positions.count; index += 1) {
-      positions.setZ(index, observatoryStreetHeight(positions.getX(index), -positions.getY(index)))
-    }
-    groundGeometry.computeVertexNormals()
-    const ground = new Mesh(groundGeometry, new MeshLambertMaterial({ color: '#718a78', flatShading: true, side: DoubleSide }))
-    ground.rotation.x = -Math.PI / 2
-    this.observatoryStreet.add(ground)
+    this.observatoryStreet.add(this.createStreetHorizon(138, 126, observatoryStreetHeight, '#718a78'))
     this.observatoryStreet.add(this.createObservatoryStreetSurface(4.8, 25, 0, -1.1, '#5b6975', 0.09))
     this.observatoryStreet.add(this.createObservatoryStreetSurface(9.4, 5.2, 0, -7.2, '#b9ad93', 0.13))
 

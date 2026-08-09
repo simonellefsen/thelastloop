@@ -76,6 +76,7 @@
 - ✅ Persist the last safe local street coordinate in the versioned save and restore it only when the player resumes the same selected district.
 - ✅ Make completing Harbour Works and Moonhill visibly restore route hardware: tide-clock lamps and Comet Walk signal lenses brighten without adding expensive dynamic lighting.
 - ✅ Rework street guidance around a close, camera-relative third-person rig: held-finger and keyboard movement now follow the screen through eased street turns rather than fixed world axes.
+- ✅ Replace the visible street-map cutoff with wide, fog-bound rolling terrain shells and an extended Harbour sea, preserving a shallow local curve while restoring the mini-globe horizon feeling.
 - Extend L2/L3 with rail hardware, dense interaction pockets and collision-aware terrain.
 - Add recorded ambience and music after an original audio session.
 
