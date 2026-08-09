@@ -30,14 +30,14 @@ import {
 } from 'three'
 import { entryCameraProfile, streetArrivalProfile, type StreetCameraProfile } from './camera'
 import { objectiveDirection } from './controls'
-import { gentleStreetHeight, isOutsideSphericalBlockers, isWithinWalkableCap, tangentForward } from './math'
+import { gentleStreetHeight, isOutsideSphericalBlockers, isOutsideStreetBlockers, isWithinWalkableCap, tangentForward } from './math'
 import { nextPassengerIdentity } from './presence'
 import { animationTime, nextRenderResolution, shouldRender } from './runtime'
 import { advanceSideQuest, defaultQuest, resolveClue, unlockHarbour, unlockObservatory } from './quest'
 import { coatColors, nextCoatColor } from './style'
 import { Soundscape, soundscapeProfile } from './soundscape'
 import { readSave, writeSave } from './storage'
-import type { SphericalBlocker } from './math'
+import type { SphericalBlocker, StreetBlocker } from './math'
 import type { ClueId, DistrictId, GameHud, GameSave, PlayerController, SideQuestId, WorldInteractable } from './types'
 
 const UP = new Vector3(0, 1, 0)
@@ -102,9 +102,9 @@ export class GameWorld implements PlayerController {
   private readonly harbourStreetSideMarkers: SideMarker[] = []
   private readonly observatoryStreetSideMarkers: SideMarker[] = []
   private readonly blockersByDistrict: Record<DistrictId, SphericalBlocker[]> = { hillside: [], harbour: [], observatory: [] }
-  private readonly streetBlockers: Array<{ center: Vector3; radius: number }> = []
-  private readonly harbourStreetBlockers: Array<{ center: Vector3; radius: number }> = []
-  private readonly observatoryStreetBlockers: Array<{ center: Vector3; radius: number }> = []
+  private readonly streetBlockers: StreetBlocker[] = []
+  private readonly harbourStreetBlockers: StreetBlocker[] = []
+  private readonly observatoryStreetBlockers: StreetBlocker[] = []
   private readonly ambient = new Group()
   private readonly harbourAmbient = new Group()
   private readonly streetLife = new Group()
@@ -3602,7 +3602,7 @@ export class GameWorld implements PlayerController {
   private updateHillsideStreetPlayer(delta: number): void {
     this.moveStreetPlayer(delta, 4.2, (candidate) => {
       const inBounds = Math.abs(candidate.x) < 18.5 && candidate.z < 14.5 && candidate.z > -15.5
-      const clearOfBuildings = this.streetBlockers.every((blocker) => candidate.distanceTo(blocker.center) > blocker.radius)
+      const clearOfBuildings = isOutsideStreetBlockers(candidate, this.streetBlockers)
       return inBounds && clearOfBuildings
     })
     const playerPosition = this.streetPosition.clone().setY(gentleStreetHeight(this.streetPosition.x, this.streetPosition.z) + 0.04)
@@ -3621,7 +3621,7 @@ export class GameWorld implements PlayerController {
   private updateHarbourStreetPlayer(delta: number): void {
     this.moveStreetPlayer(delta, 4.1, (candidate) => {
       const inBounds = Math.abs(candidate.x) < 15.5 && candidate.z < 11.5 && candidate.z > -10.5
-      return inBounds && this.harbourStreetBlockers.every((blocker) => candidate.distanceTo(blocker.center) > blocker.radius)
+      return inBounds && isOutsideStreetBlockers(candidate, this.harbourStreetBlockers)
     })
     const playerPosition = this.streetPosition.clone().setY(harbourStreetHeight(this.streetPosition.x, this.streetPosition.z) + 0.04)
     this.player.position.copy(playerPosition)
@@ -3637,7 +3637,7 @@ export class GameWorld implements PlayerController {
   private updateObservatoryStreetPlayer(delta: number): void {
     this.moveStreetPlayer(delta, 3.85, (candidate) => {
       const inBounds = Math.abs(candidate.x) < 15.5 && candidate.z < 11.5 && candidate.z > -10.8
-      return inBounds && this.observatoryStreetBlockers.every((blocker) => candidate.distanceTo(blocker.center) > blocker.radius)
+      return inBounds && isOutsideStreetBlockers(candidate, this.observatoryStreetBlockers)
     })
     const playerPosition = this.streetPosition.clone().setY(observatoryStreetHeight(this.streetPosition.x, this.streetPosition.z) + 0.04)
     this.player.position.copy(playerPosition)

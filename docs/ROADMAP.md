@@ -19,6 +19,7 @@
 - ✅ Add a persisted in-game reduced-motion control: users can pause decorative title, ambient and station motion independently of their device-wide preference.
 - ✅ Replace the fixed phone joystick with direct touch guidance: hold or drag anywhere on the world to guide the character, with an on-screen touch indicator and portrait-safe title framing.
 - ✅ Polish street movement with analogue touch strength, short acceleration/deceleration, collision-stop behaviour and eased facing, while keeping all characters upright on local terrain.
+- ✅ Make local street collision a shared, unit-tested X/Z contract so building, cart and waterfront blockers stay solid across all three districts despite rolling visual terrain.
 - ✅ Add a small player-relative route cue that highlights the nearest active marker or station door, updates only on meaningful bearing changes, and never uses a permanent dialogue panel.
 - ✅ Add a small original procedural dusk motif to the adaptive soundscape.
 - ✅ Turn the title into an interactive showcase of all three playable globe districts.
