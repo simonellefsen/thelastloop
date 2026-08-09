@@ -613,6 +613,7 @@ export class GameWorld implements PlayerController {
     this.addMarketFold()
     this.addMarketCourtyard()
     this.addRavnbroClockmakersCourt()
+    this.addRavnbroNorthMarketWalk()
     this.addSignalYard()
     this.addFlatKeeper(0, 2.2)
     this.addFlatClue('signal', 'Signal box', -7.2, -0.5, 'The brass plate reads: “Every last train returns in a LOOP.”')
@@ -1657,6 +1658,108 @@ export class GameWorld implements PlayerController {
     yardSign.scale.set(1.06, 0.28, 1)
     yardSign.position.set(-9.25, gentleStreetHeight(-9.25, 6.0) + 1.14, 6.0)
     this.hillsideStreet.add(yardSign)
+  }
+
+  /**
+   * A paved public walk joins the two previously separate northern pockets.
+   * It leaves a broad, collision-free centre line so the town gains density
+   * without becoming a maze on a small phone screen.
+   */
+  private addRavnbroNorthMarketWalk(): void {
+    const walkZ = 7.42
+    this.hillsideStreet.add(this.createRollingStreetSurface(15.4, 2.18, -0.15, walkZ, '#c8b78e', 0.105))
+
+    const paleStone = new MeshLambertMaterial({ color: '#d8c9a6', flatShading: true })
+    const warmStone = new MeshLambertMaterial({ color: '#aa956f', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#694a3b', flatShading: true })
+    const brick = new MeshLambertMaterial({ color: '#a35645', flatShading: true })
+    const slate = new MeshLambertMaterial({ color: '#3d575a', flatShading: true })
+    const linen = new MeshLambertMaterial({ color: '#e7d6a5', flatShading: true })
+
+    for (let x = -7.55; x <= 7.18; x += 0.52) {
+      for (let z = 6.62; z <= 8.2; z += 0.48) {
+        const paver = new Mesh(new BoxGeometry(0.43, 0.038, 0.38), (Math.round((x - z) * 2) % 2 === 0) ? paleStone : warmStone)
+        paver.position.set(x, gentleStreetHeight(x, z) + 0.145, z)
+        this.hillsideStreet.add(paver)
+      }
+    }
+
+    const lanternShop = new Group()
+    const shopBody = new Mesh(new BoxGeometry(2.28, 1.64, 1.72), brick)
+    shopBody.position.y = 0.82
+    lanternShop.add(shopBody)
+    const shopRoof = new Mesh(new ConeGeometry(1.58, 0.72, 4), slate)
+    shopRoof.rotation.y = Math.PI / 4
+    shopRoof.position.y = 1.86
+    lanternShop.add(shopRoof)
+    const shopDoor = new Mesh(new PlaneGeometry(0.56, 0.92), new MeshLambertMaterial({ color: '#2e5358', side: DoubleSide }))
+    shopDoor.position.set(-0.42, 0.49, 0.868)
+    lanternShop.add(shopDoor)
+    const shopWindow = new Mesh(new PlaneGeometry(0.54, 0.56), new MeshLambertMaterial({ color: '#dce9dc', side: DoubleSide }))
+    shopWindow.position.set(0.48, 0.98, 0.873)
+    lanternShop.add(shopWindow)
+    const awning = new Mesh(new BoxGeometry(2.42, 0.13, 0.48), linen)
+    awning.position.set(0, 1.26, 1.04)
+    lanternShop.add(awning)
+    const shopSign = this.createSign('LANTERN MAKER', '#f5edd2', 220, 48)
+    shopSign.scale.set(1.18, 0.28, 1)
+    shopSign.position.set(0, 1.83, 0.88)
+    lanternShop.add(shopSign)
+    for (const xOffset of [-0.7, 0, 0.7]) {
+      const lantern = new Mesh(new SphereGeometry(0.105, 7, 5), new MeshLambertMaterial({ color: '#f4cc62', emissive: new Color('#bb7934'), emissiveIntensity: 0.66, flatShading: true }))
+      lantern.position.set(xOffset, 1.38, 1.17)
+      lanternShop.add(lantern)
+    }
+    lanternShop.position.set(4.92, gentleStreetHeight(4.92, 9.08), 9.08)
+    this.hillsideStreet.add(lanternShop)
+    this.addStreetBlocker(4.92, 9.08, 1.34)
+
+    const pump = new Group()
+    const pumpStone = new Mesh(new CylinderGeometry(0.34, 0.42, 0.72, 7), warmStone)
+    pumpStone.position.y = 0.36
+    pump.add(pumpStone)
+    const pumpPipe = new Mesh(new CylinderGeometry(0.07, 0.07, 0.95, 6), slate)
+    pumpPipe.position.set(0, 0.92, 0)
+    pump.add(pumpPipe)
+    const pumpArm = new Mesh(new BoxGeometry(0.78, 0.08, 0.08), slate)
+    pumpArm.position.set(0.31, 1.19, 0)
+    pumpArm.rotation.z = -0.18
+    pump.add(pumpArm)
+    const handle = new Mesh(new SphereGeometry(0.1, 6, 5), new MeshLambertMaterial({ color: '#c58246', flatShading: true }))
+    handle.position.set(0.66, 1.12, 0)
+    pump.add(handle)
+    pump.position.set(-1.45, gentleStreetHeight(-1.45, 8.86), 8.86)
+    this.hillsideStreet.add(pump)
+    this.addStreetBlocker(-1.45, 8.86, 0.48)
+
+    const coveredRack = new Group()
+    for (const xOffset of [-0.66, 0.66]) {
+      const post = new Mesh(new BoxGeometry(0.09, 1.24, 0.09), timber)
+      post.position.set(xOffset, 0.62, 0)
+      coveredRack.add(post)
+    }
+    const rackRoof = new Mesh(new BoxGeometry(1.72, 0.12, 0.92), linen)
+    rackRoof.position.y = 1.28
+    coveredRack.add(rackRoof)
+    for (const xOffset of [-0.35, 0.08, 0.42]) {
+      const parcel = new Mesh(new BoxGeometry(0.32, 0.3, 0.36), new MeshLambertMaterial({ color: xOffset === 0.08 ? '#c9804b' : '#8a5c42', flatShading: true }))
+      parcel.position.set(xOffset, 0.25, 0.04)
+      coveredRack.add(parcel)
+    }
+    coveredRack.position.set(-5.32, gentleStreetHeight(-5.32, 8.82), 8.82)
+    this.hillsideStreet.add(coveredRack)
+    this.addStreetBlocker(-5.32, 8.82, 0.85)
+
+    for (const [x, z] of [[-7.52, 8.55], [0.92, 8.56], [7.52, 8.48]] as Array<[number, number]>) {
+      const bollard = new Mesh(new CylinderGeometry(0.09, 0.12, 0.68, 6), timber)
+      bollard.position.set(x, gentleStreetHeight(x, z) + 0.34, z)
+      this.hillsideStreet.add(bollard)
+      this.addStreetBlocker(x, z, 0.18)
+    }
+    const walkSign = this.createSign('NORTH MARKET WALK', '#edf0d8', 236, 48)
+    walkSign.scale.set(1.22, 0.28, 1)
+    walkSign.position.set(1.1, gentleStreetHeight(1.1, 6.4) + 1.18, 6.4)
+    this.hillsideStreet.add(walkSign)
   }
 
   /**

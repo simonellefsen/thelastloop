@@ -65,6 +65,7 @@
 - ✅ Turn the station rails into a readable, collision-aware route: timber pedestrian crossing, warning posts and a single open way toward Bell Rise.
 - ✅ Add a parked Ravnbro shunter, platform cargo and physical rail-side clearance to complete the first L3 station rail pocket.
 - ✅ Add mobile-safe local Ravnbro street life: two decorative walking townsfolk, a small bird flight and butterflies around the planted route.
+- ✅ Join Ravnbro's northern authored pockets with North Market Walk: a collision-aware cobbled route, lantern-maker frontage, civic pump, covered parcels and town wayfinding connect the depot yard to Clockmakers' Court.
 - Extend L2/L3 with rail hardware, dense interaction pockets and collision-aware terrain.
 - Add recorded ambience and music after an original audio session.
 
