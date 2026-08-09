@@ -1,0 +1,3 @@
+# Private reference media is useful during development but must never be
+# uploaded with the public game deployment.
+MessengerVideoPhone.MP4
