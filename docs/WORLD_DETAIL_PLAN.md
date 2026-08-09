@@ -48,6 +48,8 @@ Harbour Works' inland shoulder now has a short freight spur and Rail Shed. Balla
 
 Chandlery Yard now continues that freight branch along an open paved turn toward a fictional sail-and-supply workshop. Its rack, capstan, stacked cargo and lamps make the north-east shoulder a readable working destination. Collision is reserved for the workshop and yard hardware, keeping the route through the pocket comfortable on a phone.
 
+Harbour Works now reads as a complete tide town rather than a collection of quays. Rail Shed's loading rails bend into the perimeter through-line, visibly carrying the local railway onward. West of Dock Road, a shallow tidal basin has a marked low-tide stone ford, reed margins and small ripples; it is intentionally walkable, while the crossing remains the most legible route. Tide Gardens connects the valve yard to Tidehouse Row with a salt-grass commons, wind-bent trees, a tide-clock seat, lamps and an open view back across the water.
+
 Comet Walk completes Moonhill's east-side circuit between Archive Terrace and Almanac Garden. Its shallow stone path, meteor marker, skyhouse, lamps and protected outer edge turn a formerly open slope into a route with a purpose; its central line remains clear apart from small, readable landmarks.
 
 Moonhill now mirrors that depth with a Wind Lookout beyond the observatory terrace: a sheltered rest point, star-chart table, fire bowl and low parapet form a quiet outward-facing pocket while preserving a clear path to the telescope.

@@ -2638,6 +2638,8 @@ export class GameWorld implements PlayerController {
     this.addHarbourTideyard()
     this.addHarbourRepairQuay()
     this.addHarbourRailShed()
+    this.addHarbourRailLoopLink()
+    this.addHarbourTidalBasinAndGardens()
     this.addStreetLoopSection('harbour', this.harbourStreet, harbourStreetHeight, [
       [-14.5, 8.2], [-15.2, 0.5], [-13, -7.6], [-7.4, -12.8], [0.4, -14.2], [8.8, -11.7], [14.1, -5.2], [15, 2.8], [12.3, 9.2], [5, 11.4], [-4.8, 11.6],
     ], 'TO TIDEWAY CAUSEWAY', 10.4, 9.0)
@@ -3012,6 +3014,165 @@ export class GameWorld implements PlayerController {
     spurSign.scale.set(1.12, 0.28, 1)
     spurSign.position.set(5.38, harbourStreetHeight(5.38, 4.72) + 1.18, 4.72)
     this.harbourStreet.add(spurSign)
+  }
+
+  /** The Rail Shed's short loading rails now curve into the harbour through-line. */
+  private addHarbourRailLoopLink(): void {
+    const route = new CatmullRomCurve3([
+      new Vector3(8.46, harbourStreetHeight(8.46, 6.04) + 0.22, 6.04),
+      new Vector3(8.72, harbourStreetHeight(8.72, 7.18) + 0.22, 7.18),
+      new Vector3(9.2, harbourStreetHeight(9.2, 8.34) + 0.22, 8.34),
+      new Vector3(10.38, harbourStreetHeight(10.38, 9.76) + 0.22, 9.76),
+    ], false, 'centripetal')
+    this.harbourStreet.add(new Mesh(new TubeGeometry(route, 36, 0.37, 5, false), new MeshLambertMaterial({ color: '#8e856d', flatShading: true })))
+    const iron = new MeshLambertMaterial({ color: '#365258', flatShading: true })
+    for (const offset of [-0.27, 0.27]) {
+      const railPoints: Vector3[] = []
+      for (let index = 0; index <= 22; index += 1) {
+        const progress = index / 22
+        const point = route.getPointAt(progress)
+        const ahead = route.getPointAt(Math.min(1, progress + 0.02))
+        const tangent = ahead.sub(point).normalize()
+        railPoints.push(point.add(new Vector3(-tangent.z * offset, 0.03, tangent.x * offset)))
+      }
+      this.harbourStreet.add(new Mesh(new TubeGeometry(new CatmullRomCurve3(railPoints, false, 'centripetal'), 36, 0.055, 5, false), iron))
+    }
+    const timber = new MeshLambertMaterial({ color: '#64493a', flatShading: true })
+    for (let index = 0; index < 15; index += 1) {
+      const progress = index / 15
+      const point = route.getPointAt(progress)
+      const ahead = route.getPointAt(Math.min(1, progress + 0.02))
+      const sleeper = new Mesh(new BoxGeometry(0.98, 0.075, 0.13), timber)
+      sleeper.position.copy(point).add(new Vector3(0, -0.055, 0))
+      sleeper.rotation.y = Math.atan2(ahead.z - point.z, ahead.x - point.x) + Math.PI / 2
+      this.harbourStreet.add(sleeper)
+    }
+    const sign = this.createSign('RAIL SHED → LOOP', '#f4ecd5', 205, 44)
+    sign.scale.set(1.08, 0.26, 1)
+    sign.position.set(9.88, harbourStreetHeight(9.88, 8.08) + 1.08, 8.08)
+    this.harbourStreet.add(sign)
+  }
+
+  /**
+   * The basin is deliberately shallow and crossed in the open. Its marked
+   * stone ford gives Harbour Works a second waterside route without turning
+   * the coast into a hard, rectangular gameplay boundary.
+   */
+  private addHarbourTidalBasinAndGardens(): void {
+    const basinX = -10.85
+    const basinZ = 2.3
+    const basinWidth = 3.85
+    const basinLength = 11.4
+    const water = this.createHarbourStreetSurface(basinWidth, basinLength, basinX, basinZ, '#4e99a0', 0.105)
+    this.harbourStreet.add(water)
+    const shore = new MeshLambertMaterial({ color: '#b9a774', flatShading: true })
+    for (const x of [basinX - basinWidth / 2 - 0.28, basinX + basinWidth / 2 + 0.28]) {
+      const apron = this.createHarbourStreetSurface(0.5, basinLength + 0.18, x, basinZ, '#b9a774', 0.13)
+      this.harbourStreet.add(apron)
+    }
+
+    const fordZ = 2.75
+    const ford = this.createHarbourStreetSurface(basinWidth + 0.76, 1.12, basinX, fordZ, '#c9bb91', 0.18)
+    this.harbourStreet.add(ford)
+    for (let x = basinX - 1.98; x <= basinX + 1.98; x += 0.54) {
+      const stone = new Mesh(new BoxGeometry(0.42, 0.07, 0.72), shore)
+      stone.position.set(x, harbourStreetHeight(x, fordZ) + 0.23, fordZ)
+      this.harbourStreet.add(stone)
+    }
+
+    const reedStem = new MeshLambertMaterial({ color: '#52735a', flatShading: true })
+    const reedHead = new MeshLambertMaterial({ color: '#a77e4d', flatShading: true })
+    for (const [x, z, height] of [
+      [-12.55, -1.95, 0.76], [-12.72, 0.15, 0.94], [-12.54, 5.9, 0.7],
+      [-9.16, -1.35, 0.86], [-9.04, 0.75, 0.72], [-9.16, 6.25, 0.98],
+    ] as Array<[number, number, number]>) {
+      const stem = new Mesh(new CylinderGeometry(0.025, 0.04, height, 4), reedStem)
+      stem.position.set(x, harbourStreetHeight(x, z) + height / 2 + 0.13, z)
+      stem.rotation.z = x < basinX ? -0.15 : 0.15
+      this.harbourStreet.add(stem)
+      const head = new Mesh(new CylinderGeometry(0.042, 0.057, height * 0.28, 4), reedHead)
+      head.position.set(x + (x < basinX ? -0.02 : 0.02), harbourStreetHeight(x, z) + height + 0.13, z)
+      head.rotation.z = stem.rotation.z
+      this.harbourStreet.add(head)
+    }
+    for (let index = 0; index < 4; index += 1) {
+      const ripple = new Mesh(new TorusGeometry(0.17 + index * 0.075, 0.018, 4, 10), new MeshLambertMaterial({ color: '#b6e0d3', transparent: true, opacity: 0.72, flatShading: true }))
+      ripple.rotation.x = Math.PI / 2
+      const x = basinX + (index % 2 === 0 ? -0.52 : 0.63)
+      const z = -1.35 + index * 2.04
+      ripple.position.set(x, harbourStreetHeight(x, z) + 0.16, z)
+      this.harbourStreet.add(ripple)
+    }
+    const fordSign = this.createSign('LOW-TIDE FORD', '#eef2dc', 188, 44)
+    fordSign.scale.set(1.0, 0.25, 1)
+    fordSign.position.set(basinX, harbourStreetHeight(basinX, fordZ + 1.0) + 1.02, fordZ + 1.0)
+    this.harbourStreet.add(fordSign)
+
+    // Tide Gardens is the public, landward counterpart to the working quay.
+    // The path keeps the garden linked to both the valve yard and Tidehouse Row.
+    this.harbourStreet.add(this.createHarbourStreetSurface(2.0, 6.7, -5.85, 0.78, '#c2ae82', 0.125))
+    this.harbourStreet.add(this.createHarbourStreetSurface(4.05, 4.55, -6.1, 4.98, '#83a96f', 0.135))
+    const gardenStone = new MeshLambertMaterial({ color: '#b9aa82', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#70503d', flatShading: true })
+    const leaf = new MeshLambertMaterial({ color: '#4f8b62', flatShading: true })
+    const darkLeaf = new MeshLambertMaterial({ color: '#376d56', flatShading: true })
+    for (const [x, z, scale] of [[-7.72, 4.25, 0.82], [-4.72, 5.62, 0.68]] as Array<[number, number, number]>) {
+      const tree = new Group()
+      const trunk = new Mesh(new CylinderGeometry(0.1, 0.15, 1.05 * scale, 5), timber)
+      trunk.position.y = 0.52 * scale
+      trunk.rotation.z = x < -6 ? -0.18 : 0.14
+      tree.add(trunk)
+      const crown = new Mesh(new ConeGeometry(0.9 * scale, 1.75 * scale, 6), x < -6 ? darkLeaf : leaf)
+      crown.position.set(0.12 * (x < -6 ? -1 : 1), 1.56 * scale, 0)
+      crown.rotation.z = trunk.rotation.z
+      tree.add(crown)
+      tree.position.set(x, harbourStreetHeight(x, z), z)
+      this.harbourStreet.add(tree)
+      this.addHarbourStreetBlocker(x, z, 0.72 * scale)
+    }
+
+    const bench = new Group()
+    const seat = new Mesh(new BoxGeometry(1.24, 0.13, 0.34), timber)
+    seat.position.y = 0.42
+    bench.add(seat)
+    const back = new Mesh(new BoxGeometry(1.24, 0.32, 0.08), timber)
+    back.position.set(0, 0.61, 0.14)
+    bench.add(back)
+    bench.position.set(-5.68, harbourStreetHeight(-5.68, 4.28), 4.28)
+    bench.rotation.y = -0.22
+    this.harbourStreet.add(bench)
+    this.addHarbourStreetBlocker(-5.68, 4.28, 0.68)
+
+    const tideSeat = new Group()
+    const base = new Mesh(new CylinderGeometry(0.5, 0.64, 0.26, 8), gardenStone)
+    base.position.y = 0.13
+    tideSeat.add(base)
+    const face = new Mesh(new CylinderGeometry(0.32, 0.32, 0.04, 8), new MeshLambertMaterial({ color: '#d6c16e', flatShading: true }))
+    face.position.y = 0.28
+    tideSeat.add(face)
+    const hand = new Mesh(new BoxGeometry(0.045, 0.025, 0.34), new MeshLambertMaterial({ color: '#42636a', flatShading: true }))
+    hand.position.set(0.08, 0.32, 0)
+    hand.rotation.y = 0.52
+    tideSeat.add(hand)
+    tideSeat.position.set(-6.65, harbourStreetHeight(-6.65, 6.02), 6.02)
+    this.harbourStreet.add(tideSeat)
+    this.addHarbourStreetBlocker(-6.65, 6.02, 0.63)
+
+    for (const [x, z] of [[-7.92, 6.12], [-4.34, 4.0]] as Array<[number, number]>) {
+      const lamp = new Group()
+      const pole = new Mesh(new CylinderGeometry(0.055, 0.075, 1.66, 6), new MeshLambertMaterial({ color: '#34565d', flatShading: true }))
+      pole.position.y = 0.83
+      lamp.add(pole)
+      const glow = new Mesh(new SphereGeometry(0.12, 7, 5), new MeshLambertMaterial({ color: '#f5d873', emissive: new Color('#bd7a37'), emissiveIntensity: 0.7, flatShading: true }))
+      glow.position.y = 1.58
+      lamp.add(glow)
+      lamp.position.set(x, harbourStreetHeight(x, z), z)
+      this.harbourStreet.add(lamp)
+    }
+    const gardenSign = this.createSign('TIDE GARDENS', '#f1ead4', 196, 46)
+    gardenSign.scale.set(1.08, 0.27, 1)
+    gardenSign.position.set(-6.08, harbourStreetHeight(-6.08, 6.82) + 1.12, 6.82)
+    this.harbourStreet.add(gardenSign)
   }
 
   /**
