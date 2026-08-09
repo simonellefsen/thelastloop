@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultSave, readSave, SAVE_KEY, writeSave } from './storage'
+import { defaultSave, freshStorySave, readSave, SAVE_KEY, writeSave } from './storage'
 
 function memoryStorage() {
   const values = new Map<string, string>()
@@ -63,5 +63,27 @@ describe('game save', () => {
 
     store.setItem(SAVE_KEY, JSON.stringify({ ...save, streetPosition: [Infinity, 'wrong'] }))
     expect(readSave(store).streetPosition).toEqual(defaultSave().streetPosition)
+  })
+
+  it('starts a fresh story while retaining player preferences', () => {
+    const current = {
+      ...defaultSave(),
+      soundEnabled: false,
+      reducedMotion: true,
+      coatColor: 'ocean' as const,
+      identity: { callsign: 'MIST-4' },
+      district: 'observatory' as const,
+      streetPosition: [8.2, -5.4] as [number, number],
+      quest: { ...defaultSave().quest, stationNameRestored: true, harbour: 'complete' as const },
+    }
+    const fresh = freshStorySave(current)
+
+    expect(fresh.quest).toEqual(defaultSave().quest)
+    expect(fresh.district).toBe('hillside')
+    expect(fresh.streetPosition).toEqual([0, 7.4])
+    expect(fresh.soundEnabled).toBe(false)
+    expect(fresh.reducedMotion).toBe(true)
+    expect(fresh.coatColor).toBe('ocean')
+    expect(fresh.identity).toEqual({ callsign: 'MIST-4' })
   })
 })

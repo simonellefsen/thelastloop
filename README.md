@@ -4,7 +4,7 @@ A tiny, original railway world built for iPhone landscape and the browser. Walk 
 
 The station passenger pass is local-only and non-identifying. There are no live rooms or networked players in this release.
 
-Quest progress, audio and motion preferences, the selected district, and the last safe local street position are stored only in versioned browser storage.
+Quest progress, audio and motion preferences, the selected district, and the last safe local street position are stored only in versioned browser storage. Refresh resumes the journey; **Start fresh** clears story progress, routes and position while retaining sound, motion and player-style preferences.
 
 ## Development
 

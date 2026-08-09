@@ -37,7 +37,7 @@ import { animationTime, nextRenderResolution, shouldRender } from './runtime'
 import { advanceSideQuest, defaultQuest, resolveClue, unlockHarbour, unlockObservatory } from './quest'
 import { coatColors, nextCoatColor } from './style'
 import { Soundscape, soundscapeProfile } from './soundscape'
-import { readSave, writeSave } from './storage'
+import { freshStorySave, readSave, writeSave } from './storage'
 import type { SphericalBlocker, StreetBlocker } from './math'
 import type { ClueId, DistrictId, GameHud, GameSave, PlayerController, SideQuestId, SideQuestStage, WorldInteractable } from './types'
 
@@ -210,6 +210,12 @@ export class GameWorld implements PlayerController {
 
   getReducedMotion(): boolean {
     return this.save.reducedMotion
+  }
+
+  /** Stores an explicit new-story save; App reloads to rebuild every scene cleanly. */
+  startFresh(): void {
+    this.save = freshStorySave(this.save)
+    writeSave(window.localStorage, this.save)
   }
 
   setTitlePreview(district: DistrictId): void {

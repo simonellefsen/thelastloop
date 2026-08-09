@@ -84,6 +84,12 @@
     showArrival(titleDistrict)
   }
 
+  function startFresh() {
+    if (!window.confirm('Start a fresh loop? This clears story progress, routes, and your last position. Sound, motion, coat, and passenger-pass settings stay yours.')) return
+    game?.startFresh()
+    window.location.reload()
+  }
+
   function previewWorld(district: DistrictId) {
     titleDistrict = district
     game?.setTitlePreview(district)
@@ -199,6 +205,7 @@
         {/each}
       </div>
       <button class="enter-button" onclick={enterWorld}>Begin the story</button>
+      <button class="new-loop-button" onclick={startFresh}>Start fresh · clear progress</button>
       <p class="title-tip">Choose a route to light its beacon · touch to guide your walk · headphones optional</p>
     </section>
   {:else}
@@ -206,6 +213,7 @@
       <header>
         <div class="wordmark">THE LAST LOOP</div>
         <div class="header-actions">
+          <button class="reset-button" onclick={startFresh} aria-label="Start a fresh loop and clear progress" title="Start a fresh loop">↺</button>
           <button class="motion-button" class:active={reducedMotion} onclick={toggleReducedMotion} aria-label={reducedMotion ? 'Enable ambient motion' : 'Reduce ambient motion'} aria-pressed={reducedMotion}>
             {reducedMotion ? '◌' : '≈'}
           </button>

@@ -52,6 +52,7 @@ export interface PlayerController {
   leaveStation(): void
   cycleCoat(): void
   cyclePassengerIdentity(): void
+  startFresh(): void
   setTitlePreview(district: DistrictId): void
   travelToHarbour(): void
   travelToObservatory(): void

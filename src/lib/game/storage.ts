@@ -23,6 +23,21 @@ export function defaultSave(): GameSave {
   }
 }
 
+/**
+ * Starts the story again without discarding a player's comfort and style
+ * preferences. The reset is explicit; ordinary reloads deliberately resume.
+ */
+export function freshStorySave(current: GameSave): GameSave {
+  const fresh = defaultSave()
+  return {
+    ...fresh,
+    soundEnabled: current.soundEnabled,
+    reducedMotion: current.reducedMotion,
+    coatColor: current.coatColor,
+    identity: current.identity,
+  }
+}
+
 export function readSave(storage: StorageLike): GameSave {
   const fallback = defaultSave()
   try {
