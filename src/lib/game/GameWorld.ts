@@ -3087,6 +3087,7 @@ export class GameWorld implements PlayerController {
     this.addMoonhillLensPath()
     this.addMoonhillSignalTerrace()
     this.addMoonhillAlmanacGarden()
+    this.addMoonhillCometWalk()
     this.addMoonhillWarden(-2.55, -1.5)
     this.addObservatoryStreetMarker('observatory-lens', 'Starlight lens', 'first', -5.5, -2.2, 'A starlight lens rests beside the hill path. The telescope can see again.')
     this.addObservatoryStreetMarker('observatory-scope', 'Align scope', 'second', 1.5, -3.85, 'The moon signal crosses the glass. Every faraway station gets one clear night.')
@@ -3511,6 +3512,120 @@ export class GameWorld implements PlayerController {
     gardenSign.scale.set(1.2, 0.28, 1)
     gardenSign.position.set(5.15, observatoryStreetHeight(5.15, 5.85) + 1.15, 5.85)
     this.observatoryStreet.add(gardenSign)
+  }
+
+  /**
+   * An east-side circuit ties Archive Terrace to Almanac Garden. The centre is
+   * left deliberately clear, while the small skyhouse and outer parapet give
+   * Moonhill a protected high-road horizon rather than a blank grass edge.
+   */
+  private addMoonhillCometWalk(): void {
+    this.observatoryStreet.add(this.createObservatoryStreetSurface(2.35, 13.65, 10.18, -0.12, '#a49e94', 0.145))
+    this.observatoryStreet.add(this.createObservatoryStreetSurface(3.35, 2.0, 8.78, -5.65, '#aaa398', 0.145))
+    this.observatoryStreet.add(this.createObservatoryStreetSurface(3.35, 2.0, 8.78, 5.58, '#aaa398', 0.145))
+
+    const paleStone = new MeshLambertMaterial({ color: '#d9d4be', flatShading: true })
+    const warmStone = new MeshLambertMaterial({ color: '#9b958c', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#655047', flatShading: true })
+    const slate = new MeshLambertMaterial({ color: '#3d496d', flatShading: true })
+    const brass = new MeshLambertMaterial({ color: '#c9a566', emissive: new Color('#715a39'), emissiveIntensity: 0.2, flatShading: true })
+    const moss = new MeshLambertMaterial({ color: '#4f7067', flatShading: true })
+
+    for (let x = 9.2; x <= 11.15; x += 0.48) {
+      for (let z = -6.5; z <= 6.2; z += 0.5) {
+        const slab = new Mesh(new BoxGeometry(0.4, 0.04, 0.4), (Math.round((x + z) * 2) % 2 === 0) ? paleStone : warmStone)
+        slab.position.set(x, observatoryStreetHeight(x, z) + 0.195, z)
+        this.observatoryStreet.add(slab)
+      }
+    }
+
+    const skyhouseX = 12.75
+    const skyhouseZ = -0.78
+    const skyhouse = new Group()
+    const body = new Mesh(new BoxGeometry(1.9, 1.45, 1.48), new MeshLambertMaterial({ color: '#687977', flatShading: true }))
+    body.position.y = 0.725
+    skyhouse.add(body)
+    const roof = new Mesh(new ConeGeometry(1.3, 0.7, 4), slate)
+    roof.rotation.y = Math.PI / 4
+    roof.position.y = 1.72
+    skyhouse.add(roof)
+    const door = new Mesh(new PlaneGeometry(0.58, 0.88), new MeshLambertMaterial({ color: '#2d5060', side: DoubleSide }))
+    door.position.set(-0.3, 0.47, 0.746)
+    skyhouse.add(door)
+    const window = new Mesh(new PlaneGeometry(0.42, 0.44), new MeshLambertMaterial({ color: '#d9e6dc', side: DoubleSide }))
+    window.position.set(0.43, 0.94, 0.75)
+    skyhouse.add(window)
+    const sign = this.createSign('SKYHOUSE', '#eee9d8', 158, 42)
+    sign.scale.set(0.88, 0.24, 1)
+    sign.position.set(0, 1.67, 0.755)
+    skyhouse.add(sign)
+    const vanePost = new Mesh(new CylinderGeometry(0.035, 0.045, 0.82, 5), brass)
+    vanePost.position.set(0.15, 2.38, 0)
+    skyhouse.add(vanePost)
+    const vane = new Mesh(new BoxGeometry(0.76, 0.045, 0.09), brass)
+    vane.position.set(0.15, 2.7, 0)
+    vane.rotation.y = -0.32
+    skyhouse.add(vane)
+    skyhouse.position.set(skyhouseX, observatoryStreetHeight(skyhouseX, skyhouseZ), skyhouseZ)
+    this.observatoryStreet.add(skyhouse)
+    this.addObservatoryStreetBlocker(skyhouseX, skyhouseZ, 1.14)
+
+    const meteorX = 9.78
+    const meteorZ = -2.88
+    const meteor = new Group()
+    const plinth = new Mesh(new CylinderGeometry(0.42, 0.54, 0.52, 7), warmStone)
+    plinth.position.y = 0.26
+    meteor.add(plinth)
+    const stone = new Mesh(new ConeGeometry(0.34, 0.65, 6), new MeshLambertMaterial({ color: '#6b7085', flatShading: true }))
+    stone.rotation.x = Math.PI
+    stone.rotation.z = 0.3
+    stone.position.y = 0.76
+    meteor.add(stone)
+    const fleck = new Mesh(new SphereGeometry(0.08, 6, 5), brass)
+    fleck.position.set(0.18, 0.91, 0.06)
+    meteor.add(fleck)
+    meteor.position.set(meteorX, observatoryStreetHeight(meteorX, meteorZ), meteorZ)
+    this.observatoryStreet.add(meteor)
+    this.addObservatoryStreetBlocker(meteorX, meteorZ, 0.58)
+
+    const bench = new Group()
+    const seat = new Mesh(new BoxGeometry(1.18, 0.14, 0.34), timber)
+    seat.position.y = 0.42
+    bench.add(seat)
+    const back = new Mesh(new BoxGeometry(1.18, 0.3, 0.075), timber)
+    back.position.set(0, 0.62, 0.13)
+    bench.add(back)
+    bench.position.set(9.62, observatoryStreetHeight(9.62, 3.2), 3.2)
+    bench.rotation.y = -Math.PI / 2
+    this.observatoryStreet.add(bench)
+    this.addObservatoryStreetBlocker(9.62, 3.2, 0.64)
+
+    for (const z of [-5.95, -3.75, 1.0, 5.22]) {
+      const lamp = new Group()
+      const post = new Mesh(new CylinderGeometry(0.05, 0.07, 1.58, 6), timber)
+      post.position.y = 0.79
+      lamp.add(post)
+      const glow = new Mesh(new SphereGeometry(0.12, 7, 5), new MeshLambertMaterial({ color: '#f0d575', emissive: new Color('#b77d42'), emissiveIntensity: 0.7, flatShading: true }))
+      glow.position.y = 1.54
+      lamp.add(glow)
+      lamp.position.set(8.92, observatoryStreetHeight(8.92, z), z)
+      this.observatoryStreet.add(lamp)
+    }
+
+    for (const z of [-5.7, -3.95, -2.2, 0.2, 2.55, 4.82]) {
+      const parapet = new Mesh(new BoxGeometry(0.28, 0.5, 0.86), moss)
+      parapet.position.set(11.75, observatoryStreetHeight(11.75, z) + 0.25, z)
+      this.observatoryStreet.add(parapet)
+      this.addObservatoryStreetBlocker(11.75, z, 0.35)
+    }
+    const outerRail = new Mesh(new BoxGeometry(0.06, 0.06, 11.8), brass)
+    outerRail.position.set(11.75, observatoryStreetHeight(11.75, -0.35) + 0.68, -0.35)
+    this.observatoryStreet.add(outerRail)
+
+    const walkSign = this.createSign('COMET WALK', '#eee9d8', 182, 46)
+    walkSign.scale.set(1.02, 0.27, 1)
+    walkSign.position.set(10.18, observatoryStreetHeight(10.18, 5.92) + 1.1, 5.92)
+    this.observatoryStreet.add(walkSign)
   }
 
   /** Moonhill's quiet warden is decorative until the player enters a short talk radius. */

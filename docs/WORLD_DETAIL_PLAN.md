@@ -48,6 +48,8 @@ Harbour Works' inland shoulder now has a short freight spur and Rail Shed. Balla
 
 Chandlery Yard now continues that freight branch along an open paved turn toward a fictional sail-and-supply workshop. Its rack, capstan, stacked cargo and lamps make the north-east shoulder a readable working destination. Collision is reserved for the workshop and yard hardware, keeping the route through the pocket comfortable on a phone.
 
+Comet Walk completes Moonhill's east-side circuit between Archive Terrace and Almanac Garden. Its shallow stone path, meteor marker, skyhouse, lamps and protected outer edge turn a formerly open slope into a route with a purpose; its central line remains clear apart from small, readable landmarks.
+
 Moonhill now mirrors that depth with a Wind Lookout beyond the observatory terrace: a sheltered rest point, star-chart table, fire bowl and low parapet form a quiet outward-facing pocket while preserving a clear path to the telescope.
 
 Lens Path is Moonhill's westward branch from the observatory road. Low handrails and repeated stone slabs lead to a tiny three-star dais, while the nearby pine is held back from the marker's interaction radius so the first violet objective stays visible and reachable.

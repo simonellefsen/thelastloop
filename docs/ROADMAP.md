@@ -72,6 +72,7 @@
 - ✅ Add non-blocking, timed district arrival cards so the selected route is legible at street-scale entry without creating a permanent dialogue panel.
 - ✅ Connect Ravnbro's Market Courtyard to North Market Walk with Coppersmith Lane: a cobbled open-centre craft route with a workshop, forge yard, drainage and lamps gives the north-east town edge a proper walking purpose.
 - ✅ Extend Harbour Works beyond Rail Shed with Chandlery Yard: a paved eastward supply route, sail rack, capstan, cargo and workshop make the dockyard's inland shoulder a real destination.
+- ✅ Connect Moonhill's Archive Terrace to Almanac Garden with Comet Walk: a protected eastern high-road, skyhouse, meteor marker and lamps complete a readable street-scale circuit.
 - Extend L2/L3 with rail hardware, dense interaction pockets and collision-aware terrain.
 - Add recorded ambience and music after an original audio session.
 
