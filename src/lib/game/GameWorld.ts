@@ -32,6 +32,7 @@ import { entryCameraProfile, streetArrivalProfile, type StreetCameraProfile } fr
 import { objectiveDirection, screenRelativeStreetDirection } from './controls'
 import { gentleStreetHeight, isOutsideSphericalBlockers, isOutsideStreetBlockers, isWithinWalkableCap, tangentForward } from './math'
 import { nextPassengerIdentity } from './presence'
+import { globalRailStops, nextGlobalRailStop } from './railway'
 import { restorationLightProfile, type RestorationDistrict } from './restoration'
 import { animationTime, nextRenderResolution, shouldRender } from './runtime'
 import { advanceSideQuest, defaultQuest, resolveClue, unlockHarbour, unlockObservatory } from './quest'
@@ -458,8 +459,9 @@ export class GameWorld implements PlayerController {
   /** A continuous, visible route is the title world's connective tissue. */
   private addTitleRailRoute(): void {
     const routePoints = [
-      [0.74, -1.7], [1.17, -0.78], [0.94, 0.18], [1.14, 0.94],
-      [0.8, 1.82], [1.28, 2.68], [1.31, 2.27], [1.22, -2.62],
+      [globalRailStops[0].titleLatitude, globalRailStops[0].titleLongitude], [1.17, -0.78],
+      [globalRailStops[1].titleLatitude, globalRailStops[1].titleLongitude], [1.14, 0.94],
+      [globalRailStops[2].titleLatitude, globalRailStops[2].titleLongitude], [1.28, 2.68], [1.31, 2.27], [1.22, -2.62],
     ].map(([latitude, longitude]) => this.normalAt(latitude, longitude).multiplyScalar(10.62))
     this.titleRoute = new CatmullRomCurve3(routePoints, true, 'centripetal')
     const ballast = new Mesh(
@@ -623,6 +625,9 @@ export class GameWorld implements PlayerController {
     this.addRavnbroLaneThreshold()
     this.addRavnbroDepotYard()
     this.addRavnbroFreightSpur()
+    this.addStreetLoopSection('hillside', this.hillsideStreet, gentleStreetHeight, [
+      [-14.5, 8.4], [-15.2, 1.5], [-13.8, -6.5], [-8.8, -12.2], [0, -14.1], [8.8, -12.2], [14.2, -6], [15.1, 2.4], [12.2, 9.4], [4.5, 13.2], [-5.5, 13.6],
+    ], 'TO REEDWATER VIADUCT', -11.2, 10.2)
     this.addMarketFold()
     this.addMarketCourtyard()
     this.addRavnbroClockmakersCourt()
@@ -1613,6 +1618,64 @@ export class GameWorld implements PlayerController {
     return new Mesh(geometry, new MeshLambertMaterial({ color, flatShading: true, side: DoubleSide }))
   }
 
+  /**
+   * A local section of the one global railway. It runs just beyond the dense
+   * street pocket, making both directions of the loop visible without putting
+   * rails through buildings or narrowing the player's normal walking routes.
+   */
+  private addStreetLoopSection(
+    districtId: DistrictId,
+    district: Group,
+    heightAt: (x: number, z: number) => number,
+    points: ReadonlyArray<readonly [number, number]>,
+    exitLabel: string,
+    signX: number,
+    signZ: number,
+  ): void {
+    const createRoute = (offset: number) => points.map(([x, z], index) => {
+      const previous = points[(index - 1 + points.length) % points.length]
+      const next = points[(index + 1) % points.length]
+      const directionX = next[0] - previous[0]
+      const directionZ = next[1] - previous[1]
+      const length = Math.hypot(directionX, directionZ) || 1
+      const normalX = -directionZ / length
+      const normalZ = directionX / length
+      const railX = x + normalX * offset
+      const railZ = z + normalZ * offset
+      return new Vector3(railX, heightAt(railX, railZ) + 0.19, railZ)
+    })
+    const centre = new CatmullRomCurve3(createRoute(0), true, 'centripetal')
+    const leftRail = new CatmullRomCurve3(createRoute(-0.28), true, 'centripetal')
+    const rightRail = new CatmullRomCurve3(createRoute(0.28), true, 'centripetal')
+    const ballast = new Mesh(new TubeGeometry(centre, 180, 0.38, 5, true), new MeshLambertMaterial({ color: '#8e856d', flatShading: true }))
+    const iron = new MeshLambertMaterial({ color: '#365258', flatShading: true })
+    district.add(ballast)
+    district.add(new Mesh(new TubeGeometry(leftRail, 180, 0.055, 5, true), iron))
+    district.add(new Mesh(new TubeGeometry(rightRail, 180, 0.055, 5, true), iron))
+
+    const timber = new MeshLambertMaterial({ color: '#64493a', flatShading: true })
+    for (let index = 0; index < 68; index += 1) {
+      const progress = index / 68
+      const point = centre.getPointAt(progress)
+      const ahead = centre.getPointAt((progress + 0.002) % 1)
+      const sleeper = new Mesh(new BoxGeometry(0.98, 0.075, 0.13), timber)
+      sleeper.position.set(point.x, heightAt(point.x, point.z) + 0.14, point.z)
+      sleeper.rotation.y = Math.atan2(ahead.z - point.z, ahead.x - point.x) + Math.PI / 2
+      district.add(sleeper)
+    }
+
+    const exit = this.createSign(exitLabel, '#f4ecd5', 220, 48)
+    exit.scale.set(1.18, 0.28, 1)
+    exit.position.set(signX, heightAt(signX, signZ) + 1.16, signZ)
+    district.add(exit)
+
+    const stop = nextGlobalRailStop(districtId)
+    const routeMark = this.createSign(`${stop.name} LOOP`, '#e7c76a', 150, 42)
+    routeMark.scale.set(0.76, 0.22, 1)
+    routeMark.position.set(signX, heightAt(signX, signZ) + 0.72, signZ)
+    district.add(routeMark)
+  }
+
   private addFlatBuilding(x: number, z: number, wall: string, roofColor: string, label: string): void {
     if (label === 'STATION') {
       this.addRavnbroStation(x, z, wall, roofColor)
@@ -2366,6 +2429,9 @@ export class GameWorld implements PlayerController {
     this.addHarbourTideyard()
     this.addHarbourRepairQuay()
     this.addHarbourRailShed()
+    this.addStreetLoopSection('harbour', this.harbourStreet, harbourStreetHeight, [
+      [-14.5, 8.2], [-15.2, 0.5], [-13, -7.6], [-7.4, -12.8], [0.4, -14.2], [8.8, -11.7], [14.1, -5.2], [15, 2.8], [12.3, 9.2], [5, 11.4], [-4.8, 11.6],
+    ], 'TO TIDEWAY CAUSEWAY', 10.4, 9.0)
     this.addHarbourChandleryYard()
     this.addHarbourTidehouseRow()
     this.addHarbourTideClockLights()
@@ -3152,6 +3218,9 @@ export class GameWorld implements PlayerController {
     this.addMoonhillArchiveTerrace()
     this.addMoonhillLensPath()
     this.addMoonhillSignalTerrace()
+    this.addStreetLoopSection('observatory', this.observatoryStreet, observatoryStreetHeight, [
+      [-14.4, 9.1], [-15.1, 1.6], [-13.4, -6.8], [-8.6, -12.6], [0, -14.3], [9.1, -11.8], [14.2, -5.1], [15.1, 2.6], [12.1, 9.6], [4.7, 13.4], [-5.5, 13.6],
+    ], 'TO NIGHTFALL CUTTING', 9.8, 9.6)
     this.addMoonhillAlmanacGarden()
     this.addMoonhillCometWalk()
     this.addMoonhillSignalLights()

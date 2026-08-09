@@ -78,7 +78,11 @@
 - ✅ Rework street guidance around a close, camera-relative third-person rig: held-finger and keyboard movement now follow the screen through eased street turns rather than fixed world axes.
 - ✅ Replace the visible street-map cutoff with wide, fog-bound rolling terrain shells and an extended Harbour sea, preserving a shallow local curve while restoring the mini-globe horizon feeling.
 - ✅ Keep reload-safe browser saves while exposing an explicit, confirmed Start fresh action that clears story progress and routes without discarding player preferences.
-- Extend L2/L3 with rail hardware, dense interaction pockets and collision-aware terrain.
+- ✅ Define the single global railway backbone in code and give each street district a visible, two-way local loop section rather than another disconnected decorative spur.
+- Complete Ravnbro as the first finished town: connect Station Gate and North Yard to the outer through-line; add Bell Orchard and a marked, shallow Reedwater ford/bridge route.
+- Complete Harbour Works as the second finished town: join Rail Shed to the outer through-line; add a walkable tidal-basin crossing and Tide Gardens.
+- Complete Moonhill as the third finished town: join Signal Terrace to the outer through-line; add the spring crossing, Almanac Green and finished high-street frontages.
+- Replace district-to-district scene changes with streamed, rideable rail travel only after all three local town plans are complete.
 - Add recorded ambience and music after an original audio session.
 
 ## Later: shared loop

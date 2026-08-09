@@ -4,7 +4,7 @@
 
 The Last Loop is a gentle, social railway mystery set on a tiny walkable planet. The old circular line is silent and its hillside station has forgotten its name. The player restores a place by walking its paths and noticing the stories held by ordinary objects.
 
-The title screen is also a world showcase: it can switch between the actual 3D hillside, harbour and observatory globes before the story begins. This makes the scope visible immediately without bypassing the hillside narrative.
+The title screen is also a world showcase: it can switch between the actual 3D hillside, harbour and observatory globes before the story begins. This makes the scope visible immediately without bypassing the hillside narrative. The towns belong to one named global railway loop; see the [complete planet masterplan](WORLD_MASTERPLAN.md) for the town, water and rail continuity rules.
 
 ## V1 story
 
@@ -19,7 +19,7 @@ Restoring the name opens the station interior. Its route map leads to Harbour Wo
 
 ## Harbour Works
 
-Harbour Works is a separate compact globe reached from the restored station map. The title keeps its full globe silhouette, while play enters an upright, gently rolling dock district with a rust-red warehouse, crane, working pier, fishing boat and tide clock. In **Wake the Tide Clock**, the player finds a blue tide valve and carries it to the dock pump. Repairing it turns the clock green and lets the harbour keep time with the water again.
+Harbour Works is the second town on the compact loop, currently reached from the restored station map while seamless rail travel is built. The title keeps its full globe silhouette, while play enters an upright, gently rolling dock district with a rust-red warehouse, crane, working pier, fishing boat and tide clock. In **Wake the Tide Clock**, the player finds a blue tide valve and carries it to the dock pump. Repairing it turns the clock green and lets the harbour keep time with the water again.
 
 The route is persisted locally, so reloading while visiting the harbour returns the player to the same district.
 
