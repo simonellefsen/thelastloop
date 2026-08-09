@@ -614,6 +614,7 @@ export class GameWorld implements PlayerController {
     this.addMarketFold()
     this.addMarketCourtyard()
     this.addRavnbroClockmakersCourt()
+    this.addRavnbroCoppersmithLane()
     this.addRavnbroNorthMarketWalk()
     this.addSignalYard()
     this.addFlatKeeper(0, 2.2)
@@ -1164,6 +1165,132 @@ export class GameWorld implements PlayerController {
     courtSign.scale.set(1.25, 0.28, 1)
     courtSign.position.set(6.26, gentleStreetHeight(6.26, 5.84) + 1.22, 5.84)
     this.hillsideStreet.add(courtSign)
+  }
+
+  /**
+   * A narrow craft lane joins the market's rear courtyard to the northern walk.
+   * The workshop and forge stay to one side, so a phone-sized player view keeps
+   * a clear line through the middle instead of gaining another prop maze.
+   */
+  private addRavnbroCoppersmithLane(): void {
+    const laneX = 12.18
+    const laneZ = 4.82
+    this.hillsideStreet.add(this.createRollingStreetSurface(2.45, 6.55, laneX, laneZ, '#c5b38a', 0.108))
+
+    const paleStone = new MeshLambertMaterial({ color: '#d9cba7', flatShading: true })
+    const warmStone = new MeshLambertMaterial({ color: '#aa956f', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#65483b', flatShading: true })
+    const brick = new MeshLambertMaterial({ color: '#9f5140', flatShading: true })
+    const darkBrick = new MeshLambertMaterial({ color: '#713c35', flatShading: true })
+    const slate = new MeshLambertMaterial({ color: '#3b5658', flatShading: true })
+    const copper = new MeshLambertMaterial({ color: '#c47d43', emissive: new Color('#7a4a2f'), emissiveIntensity: 0.18, flatShading: true })
+
+    for (let x = 11.17; x <= 13.18; x += 0.48) {
+      for (let z = 1.9; z <= 7.92; z += 0.48) {
+        const paver = new Mesh(new BoxGeometry(0.4, 0.038, 0.38), (Math.round((x + z) * 2) % 2 === 0) ? paleStone : warmStone)
+        paver.position.set(x, gentleStreetHeight(x, z) + 0.148, z)
+        this.hillsideStreet.add(paver)
+      }
+    }
+
+    const workshopX = 14.62
+    const workshopZ = 4.3
+    const workshop = new Group()
+    const workshopBody = new Mesh(new BoxGeometry(2.28, 1.7, 1.82), brick)
+    workshopBody.position.y = 0.85
+    workshop.add(workshopBody)
+    const workshopRoof = new Mesh(new ConeGeometry(1.62, 0.74, 4), slate)
+    workshopRoof.rotation.y = Math.PI / 4
+    workshopRoof.position.y = 2.05
+    workshop.add(workshopRoof)
+    const workshopDoor = new Mesh(new PlaneGeometry(0.64, 0.96), new MeshLambertMaterial({ color: '#2d5054', side: DoubleSide }))
+    workshopDoor.position.set(-0.42, 0.5, 0.92)
+    workshop.add(workshopDoor)
+    const workshopWindow = new Mesh(new PlaneGeometry(0.48, 0.54), new MeshLambertMaterial({ color: '#dbe6d8', side: DoubleSide }))
+    workshopWindow.position.set(0.48, 1.02, 0.925)
+    workshop.add(workshopWindow)
+    const workshopSign = this.createSign('COPPERSMITH', '#f5ebd0', 205, 48)
+    workshopSign.scale.set(1.12, 0.28, 1)
+    workshopSign.position.set(0, 1.96, 0.93)
+    workshop.add(workshopSign)
+    const chimney = new Mesh(new BoxGeometry(0.28, 1.05, 0.28), darkBrick)
+    chimney.position.set(0.64, 2.18, -0.36)
+    workshop.add(chimney)
+    workshop.position.set(workshopX, gentleStreetHeight(workshopX, workshopZ), workshopZ)
+    this.hillsideStreet.add(workshop)
+    this.addStreetBlocker(workshopX, workshopZ, 1.34)
+
+    const forgeX = 14.1
+    const forgeZ = 6.88
+    const forge = new Group()
+    const forgeBase = new Mesh(new BoxGeometry(0.82, 0.62, 0.68), darkBrick)
+    forgeBase.position.y = 0.31
+    forge.add(forgeBase)
+    const forgeGlow = new Mesh(new CylinderGeometry(0.22, 0.26, 0.08, 7), copper)
+    forgeGlow.position.set(0, 0.66, 0.03)
+    forge.add(forgeGlow)
+    const hood = new Mesh(new ConeGeometry(0.52, 0.48, 4), slate)
+    hood.rotation.y = Math.PI / 4
+    hood.position.y = 1.12
+    forge.add(hood)
+    forge.position.set(forgeX, gentleStreetHeight(forgeX, forgeZ), forgeZ)
+    this.hillsideStreet.add(forge)
+    this.addStreetBlocker(forgeX, forgeZ, 0.62)
+
+    const anvil = new Group()
+    const anvilBase = new Mesh(new CylinderGeometry(0.15, 0.19, 0.56, 6), timber)
+    anvilBase.position.y = 0.28
+    anvil.add(anvilBase)
+    const anvilTop = new Mesh(new BoxGeometry(0.64, 0.12, 0.2), slate)
+    anvilTop.position.y = 0.61
+    anvil.add(anvilTop)
+    const hammer = new Mesh(new BoxGeometry(0.08, 0.38, 0.06), timber)
+    hammer.rotation.z = 0.72
+    hammer.position.set(0.13, 0.82, 0)
+    anvil.add(hammer)
+    anvil.position.set(13.95, gentleStreetHeight(13.95, 2.34), 2.34)
+    this.hillsideStreet.add(anvil)
+    this.addStreetBlocker(13.95, 2.34, 0.42)
+
+    const drain = new Mesh(new BoxGeometry(0.12, 0.045, 5.78), slate)
+    drain.position.set(10.98, gentleStreetHeight(10.98, laneZ) + 0.15, laneZ)
+    this.hillsideStreet.add(drain)
+    for (const z of [2.7, 4.55, 6.4]) {
+      const grate = new Mesh(new BoxGeometry(0.26, 0.032, 0.13), timber)
+      grate.position.set(10.98, gentleStreetHeight(10.98, z) + 0.176, z)
+      this.hillsideStreet.add(grate)
+    }
+
+    for (const z of [2.3, 5.3, 7.6]) {
+      const post = new Mesh(new CylinderGeometry(0.065, 0.075, 1.14, 6), slate)
+      post.position.set(13.55, gentleStreetHeight(13.55, z) + 0.57, z)
+      this.hillsideStreet.add(post)
+      const lantern = new Mesh(new SphereGeometry(0.1, 7, 5), new MeshLambertMaterial({ color: '#f2cf67', emissive: new Color('#b97936'), emissiveIntensity: 0.68, flatShading: true }))
+      lantern.position.set(13.55, gentleStreetHeight(13.55, z) + 1.13, z)
+      this.hillsideStreet.add(lantern)
+    }
+
+    const rack = new Group()
+    const rackPost = new Mesh(new BoxGeometry(0.1, 1.05, 0.1), timber)
+    rackPost.position.y = 0.525
+    rack.add(rackPost)
+    const rackBar = new Mesh(new BoxGeometry(0.86, 0.07, 0.07), timber)
+    rackBar.position.set(0.24, 0.9, 0)
+    rack.add(rackBar)
+    for (const xOffset of [0.04, 0.33, 0.62]) {
+      const pan = new Mesh(new TorusGeometry(0.11, 0.027, 5, 8), copper)
+      pan.rotation.x = Math.PI / 2
+      pan.position.set(xOffset, 0.66, 0.02)
+      rack.add(pan)
+    }
+    rack.position.set(13.8, gentleStreetHeight(13.8, 7.92), 7.92)
+    this.hillsideStreet.add(rack)
+    this.addStreetBlocker(13.8, 7.92, 0.36)
+
+    const laneSign = this.createSign('COPPERSMITH LANE', '#edf0d8', 230, 48)
+    laneSign.scale.set(1.22, 0.28, 1)
+    laneSign.position.set(12.18, gentleStreetHeight(12.18, 2.02) + 1.2, 2.02)
+    this.hillsideStreet.add(laneSign)
   }
 
   /** The signal clue sits in an open railway-service pocket, not behind scenery. */
