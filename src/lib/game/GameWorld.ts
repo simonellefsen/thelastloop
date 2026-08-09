@@ -2207,6 +2207,7 @@ export class GameWorld implements PlayerController {
     this.addHarbourTideyard()
     this.addHarbourRepairQuay()
     this.addHarbourRailShed()
+    this.addHarbourTidehouseRow()
     this.addHarbourDockKeeper(-0.9, -6.35)
     this.addHarbourStreetMarker('harbour-valve', 'Tide valve', 'first', -5.6, -3.5, 'A blue tide valve clicks free. The dock pump can hear the sea again.')
     this.addHarbourStreetMarker('harbour-pump', 'Wake clock', 'second', 1.55, -8.0, 'The tide clock turns once, then keeps time with the water. The harbour breathes again.')
@@ -2534,6 +2535,112 @@ export class GameWorld implements PlayerController {
     spurSign.scale.set(1.12, 0.28, 1)
     spurSign.position.set(5.38, harbourStreetHeight(5.38, 4.72) + 1.18, 4.72)
     this.harbourStreet.add(spurSign)
+  }
+
+  /**
+   * Tidehouse Row fills Harbour Works' quiet north-west shoulder with a small,
+   * legible working street. It branches directly from the main road and keeps
+   * its middle clear, so the new detail is a destination rather than a trap.
+   */
+  private addHarbourTidehouseRow(): void {
+    this.harbourStreet.add(this.createHarbourStreetSurface(7.1, 3.15, -5.25, 7.75, '#a98a67', 0.12))
+    this.harbourStreet.add(this.createHarbourStreetSurface(2.45, 2.1, -7.55, 9.38, '#927454', 0.13))
+
+    const paleStone = new MeshLambertMaterial({ color: '#c9bb95', flatShading: true })
+    const darkStone = new MeshLambertMaterial({ color: '#947f62', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#6b4c3b', flatShading: true })
+    const brick = new MeshLambertMaterial({ color: '#ae624b', flatShading: true })
+    const slate = new MeshLambertMaterial({ color: '#314f56', flatShading: true })
+    const sailcloth = new MeshLambertMaterial({ color: '#d7cfa8', flatShading: true })
+    const iron = new MeshLambertMaterial({ color: '#34565d', flatShading: true })
+
+    for (let x = -8.45; x <= -2.2; x += 0.52) {
+      for (let z = 6.55; z <= 8.95; z += 0.5) {
+        const paver = new Mesh(new BoxGeometry(0.42, 0.04, 0.4), (Math.round((x + z) * 2) % 2 === 0) ? paleStone : darkStone)
+        paver.position.set(x, harbourStreetHeight(x, z) + 0.17, z)
+        this.harbourStreet.add(paver)
+      }
+    }
+
+    const tidehouse = new Group()
+    const houseBody = new Mesh(new BoxGeometry(2.22, 1.68, 1.72), brick)
+    houseBody.position.y = 0.84
+    tidehouse.add(houseBody)
+    const houseRoof = new Mesh(new ConeGeometry(1.52, 0.72, 4), slate)
+    houseRoof.rotation.y = Math.PI / 4
+    houseRoof.position.y = 1.98
+    tidehouse.add(houseRoof)
+    const door = new Mesh(new PlaneGeometry(0.58, 0.94), new MeshLambertMaterial({ color: '#294d54', side: DoubleSide }))
+    door.position.set(-0.4, 0.5, 0.868)
+    tidehouse.add(door)
+    const window = new Mesh(new PlaneGeometry(0.5, 0.52), new MeshLambertMaterial({ color: '#dce9dc', side: DoubleSide }))
+    window.position.set(0.46, 1.0, 0.873)
+    tidehouse.add(window)
+    const houseSign = this.createSign('TIDEHOUSE', '#f2ead1', 180, 46)
+    houseSign.scale.set(1.0, 0.28, 1)
+    houseSign.position.set(0, 1.9, 0.88)
+    tidehouse.add(houseSign)
+    tidehouse.position.set(-7.72, harbourStreetHeight(-7.72, 9.4), 9.4)
+    this.harbourStreet.add(tidehouse)
+    this.addHarbourStreetBlocker(-7.72, 9.4, 1.28)
+
+    const dryingRack = new Group()
+    for (const xOffset of [-0.84, 0.84]) {
+      const post = new Mesh(new BoxGeometry(0.1, 1.62, 0.1), timber)
+      post.position.set(xOffset, 0.81, 0)
+      dryingRack.add(post)
+    }
+    const crossbar = new Mesh(new BoxGeometry(1.88, 0.09, 0.09), timber)
+    crossbar.position.y = 1.42
+    dryingRack.add(crossbar)
+    for (const xOffset of [-0.48, 0, 0.48]) {
+      const net = new Mesh(new PlaneGeometry(0.34, 0.7), new MeshLambertMaterial({ color: xOffset === 0 ? '#5d9ba0' : '#d7c86f', side: DoubleSide }))
+      net.position.set(xOffset, 0.9, 0.045)
+      dryingRack.add(net)
+    }
+    const awning = new Mesh(new BoxGeometry(2.1, 0.1, 0.72), sailcloth)
+    awning.position.set(0, 1.58, -0.12)
+    dryingRack.add(awning)
+    dryingRack.position.set(-4.45, harbourStreetHeight(-4.45, 8.9), 8.9)
+    this.harbourStreet.add(dryingRack)
+    this.addHarbourStreetBlocker(-4.45, 8.9, 0.98)
+
+    const gaugeX = -2.92
+    const gaugeZ = 8.88
+    const gaugePost = new Mesh(new BoxGeometry(0.12, 1.58, 0.12), iron)
+    gaugePost.position.set(gaugeX, harbourStreetHeight(gaugeX, gaugeZ) + 0.79, gaugeZ)
+    this.harbourStreet.add(gaugePost)
+    for (let index = 0; index < 4; index += 1) {
+      const tick = new Mesh(new BoxGeometry(0.28, 0.045, 0.03), new MeshLambertMaterial({ color: index === 2 ? '#cf7350' : '#ecdfb7', flatShading: true }))
+      tick.position.set(gaugeX, harbourStreetHeight(gaugeX, gaugeZ) + 0.34 + index * 0.28, gaugeZ + 0.07)
+      this.harbourStreet.add(tick)
+    }
+    const gaugeSign = this.createSign('TIDE', '#eef1d6', 92, 40)
+    gaugeSign.scale.set(0.56, 0.21, 1)
+    gaugeSign.position.set(gaugeX, harbourStreetHeight(gaugeX, gaugeZ) + 1.63, gaugeZ)
+    this.harbourStreet.add(gaugeSign)
+
+    for (const [x, z, color] of [[-6.25, 7.08, '#a66b43'], [-5.68, 7.12, '#cc934d'], [-3.45, 7.12, '#865d45']] as Array<[number, number, string]>) {
+      const barrel = new Mesh(new CylinderGeometry(0.24, 0.28, 0.62, 7), new MeshLambertMaterial({ color, flatShading: true }))
+      barrel.position.set(x, harbourStreetHeight(x, z) + 0.31, z)
+      this.harbourStreet.add(barrel)
+      this.addHarbourStreetBlocker(x, z, 0.32)
+    }
+    for (const [x, z] of [[-8.35, 7.12], [-1.98, 7.12], [-5.2, 6.42]] as Array<[number, number]>) {
+      const lamp = new Group()
+      const pole = new Mesh(new CylinderGeometry(0.055, 0.075, 1.72, 6), iron)
+      pole.position.y = 0.86
+      lamp.add(pole)
+      const glow = new Mesh(new SphereGeometry(0.12, 7, 5), new MeshLambertMaterial({ color: '#f5d873', emissive: new Color('#bd7a37'), emissiveIntensity: 0.7, flatShading: true }))
+      glow.position.y = 1.64
+      lamp.add(glow)
+      lamp.position.set(x, harbourStreetHeight(x, z), z)
+      this.harbourStreet.add(lamp)
+    }
+    const rowSign = this.createSign('TIDEHOUSE ROW', '#f1ead2', 205, 48)
+    rowSign.scale.set(1.14, 0.28, 1)
+    rowSign.position.set(-5.25, harbourStreetHeight(-5.25, 6.35) + 1.2, 6.35)
+    this.harbourStreet.add(rowSign)
   }
 
   /** A local person gives the dock story a voice without becoming a schedule simulation. */
