@@ -3588,11 +3588,13 @@ export class GameWorld implements PlayerController {
     this.addMoonhillArchiveTerrace()
     this.addMoonhillLensPath()
     this.addMoonhillSignalTerrace()
+    this.addMoonhillSignalTerraceLoopLink()
     this.addStreetLoopSection('observatory', this.observatoryStreet, observatoryStreetHeight, [
       [-14.4, 9.1], [-15.1, 1.6], [-13.4, -6.8], [-8.6, -12.6], [0, -14.3], [9.1, -11.8], [14.2, -5.1], [15.1, 2.6], [12.1, 9.6], [4.7, 13.4], [-5.5, 13.6],
     ], 'TO NIGHTFALL CUTTING', 9.8, 9.6)
     this.addMoonhillAlmanacGarden()
     this.addMoonhillCometWalk()
+    this.addMoonhillSpringCrossingAndHighStreet()
     this.addMoonhillSignalLights()
     this.addMoonhillWarden(-2.55, -1.5)
     this.addObservatoryStreetMarker('observatory-lens', 'Starlight lens', 'first', -5.5, -2.2, 'A starlight lens rests beside the hill path. The telescope can see again.')
@@ -3913,6 +3915,43 @@ export class GameWorld implements PlayerController {
     this.observatoryStreet.add(platformSign)
   }
 
+  /** Signal Terrace is a through-stop now: its rails visibly curve into the outer hill loop. */
+  private addMoonhillSignalTerraceLoopLink(): void {
+    const route = new CatmullRomCurve3([
+      new Vector3(-8.12, observatoryStreetHeight(-8.12, 5.9) + 0.22, 5.9),
+      new Vector3(-8.28, observatoryStreetHeight(-8.28, 7.52) + 0.22, 7.52),
+      new Vector3(-8.58, observatoryStreetHeight(-8.58, 9.42) + 0.22, 9.42),
+      new Vector3(-9.1, observatoryStreetHeight(-9.1, 11.65) + 0.22, 11.65),
+    ], false, 'centripetal')
+    this.observatoryStreet.add(new Mesh(new TubeGeometry(route, 38, 0.37, 5, false), new MeshLambertMaterial({ color: '#8e8791', flatShading: true })))
+    const iron = new MeshLambertMaterial({ color: '#454f68', flatShading: true })
+    for (const offset of [-0.27, 0.27]) {
+      const railPoints: Vector3[] = []
+      for (let index = 0; index <= 22; index += 1) {
+        const progress = index / 22
+        const point = route.getPointAt(progress)
+        const ahead = route.getPointAt(Math.min(1, progress + 0.02))
+        const tangent = ahead.sub(point).normalize()
+        railPoints.push(point.add(new Vector3(-tangent.z * offset, 0.03, tangent.x * offset)))
+      }
+      this.observatoryStreet.add(new Mesh(new TubeGeometry(new CatmullRomCurve3(railPoints, false, 'centripetal'), 38, 0.055, 5, false), iron))
+    }
+    const timber = new MeshLambertMaterial({ color: '#665047', flatShading: true })
+    for (let index = 0; index < 15; index += 1) {
+      const progress = index / 15
+      const point = route.getPointAt(progress)
+      const ahead = route.getPointAt(Math.min(1, progress + 0.02))
+      const sleeper = new Mesh(new BoxGeometry(0.98, 0.075, 0.13), timber)
+      sleeper.position.copy(point).add(new Vector3(0, -0.055, 0))
+      sleeper.rotation.y = Math.atan2(ahead.z - point.z, ahead.x - point.x) + Math.PI / 2
+      this.observatoryStreet.add(sleeper)
+    }
+    const sign = this.createSign('SKYRAIL → LOOP', '#eee9da', 192, 44)
+    sign.scale.set(1.02, 0.25, 1)
+    sign.position.set(-8.7, observatoryStreetHeight(-8.7, 9.7) + 1.08, 9.7)
+    this.observatoryStreet.add(sign)
+  }
+
   /**
    * An eastern counterpart to Signal Terrace gives Moonhill's high road a
    * second destination. The garden is intentionally low and open so its
@@ -4132,6 +4171,136 @@ export class GameWorld implements PlayerController {
     walkSign.scale.set(1.02, 0.27, 1)
     walkSign.position.set(10.18, observatoryStreetHeight(10.18, 5.92) + 1.1, 5.92)
     this.observatoryStreet.add(walkSign)
+  }
+
+  /**
+   * The spring and high street complete Moonhill's civic circuit. The water
+   * remains shallow enough to cross, while stones and a tiny bridge make the
+   * intended route clear at a glance on a phone-sized screen.
+   */
+  private addMoonhillSpringCrossingAndHighStreet(): void {
+    const springX = 10.18
+    const springZ = 1.62
+    this.observatoryStreet.add(this.createObservatoryStreetSurface(5.1, 1.14, springX, springZ, '#5f94a1', 0.105))
+    const paleStone = new MeshLambertMaterial({ color: '#d8d3bd', flatShading: true })
+    const warmStone = new MeshLambertMaterial({ color: '#9d978b', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#665047', flatShading: true })
+    const slate = new MeshLambertMaterial({ color: '#3d496d', flatShading: true })
+    const brass = new MeshLambertMaterial({ color: '#c9a467', emissive: new Color('#705b38'), emissiveIntensity: 0.18, flatShading: true })
+
+    for (let x = springX - 1.95; x <= springX + 1.95; x += 0.55) {
+      const stone = new Mesh(new BoxGeometry(0.42, 0.07, 0.7), warmStone)
+      stone.position.set(x, observatoryStreetHeight(x, springZ) + 0.22, springZ)
+      this.observatoryStreet.add(stone)
+    }
+    const bridge = new Group()
+    const deck = new Mesh(new BoxGeometry(1.12, 0.13, 1.58), paleStone)
+    deck.position.y = 0.22
+    bridge.add(deck)
+    for (const xOffset of [-0.5, 0.5]) {
+      for (const zOffset of [-0.56, 0.56]) {
+        const post = new Mesh(new CylinderGeometry(0.045, 0.06, 0.72, 5), slate)
+        post.position.set(xOffset, 0.48, zOffset)
+        bridge.add(post)
+      }
+      const rail = new Mesh(new BoxGeometry(0.06, 0.06, 1.42), slate)
+      rail.position.set(xOffset, 0.72, 0)
+      bridge.add(rail)
+    }
+    bridge.position.set(springX, observatoryStreetHeight(springX, springZ), springZ)
+    this.observatoryStreet.add(bridge)
+    const springSign = this.createSign('SPRING CROSSING', '#eee9d8', 208, 46)
+    springSign.scale.set(1.12, 0.27, 1)
+    springSign.position.set(springX, observatoryStreetHeight(springX, springZ + 1.02) + 1.08, springZ + 1.02)
+    this.observatoryStreet.add(springSign)
+
+    // A modest public high street makes the east and west hill paths feel
+    // inhabited, while its generous paved centre stays clear for touch travel.
+    this.observatoryStreet.add(this.createObservatoryStreetSurface(14.0, 2.42, 1.15, 2.25, '#aaa49a', 0.14))
+    this.observatoryStreet.add(this.createObservatoryStreetSurface(6.45, 2.8, 2.0, 4.76, '#7f9b79', 0.145))
+    for (let x = -5.35; x <= 7.5; x += 0.54) {
+      for (const z of [1.45, 2.02, 2.58]) {
+        const paver = new Mesh(new BoxGeometry(0.43, 0.04, 0.38), (Math.round((x + z) * 2) % 2 === 0) ? paleStone : warmStone)
+        paver.position.set(x, observatoryStreetHeight(x, z) + 0.19, z)
+        this.observatoryStreet.add(paver)
+      }
+    }
+
+    const chartmaker = new Group()
+    const body = new Mesh(new BoxGeometry(2.22, 1.58, 1.66), new MeshLambertMaterial({ color: '#69787b', flatShading: true }))
+    body.position.y = 0.79
+    chartmaker.add(body)
+    const roof = new Mesh(new ConeGeometry(1.55, 0.7, 4), slate)
+    roof.rotation.y = Math.PI / 4
+    roof.position.y = 1.9
+    chartmaker.add(roof)
+    const door = new Mesh(new PlaneGeometry(0.56, 0.92), new MeshLambertMaterial({ color: '#315663', side: DoubleSide }))
+    door.position.set(-0.4, 0.49, 0.836)
+    chartmaker.add(door)
+    const window = new Mesh(new PlaneGeometry(0.52, 0.5), new MeshLambertMaterial({ color: '#dce8dc', side: DoubleSide }))
+    window.position.set(0.48, 1.0, 0.84)
+    chartmaker.add(window)
+    const chartSign = this.createSign('CHARTMAKER', '#eee9d8', 184, 44)
+    chartSign.scale.set(1.0, 0.25, 1)
+    chartSign.position.set(0, 1.82, 0.845)
+    chartmaker.add(chartSign)
+    chartmaker.position.set(-4.75, observatoryStreetHeight(-4.75, 3.72), 3.72)
+    this.observatoryStreet.add(chartmaker)
+    this.addObservatoryStreetBlocker(-4.75, 3.72, 1.28)
+
+    const teaKiosk = new Group()
+    const counter = new Mesh(new BoxGeometry(1.42, 0.78, 0.74), new MeshLambertMaterial({ color: '#876c8c', flatShading: true }))
+    counter.position.y = 0.39
+    teaKiosk.add(counter)
+    for (const xOffset of [-0.55, 0.55]) {
+      const post = new Mesh(new BoxGeometry(0.09, 1.5, 0.09), timber)
+      post.position.set(xOffset, 0.75, 0)
+      teaKiosk.add(post)
+    }
+    const canopy = new Mesh(new ConeGeometry(1.08, 0.48, 4), new MeshLambertMaterial({ color: '#d5c478', flatShading: true }))
+    canopy.rotation.y = Math.PI / 4
+    canopy.position.y = 1.55
+    teaKiosk.add(canopy)
+    const pot = new Mesh(new SphereGeometry(0.16, 7, 5), brass)
+    pot.position.set(0.18, 0.88, 0)
+    teaKiosk.add(pot)
+    const kioskSign = this.createSign('STAR TEA', '#eee9d8', 146, 42)
+    kioskSign.scale.set(0.82, 0.23, 1)
+    kioskSign.position.set(0, 1.42, 0.42)
+    teaKiosk.add(kioskSign)
+    teaKiosk.position.set(6.45, observatoryStreetHeight(6.45, 3.86), 3.86)
+    this.observatoryStreet.add(teaKiosk)
+    this.addObservatoryStreetBlocker(6.45, 3.86, 0.92)
+
+    const greenBench = new Group()
+    const seat = new Mesh(new BoxGeometry(1.2, 0.14, 0.34), timber)
+    seat.position.y = 0.42
+    greenBench.add(seat)
+    const back = new Mesh(new BoxGeometry(1.2, 0.3, 0.08), timber)
+    back.position.set(0, 0.62, 0.13)
+    greenBench.add(back)
+    greenBench.position.set(1.05, observatoryStreetHeight(1.05, 4.72), 4.72)
+    greenBench.rotation.y = 0.2
+    this.observatoryStreet.add(greenBench)
+    this.addObservatoryStreetBlocker(1.05, 4.72, 0.66)
+    for (const [x, z] of [[-0.55, 5.55], [4.75, 4.55]] as Array<[number, number]>) {
+      const flowerBed = new Group()
+      const border = new Mesh(new BoxGeometry(0.94, 0.22, 0.62), timber)
+      border.position.y = 0.11
+      flowerBed.add(border)
+      for (const xOffset of [-0.24, 0, 0.24]) {
+        const bloom = new Mesh(new SphereGeometry(0.09, 6, 5), new MeshLambertMaterial({ color: x < 1 ? '#8573b5' : '#d2b560', emissive: new Color('#6d5c9f'), emissiveIntensity: 0.12, flatShading: true }))
+        bloom.position.set(xOffset, 0.34, 0)
+        flowerBed.add(bloom)
+      }
+      flowerBed.position.set(x, observatoryStreetHeight(x, z), z)
+      this.observatoryStreet.add(flowerBed)
+      this.addObservatoryStreetBlocker(x, z, 0.56)
+    }
+    const greenSign = this.createSign('ALMANAC GREEN', '#eee9d8', 205, 46)
+    greenSign.scale.set(1.12, 0.27, 1)
+    greenSign.position.set(2.15, observatoryStreetHeight(2.15, 5.9) + 1.12, 5.9)
+    this.observatoryStreet.add(greenSign)
   }
 
   /**

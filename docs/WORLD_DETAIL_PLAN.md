@@ -52,6 +52,8 @@ Harbour Works now reads as a complete tide town rather than a collection of quay
 
 Comet Walk completes Moonhill's east-side circuit between Archive Terrace and Almanac Garden. Its shallow stone path, meteor marker, skyhouse, lamps and protected outer edge turn a formerly open slope into a route with a purpose; its central line remains clear apart from small, readable landmarks.
 
+Moonhill now completes the town-loop promise. Signal Terrace's short stop rails curve directly into the outer hill line, while a shallow Spring Crossing cuts across Comet Walk with a stone ford and small railed bridge. A paved high street now brings a fictional chartmaker and Star Tea kiosk together around Almanac Green; its open lawn, bench and flower beds join the garden to the west-side hill paths without making the compact town feel crowded.
+
 Moonhill now mirrors that depth with a Wind Lookout beyond the observatory terrace: a sheltered rest point, star-chart table, fire bowl and low parapet form a quiet outward-facing pocket while preserving a clear path to the telescope.
 
 Lens Path is Moonhill's westward branch from the observatory road. Low handrails and repeated stone slabs lead to a tiny three-star dais, while the nearby pine is held back from the marker's interaction radius so the first violet objective stays visible and reachable.

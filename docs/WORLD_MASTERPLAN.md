@@ -61,7 +61,7 @@ The `globalRailStops` contract is the single source of truth for this order. Eve
 1. **Rail continuity foundation — in progress:** one code-owned global stop order; title route and visible local two-way through-sections.
 2. **Ravnbro completion — in progress:** Station Gate and North Yard now visibly join the outer line, while Bell Orchard plus the marked shallow Reedwater ford are playable. Reedwater's far bank now has a small Ferry House frontage, so both crossings resolve in a place rather than a world edge. Next, complete a second river-side frontage and the final station-to-yard public path.
 3. **Harbour completion — complete:** Rail Shed joins the through-line; the tidal basin has a marked low-water ford, and Tide Gardens closes the landward public loop.
-4. **Moonhill completion:** join Signal Terrace to the through-line; build the spring crossing, Almanac Green and hill-street shop frontage.
+4. **Moonhill completion — complete:** Signal Terrace joins the through-line; Spring Crossing, Almanac Green and the small chartmaker/tea high street finish the public circuit.
 5. **Seamless loop travel:** replace district changes with a streamed global coordinate system and rideable train transitions. This is the point at which the player can physically follow the complete rail line around the planet.
 
 ## Mobile rules
