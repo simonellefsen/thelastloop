@@ -30,6 +30,7 @@ import {
 } from 'three'
 import { entryCameraProfile, streetArrivalProfile, type StreetCameraProfile } from './camera'
 import { objectiveDirection, screenRelativeStreetDirection } from './controls'
+import { createRailJourney, RAIL_JOURNEY_SECONDS, REDUCED_MOTION_RAIL_JOURNEY_SECONDS } from './journey'
 import { gentleStreetHeight, isOutsideSphericalBlockers, isOutsideStreetBlockers, isWithinWalkableCap, tangentForward } from './math'
 import { nextPassengerIdentity } from './presence'
 import { globalRailStops, nextGlobalRailStop } from './railway'
@@ -40,7 +41,7 @@ import { coatColors, nextCoatColor } from './style'
 import { Soundscape, soundscapeProfile } from './soundscape'
 import { freshStorySave, readSave, writeSave } from './storage'
 import type { SphericalBlocker, StreetBlocker } from './math'
-import type { ClueId, DistrictId, GameHud, GameSave, PlayerController, SideQuestId, SideQuestStage, WorldInteractable } from './types'
+import type { ClueId, DistrictId, GameHud, GameSave, PlayerController, RailJourney, SideQuestId, SideQuestStage, WorldInteractable } from './types'
 
 const UP = new Vector3(0, 1, 0)
 const PLANET_RADIUS = 10
@@ -51,6 +52,7 @@ const observatoryStreetHeight = (x: number, z: number): number => -0.0012 * (x *
 
 export interface GameWorldEvents {
   onHud(hud: GameHud): void
+  onArrival(district: DistrictId): void
   onSound(enabled: boolean): void
   onReducedMotion(enabled: boolean): void
   onError(message: string): void
@@ -91,6 +93,9 @@ export class GameWorld implements PlayerController {
   private readonly observatoryWorld = new Group()
   private readonly player = new Group()
   private readonly stationInterior = new Group()
+  private readonly journeyScene = new Group()
+  private readonly journeyTrain = new Group()
+  private journeyRoute: CatmullRomCurve3 | undefined
   private readonly ground: Mesh
   private harbourGround: Mesh | undefined
   private observatoryGround: Mesh | undefined
@@ -152,6 +157,8 @@ export class GameWorld implements PlayerController {
   private save: GameSave
   private soundscape: Soundscape
   private inStation = false
+  private railJourney: { from: DistrictId; to: DistrictId; elapsed: number; duration: number; firstVisit: boolean } | undefined
+  private journeyHudPercent = -1
   private displayedHint = ''
   private displayedDialogue = ''
   private objectiveCueKey = ''
@@ -188,6 +195,7 @@ export class GameWorld implements PlayerController {
     this.createObservatoryStreetWorld()
     this.updateRestorationLighting()
     this.createStationInterior()
+    this.createRailJourneyScene()
     this.createAmbientLife()
     this.resize()
     this.resizeObserver = new ResizeObserver(this.onResize)
@@ -264,11 +272,12 @@ export class GameWorld implements PlayerController {
   }
 
   setJoystick(input: { x: number; y: number }): void {
+    if (this.railJourney) return
     this.joystick.set(input.x, input.y)
   }
 
   interact(): void {
-    if (!this.started || !this.nearby) return
+    if (!this.started || this.railJourney || !this.nearby) return
     this.playTone(this.nearby === 'station-keeper' || this.nearby === 'station-door' ? 392 : 523)
     if (this.nearby === 'station-door') {
       this.enterStation()
@@ -330,7 +339,7 @@ export class GameWorld implements PlayerController {
   }
 
   leaveStation(): void {
-    if (!this.inStation) return
+    if (!this.inStation || this.railJourney) return
     this.inStation = false
     this.stationInterior.visible = false
     this.enterHillsideStreet(true)
@@ -356,29 +365,79 @@ export class GameWorld implements PlayerController {
   }
 
   travelToHarbour(): void {
-    if (!this.inStation || !this.save.quest.stationNameRestored) return
+    if (!this.inStation || this.railJourney || !this.save.quest.stationNameRestored) return
     const firstVisit = this.save.quest.harbour === 'locked'
     this.save.quest = unlockHarbour(this.save.quest)
-    this.showHarbour(firstVisit)
-    this.persist()
-    this.playTone(554)
-    this.emitHud(firstVisit ? 'The old loop carries you down to Harbour Works. The tide clock has stopped.' : 'Harbour Works is waiting by the water.', firstVisit ? 'Find the blue valve, then return it to the dock pump.' : 'Follow the blue marker if the tide clock still needs help.')
+    this.beginRailJourney('harbour', firstVisit)
   }
 
   travelToObservatory(): void {
-    if (!this.inStation || !this.save.quest.stationNameRestored) return
+    if (!this.inStation || this.railJourney || !this.save.quest.stationNameRestored) return
     const firstVisit = this.save.quest.observatory === 'locked'
     this.save.quest = unlockObservatory(this.save.quest)
-    this.showObservatory(firstVisit)
-    this.persist()
-    this.playTone(622)
-    this.emitHud(firstVisit ? 'The loop climbs to Moonhill. Its telescope has lost the moon signal.' : 'Moonhill Observatory is still listening for the signal.', firstVisit ? 'Find the starlight lens, then align the telescope.' : 'Follow the violet marker if the telescope still needs help.')
+    this.beginRailJourney('observatory', firstVisit)
   }
 
   returnToStation(): void {
-    if (this.save.district === 'hillside') return
-    const leavingObservatory = this.save.district === 'observatory'
-    ;(leavingObservatory ? this.observatoryStreet : this.harbourStreet).remove(this.player)
+    if (this.railJourney || this.inStation || this.save.district === 'hillside') return
+    this.beginRailJourney('hillside', false)
+  }
+
+  private beginRailJourney(to: DistrictId, firstVisit: boolean): void {
+    const from = this.save.district
+    if (from === to || this.railJourney) return
+    this.persist()
+    this.railJourney = {
+      from,
+      to,
+      elapsed: 0,
+      duration: this.prefersReducedMotion() ? REDUCED_MOTION_RAIL_JOURNEY_SECONDS : RAIL_JOURNEY_SECONDS,
+      firstVisit,
+    }
+    this.journeyHudPercent = -1
+    this.inStation = false
+    this.joystick.set(0, 0)
+    this.nearby = undefined
+    this.root.visible = false
+    this.hillsideStreet.visible = false
+    this.harbourStreet.visible = false
+    this.observatoryStreet.visible = false
+    this.harbourWorld.visible = false
+    this.observatoryWorld.visible = false
+    this.ambient.visible = false
+    this.harbourAmbient.visible = false
+    this.stationInterior.visible = false
+    this.player.visible = false
+    this.journeyScene.visible = true
+    this.playTone(to === 'observatory' ? 622 : 554)
+    this.emitHud('The conductor closes the door and the little train eases onto the loop.', 'Enjoy the rails — controls return when the next town comes into view.')
+  }
+
+  private finishRailJourney(): void {
+    const journey = this.railJourney
+    if (!journey) return
+    this.railJourney = undefined
+    this.journeyHudPercent = -1
+    this.journeyScene.visible = false
+    if (journey.to === 'harbour') {
+      this.showHarbour(journey.firstVisit)
+    } else if (journey.to === 'observatory') {
+      this.showObservatory(journey.firstVisit)
+    } else {
+      this.arriveAtStation()
+    }
+    this.persist()
+    if (journey.to === 'harbour') {
+      this.emitHud(journey.firstVisit ? 'The old loop carries you down to Harbour Works. The tide clock has stopped.' : 'Harbour Works is waiting by the water.', journey.firstVisit ? 'Find the blue valve, then return it to the dock pump.' : 'Follow the blue marker if the tide clock still needs help.')
+    } else if (journey.to === 'observatory') {
+      this.emitHud(journey.firstVisit ? 'The loop climbs to Moonhill. Its telescope has lost the moon signal.' : 'Moonhill Observatory is still listening for the signal.', journey.firstVisit ? 'Find the starlight lens, then align the telescope.' : 'Follow the violet marker if the telescope still needs help.')
+    } else {
+      this.emitHud('The little train returns you to Sunset Loop.', 'Harbour Works and Moonhill are now part of the same small circle.')
+    }
+    this.events.onArrival(journey.to)
+  }
+
+  private arriveAtStation(): void {
     this.root.add(this.player)
     this.harbourWorld.visible = false
     this.harbourStreet.visible = false
@@ -393,8 +452,6 @@ export class GameWorld implements PlayerController {
     this.save.district = 'hillside'
     this.currentNormal.copy(this.normalAt(0.38, -0.42))
     this.soundscape.setProfile(soundscapeProfile(this.save.quest, true))
-    this.persist()
-    this.emitHud('The little train returns you to Sunset Loop.', 'Harbour Works and Moonhill are now part of the same small circle.')
   }
 
   dispose(): void {
@@ -4868,6 +4925,82 @@ export class GameWorld implements PlayerController {
     this.scene.add(this.stationInterior)
   }
 
+  /** A compact travel scene keeps district changes readable as a journey, not a hard cut. */
+  private createRailJourneyScene(): void {
+    this.journeyScene.visible = false
+
+    const water = new Mesh(new PlaneGeometry(72, 72), new MeshLambertMaterial({ color: '#327e89', flatShading: true }))
+    water.rotation.x = -Math.PI / 2
+    water.position.y = -0.22
+    this.journeyScene.add(water)
+
+    const route = new CatmullRomCurve3([
+      new Vector3(-17, 0.18, -11),
+      new Vector3(-11, 0.18, -4.4),
+      new Vector3(-4.4, 0.18, -0.6),
+      new Vector3(2.6, 0.18, 1.1),
+      new Vector3(9.6, 0.18, 5.8),
+      new Vector3(17, 0.18, 11.5),
+    ], false, 'centripetal')
+    this.journeyRoute = route
+
+    const ballast = new Mesh(new TubeGeometry(route, 120, 0.42, 5, false), new MeshLambertMaterial({ color: '#465b57', flatShading: true }))
+    this.journeyScene.add(ballast)
+    for (const offset of [-0.2, 0.2]) {
+      const railPoints = Array.from({ length: 60 }, (_, index) => {
+        const progress = index / 59
+        const point = route.getPointAt(progress)
+        const tangent = route.getTangentAt(progress).normalize()
+        return point.add(new Vector3(-tangent.z, 0, tangent.x).multiplyScalar(offset))
+      })
+      this.journeyScene.add(new Mesh(new TubeGeometry(new CatmullRomCurve3(railPoints, false, 'centripetal'), 90, 0.045, 5, false), new MeshLambertMaterial({ color: '#e7d7a2', flatShading: true })))
+    }
+
+    const sleeperMaterial = new MeshLambertMaterial({ color: '#765341', flatShading: true })
+    const poleMaterial = new MeshLambertMaterial({ color: '#365159', flatShading: true })
+    for (let index = 0; index < 24; index += 1) {
+      const progress = index / 23
+      const point = route.getPointAt(progress)
+      const tangent = route.getTangentAt(progress).normalize()
+      const sleeper = new Mesh(new BoxGeometry(0.95, 0.1, 0.16), sleeperMaterial)
+      sleeper.position.copy(point).setY(0.13)
+      sleeper.rotation.y = Math.atan2(tangent.z, tangent.x)
+      this.journeyScene.add(sleeper)
+      if (index % 3 === 0) {
+        const side = new Vector3(-tangent.z, 0, tangent.x).multiplyScalar(index % 2 ? 2.2 : -2.2)
+        const pole = new Mesh(new CylinderGeometry(0.06, 0.09, 2.4, 5), poleMaterial)
+        pole.position.copy(point).add(side).setY(1.1)
+        this.journeyScene.add(pole)
+        const wire = new Mesh(new BoxGeometry(2.6, 0.045, 0.045), poleMaterial)
+        wire.position.copy(pole.position).setY(2.15)
+        wire.rotation.y = Math.atan2(tangent.x, tangent.z)
+        this.journeyScene.add(wire)
+      }
+    }
+
+    const hillsideMaterial = new MeshLambertMaterial({ color: '#6da46c', flatShading: true })
+    for (let index = 0; index < 9; index += 1) {
+      const hill = new Mesh(new ConeGeometry(2.5 + (index % 3) * 0.45, 3.5 + (index % 2), 6), hillsideMaterial)
+      hill.position.set(-13 + index * 3.7, 1.35, index % 2 ? 5.7 : -6.5)
+      this.journeyScene.add(hill)
+    }
+
+    const carriage = new Mesh(new BoxGeometry(1.28, 0.78, 2.1), new MeshLambertMaterial({ color: '#b94f3d', flatShading: true }))
+    carriage.position.y = 0.75
+    this.journeyTrain.add(carriage)
+    const roof = new Mesh(new BoxGeometry(1.48, 0.16, 2.28), new MeshLambertMaterial({ color: '#243f45', flatShading: true }))
+    roof.position.y = 1.2
+    this.journeyTrain.add(roof)
+    const lampMaterial = new MeshLambertMaterial({ color: '#fff0a3', emissive: new Color('#e5a14a'), emissiveIntensity: 0.8 })
+    for (const x of [-0.43, 0.43]) {
+      const lamp = new Mesh(new SphereGeometry(0.1, 6, 5), lampMaterial)
+      lamp.position.set(x, 0.76, 1.08)
+      this.journeyTrain.add(lamp)
+    }
+    this.journeyScene.add(this.journeyTrain)
+    this.scene.add(this.journeyScene)
+  }
+
   private createAmbientLife(): void {
     for (let index = 0; index < 8; index += 1) {
       const bird = new Mesh(new ConeGeometry(0.11, 0.45, 3), new MeshLambertMaterial({ color: '#2d4d59', flatShading: true }))
@@ -5019,7 +5152,8 @@ export class GameWorld implements PlayerController {
     this.updateRenderResolution(frameSeconds)
     this.clock.elapsed += delta
     if (this.started) {
-      if (this.inStation) this.updateStation()
+      if (this.railJourney) this.updateRailJourney(delta)
+      else if (this.inStation) this.updateStation()
       else this.updatePlayer(delta)
     }
     else this.updateTitleCamera()
@@ -5077,6 +5211,29 @@ export class GameWorld implements PlayerController {
     this.camera.up.copy(this.currentNormal)
     this.camera.lookAt(playerPosition.clone().addScaledVector(facing, profile.lookAhead).addScaledVector(this.currentNormal, 0.42))
     this.findNearby(playerPosition)
+  }
+
+  private updateRailJourney(delta: number): void {
+    const journey = this.railJourney
+    const route = this.journeyRoute
+    if (!journey || !route) return
+    journey.elapsed += delta
+    const state = createRailJourney(journey.from, journey.to, journey.elapsed, journey.duration)
+    const position = route.getPointAt(state.progress)
+    const ahead = route.getPointAt(Math.min(1, state.progress + 0.012))
+    const tangent = ahead.clone().sub(position).normalize()
+    this.journeyTrain.position.copy(position)
+    this.journeyTrain.lookAt(ahead)
+    const cameraPosition = position.clone().add(new Vector3(0, 3.2, 0)).addScaledVector(tangent, -5.3)
+    this.camera.position.lerp(cameraPosition, 0.1)
+    this.camera.up.copy(UP)
+    this.camera.lookAt(position.clone().add(new Vector3(0, 0.85, 0)).addScaledVector(tangent, 3.2))
+    const percent = Math.round(state.progress * 100)
+    if (percent !== this.journeyHudPercent) {
+      this.journeyHudPercent = percent
+      this.events.onHud(this.currentHud())
+    }
+    if (state.progress >= 1) this.finishRailJourney()
   }
 
   private enterHillsideStreet(resetPosition = true): void {
@@ -5416,6 +5573,9 @@ export class GameWorld implements PlayerController {
   }
 
   private currentHud(): GameHud {
+    const journey: RailJourney | undefined = this.railJourney
+      ? createRailJourney(this.railJourney.from, this.railJourney.to, this.railJourney.elapsed, this.railJourney.duration)
+      : undefined
     const npcName = this.nearby === 'station-keeper' ? 'STATION KEEPER' : this.nearby === 'harbour-keeper' ? 'DOCK KEEPER' : this.nearby === 'moon-warden' ? 'MOONHILL WARDEN' : ''
     const keeperCanBoard = this.nearby === 'station-keeper'
       && this.save.quest.stationNameRestored
@@ -5430,7 +5590,7 @@ export class GameWorld implements PlayerController {
       dialogue: showNpcDialogue ? npcDialogue : this.displayedDialogue || this.dialogue(),
       objectiveLabel: objective.label,
       objectiveDirection: objective.direction,
-      nearbyLabel: this.inStation ? '' : nearbyLabel,
+      nearbyLabel: this.inStation || journey ? '' : nearbyLabel,
       showNpcDialogue,
       npcName,
       quest: this.save.quest,
@@ -5438,12 +5598,13 @@ export class GameWorld implements PlayerController {
       coatColor: this.save.coatColor,
       district: this.save.district,
       identity: this.save.identity,
+      journey,
     }
   }
 
   /** Finds one visible, nearest step so the town remains discoverable without a minimap. */
   private currentObjective(): { label: string; direction: string } {
-    if (!this.started || this.inStation) return { label: '', direction: '' }
+    if (!this.started || this.inStation || this.railJourney) return { label: '', direction: '' }
     const candidates: Array<{ label: string; position: [number, number, number] }> = []
     if (this.hillsideStreet.visible) {
       const remainingClues = this.streetClues.filter((clue) => clue.mesh.visible && !this.save.quest.completedClues.includes(clue.id))

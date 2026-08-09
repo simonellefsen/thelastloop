@@ -78,4 +78,13 @@ export interface GameHud {
   coatColor: CoatColor
   district: DistrictId
   identity: PassengerIdentity
+  journey: RailJourney | undefined
+}
+
+/** A short, local-only train transfer while the next district scene is prepared. */
+export interface RailJourney {
+  from: DistrictId
+  to: DistrictId
+  progress: number
+  label: string
 }

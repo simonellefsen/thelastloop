@@ -34,6 +34,7 @@
     coatColor: 'gold',
     district: 'hillside',
     identity: { callsign: 'EMBER-7' },
+    journey: undefined,
   }
 
   const clueLabels: Record<string, string> = {
@@ -52,6 +53,7 @@
     try {
       game = new GameWorld(gameHost, {
         onHud: (next) => (hud = next),
+        onArrival: (district) => showArrival(district),
         onSound: (enabled) => (soundEnabled = enabled),
         onReducedMotion: (enabled) => (reducedMotion = enabled),
         onError: (message) => (error = message),
@@ -121,12 +123,10 @@
 
   function travelToHarbour() {
     game?.travelToHarbour()
-    showArrival('harbour')
   }
 
   function travelToObservatory() {
     game?.travelToObservatory()
-    showArrival('observatory')
   }
 
   function returnToStation() {
@@ -144,7 +144,7 @@
   }
 
   function beginGuidance(event: PointerEvent) {
-    if (!started || hud.inStation || event.pointerType === 'mouse' || !event.isPrimary) return
+    if (!started || hud.inStation || hud.journey || event.pointerType === 'mouse' || !event.isPrimary) return
     const target = event.currentTarget as HTMLElement
     guidingPointer = event.pointerId
     guideActive = true
@@ -223,7 +223,15 @@
         </div>
       </header>
 
-      {#if !hud.inStation && hud.district === 'hillside'}
+      {#if hud.journey}
+      <section class="journey-card" role="status" aria-live="polite">
+        <p class="eyebrow">RIDING {hud.journey.label}</p>
+        <h2>{titleWorlds[hud.journey.to].label}</h2>
+        <p>{Math.round(hud.journey.progress * 100)}% along the loop</p>
+        <div class="journey-progress" aria-label={`${Math.round(hud.journey.progress * 100)} percent to ${titleWorlds[hud.journey.to].label}`}><span style={`width: ${hud.journey.progress * 100}%`}></span></div>
+        <small>The towns are connected by the same little railway.</small>
+      </section>
+      {:else if !hud.inStation && hud.district === 'hillside'}
       <aside class="quest-card">
         <p class="eyebrow">TONIGHT'S ROUTE</p>
         <h2>{isComplete(hud.quest) ? 'Sunset Loop restored' : 'Find the station name'}</h2>
@@ -305,12 +313,12 @@
         {/key}
       {/if}
 
-      {#if !hud.inStation && guideActive}<div class="touch-guide" style={`left: ${guideX}px; top: ${guideY}px; --guide-turn: ${guideRotation}deg`} aria-hidden="true"><span>↑</span></div>{/if}
+      {#if !hud.inStation && !hud.journey && guideActive}<div class="touch-guide" style={`left: ${guideX}px; top: ${guideY}px; --guide-turn: ${guideRotation}deg`} aria-hidden="true"><span>↑</span></div>{/if}
 
-      {#if !hud.inStation && hud.objectiveLabel}
+      {#if !hud.inStation && !hud.journey && hud.objectiveLabel}
         <p class="objective-cue" aria-label={`${hud.objectiveLabel}, ${hud.objectiveDirection}`}>↗ <strong>{hud.objectiveLabel}</strong><span>{hud.objectiveDirection}</span></p>
       {/if}
-      {#if !hud.inStation}<button class="interact-button" class:ready={hud.nearbyLabel !== ''} onclick={interact} disabled={hud.nearbyLabel === ''}>
+      {#if !hud.inStation && !hud.journey}<button class="interact-button" class:ready={hud.nearbyLabel !== ''} onclick={interact} disabled={hud.nearbyLabel === ''}>
         <span>↗</span>
         {hud.nearbyLabel || 'Explore'}
       </button>

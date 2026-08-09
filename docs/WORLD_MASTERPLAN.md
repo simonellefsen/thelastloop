@@ -4,7 +4,7 @@
 
 The Last Loop is one inhabited railway planet, not three disconnected dioramas. Every playable district has a complete town fabric: a station or halt, connected streets and paths, shops and homes, a public green space, a shallow water crossing, and a visible two-way section of the same rail loop. A district may stream in at street detail, but it must always read as a place the train can enter and leave.
 
-The present release makes the shared route explicit in the title atlas and in each street scene's through-section. Actual uninterrupted player or train travel between streamed street scenes is the next technical milestone; the route signs name the hand-off honestly and must not imply that a train can be boarded yet.
+The present release makes the shared route explicit in the title atlas and in each street scene's through-section. The station map now boards the player onto a short animated rail transfer before the destination streams in, so a district change is experienced as travel rather than a hard cut. A single uninterrupted global-coordinate journey around the whole planet remains the next scale-up milestone.
 
 ## Global rail spine
 
@@ -62,7 +62,8 @@ The `globalRailStops` contract is the single source of truth for this order. Eve
 2. **Ravnbro completion — in progress:** Station Gate and North Yard now visibly join the outer line, while Bell Orchard plus the marked shallow Reedwater ford are playable. Reedwater's far bank now has a small Ferry House frontage, so both crossings resolve in a place rather than a world edge. Next, complete a second river-side frontage and the final station-to-yard public path.
 3. **Harbour completion — complete:** Rail Shed joins the through-line; the tidal basin has a marked low-water ford, and Tide Gardens closes the landward public loop.
 4. **Moonhill completion — complete:** Signal Terrace joins the through-line; Spring Crossing, Almanac Green and the small chartmaker/tea high street finish the public circuit.
-5. **Seamless loop travel:** replace district changes with a streamed global coordinate system and rideable train transitions. This is the point at which the player can physically follow the complete rail line around the planet.
+5. **Rideable transfer — complete:** station and return services use a visible rail journey state before the streamed destination appears.
+6. **Seamless loop travel:** replace the transfer scene with a streamed global coordinate system. This is the point at which the player can physically follow the complete rail line around the planet without a hand-off.
 
 ## Mobile rules
 

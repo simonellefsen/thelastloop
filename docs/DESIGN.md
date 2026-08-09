@@ -19,7 +19,7 @@ Restoring the name opens the station interior. Its route map leads to Harbour Wo
 
 ## Harbour Works
 
-Harbour Works is the second town on the compact loop, currently reached from the restored station map while seamless rail travel is built. The title keeps its full globe silhouette, while play enters an upright, gently rolling dock district with a rust-red warehouse, crane, working pier, fishing boat and tide clock. In **Wake the Tide Clock**, the player finds a blue tide valve and carries it to the dock pump. Repairing it turns the clock green and lets the harbour keep time with the water again.
+Harbour Works is the second town on the compact loop. From the restored station map, the player boards a short visible train service across Reedwater before the dock district streams in; seamless global-coordinate travel is the later scale-up. The title keeps its full globe silhouette, while play enters an upright, gently rolling dock district with a rust-red warehouse, crane, working pier, fishing boat and tide clock. In **Wake the Tide Clock**, the player finds a blue tide valve and carries it to the dock pump. Repairing it turns the clock green and lets the harbour keep time with the water again.
 
 The route is persisted locally, so reloading while visiting the harbour returns the player to the same district.
 
