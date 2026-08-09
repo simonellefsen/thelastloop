@@ -32,13 +32,14 @@ import { entryCameraProfile, streetArrivalProfile, type StreetCameraProfile } fr
 import { objectiveDirection } from './controls'
 import { gentleStreetHeight, isOutsideSphericalBlockers, isOutsideStreetBlockers, isWithinWalkableCap, tangentForward } from './math'
 import { nextPassengerIdentity } from './presence'
+import { restorationLightProfile, type RestorationDistrict } from './restoration'
 import { animationTime, nextRenderResolution, shouldRender } from './runtime'
 import { advanceSideQuest, defaultQuest, resolveClue, unlockHarbour, unlockObservatory } from './quest'
 import { coatColors, nextCoatColor } from './style'
 import { Soundscape, soundscapeProfile } from './soundscape'
 import { readSave, writeSave } from './storage'
 import type { SphericalBlocker, StreetBlocker } from './math'
-import type { ClueId, DistrictId, GameHud, GameSave, PlayerController, SideQuestId, WorldInteractable } from './types'
+import type { ClueId, DistrictId, GameHud, GameSave, PlayerController, SideQuestId, SideQuestStage, WorldInteractable } from './types'
 
 const UP = new Vector3(0, 1, 0)
 const PLANET_RADIUS = 10
@@ -142,6 +143,8 @@ export class GameWorld implements PlayerController {
   private streetBellGlow: MeshLambertMaterial | undefined
   private harbourBeacon: MeshLambertMaterial | undefined
   private observatoryBeacon: MeshLambertMaterial | undefined
+  private readonly harbourRestorationLights: MeshLambertMaterial[] = []
+  private readonly observatoryRestorationLights: MeshLambertMaterial[] = []
   private readonly chorusFireflies = new Group()
   private readonly streetChorusFireflies = new Group()
   private save: GameSave
@@ -181,6 +184,7 @@ export class GameWorld implements PlayerController {
     this.createHarbourStreetWorld()
     this.createObservatoryWorld()
     this.createObservatoryStreetWorld()
+    this.updateRestorationLighting()
     this.createStationInterior()
     this.createAmbientLife()
     this.resize()
@@ -2342,6 +2346,7 @@ export class GameWorld implements PlayerController {
     this.addHarbourRailShed()
     this.addHarbourChandleryYard()
     this.addHarbourTidehouseRow()
+    this.addHarbourTideClockLights()
     this.addHarbourDockKeeper(-0.9, -6.35)
     this.addHarbourStreetMarker('harbour-valve', 'Tide valve', 'first', -5.6, -3.5, 'A blue tide valve clicks free. The dock pump can hear the sea again.')
     this.addHarbourStreetMarker('harbour-pump', 'Wake clock', 'second', 1.55, -8.0, 'The tide clock turns once, then keeps time with the water. The harbour breathes again.')
@@ -2401,6 +2406,47 @@ export class GameWorld implements PlayerController {
     pierSign.scale.set(1.06, 0.28, 1)
     pierSign.position.set(5.0, harbourStreetHeight(5.0, -7.38) + 1.22, -7.38)
     this.harbourStreet.add(pierSign)
+  }
+
+  /**
+   * The tide clock's lamps begin as low, blue guide lights. Finishing the
+   * dock story restores their sea-green glow along the water edge.
+   */
+  private addHarbourTideClockLights(): void {
+    const iron = new MeshLambertMaterial({ color: '#36545a', flatShading: true })
+    const brass = new MeshLambertMaterial({ color: '#c69b56', flatShading: true })
+    for (const [x, z] of [[-1.45, -9.62], [0.55, -9.62], [2.55, -9.62]] as Array<[number, number]>) {
+      const lamp = new Group()
+      const base = new Mesh(new CylinderGeometry(0.16, 0.2, 0.14, 6), brass)
+      base.position.y = 0.07
+      lamp.add(base)
+      const post = new Mesh(new CylinderGeometry(0.045, 0.065, 1.08, 6), iron)
+      post.position.y = 0.58
+      lamp.add(post)
+      const light = new MeshLambertMaterial({ color: '#537787', emissive: new Color('#285664'), emissiveIntensity: 0.14, flatShading: true })
+      this.harbourRestorationLights.push(light)
+      const globe = new Mesh(new SphereGeometry(0.15, 7, 5), light)
+      globe.position.y = 1.16
+      lamp.add(globe)
+      lamp.position.set(x, harbourStreetHeight(x, z), z)
+      this.harbourStreet.add(lamp)
+      this.addHarbourStreetBlocker(x, z, 0.22)
+    }
+    const clockPost = new Group()
+    const frame = new Mesh(new BoxGeometry(0.66, 0.88, 0.16), iron)
+    frame.position.y = 0.72
+    clockPost.add(frame)
+    const faceMaterial = new MeshLambertMaterial({ color: '#537787', emissive: new Color('#285664'), emissiveIntensity: 0.14, flatShading: true })
+    this.harbourRestorationLights.push(faceMaterial)
+    const face = new Mesh(new SphereGeometry(0.2, 8, 6), faceMaterial)
+    face.position.set(0, 0.75, 0.1)
+    clockPost.add(face)
+    const cap = new Mesh(new ConeGeometry(0.45, 0.24, 6), brass)
+    cap.position.y = 1.28
+    clockPost.add(cap)
+    clockPost.position.set(1.55, harbourStreetHeight(1.55, -9.35), -9.35)
+    this.harbourStreet.add(clockPost)
+    this.addHarbourStreetBlocker(1.55, -9.35, 0.42)
   }
 
   /** A paved side yard makes the first dock quest legible from the main route. */
@@ -3094,6 +3140,7 @@ export class GameWorld implements PlayerController {
     this.addMoonhillSignalTerrace()
     this.addMoonhillAlmanacGarden()
     this.addMoonhillCometWalk()
+    this.addMoonhillSignalLights()
     this.addMoonhillWarden(-2.55, -1.5)
     this.addObservatoryStreetMarker('observatory-lens', 'Starlight lens', 'first', -5.5, -2.2, 'A starlight lens rests beside the hill path. The telescope can see again.')
     this.addObservatoryStreetMarker('observatory-scope', 'Align scope', 'second', 1.5, -3.85, 'The moon signal crosses the glass. Every faraway station gets one clear night.')
@@ -3632,6 +3679,37 @@ export class GameWorld implements PlayerController {
     walkSign.scale.set(1.02, 0.27, 1)
     walkSign.position.set(10.18, observatoryStreetHeight(10.18, 5.92) + 1.1, 5.92)
     this.observatoryStreet.add(walkSign)
+  }
+
+  /**
+   * The observatory story restores a chain of quiet route signals along
+   * Comet Walk. They deliberately use emissive materials rather than costly
+   * point lights, so the change remains crisp on iPhone-class hardware.
+   */
+  private addMoonhillSignalLights(): void {
+    const iron = new MeshLambertMaterial({ color: '#3f4e69', flatShading: true })
+    const brass = new MeshLambertMaterial({ color: '#c8a467', flatShading: true })
+    for (const z of [-5.05, -0.2, 4.7]) {
+      const signal = new Group()
+      const base = new Mesh(new CylinderGeometry(0.18, 0.23, 0.15, 6), brass)
+      base.position.y = 0.08
+      signal.add(base)
+      const post = new Mesh(new CylinderGeometry(0.045, 0.065, 1.28, 6), iron)
+      post.position.y = 0.7
+      signal.add(post)
+      const hood = new Mesh(new ConeGeometry(0.2, 0.22, 6), iron)
+      hood.rotation.x = Math.PI / 2
+      hood.position.set(0, 1.31, -0.08)
+      signal.add(hood)
+      const light = new MeshLambertMaterial({ color: '#75699c', emissive: new Color('#41376c'), emissiveIntensity: 0.14, flatShading: true })
+      this.observatoryRestorationLights.push(light)
+      const lens = new Mesh(new SphereGeometry(0.13, 7, 5), light)
+      lens.position.set(0, 1.31, -0.17)
+      signal.add(lens)
+      signal.position.set(11.12, observatoryStreetHeight(11.12, z), z)
+      this.observatoryStreet.add(signal)
+      this.addObservatoryStreetBlocker(11.12, z, 0.22)
+    }
   }
 
   /** Moonhill's quiet warden is decorative until the player enters a short talk radius. */
@@ -4771,11 +4849,26 @@ export class GameWorld implements PlayerController {
       this.observatoryBeacon?.emissive.set('#4a9f8c')
       this.playTone(932)
     }
+    this.updateRestorationLighting()
     this.updateSideQuestMarkers()
     this.soundscape.setProfile(soundscapeProfile(this.save.quest))
     this.persist()
     const finished = this.save.quest[marker.sideQuest] === 'complete'
     this.emitHud(marker.text, finished ? marker.sideQuest === 'lantern' ? 'Green Light Home is complete. The signal will guide the last train.' : 'The Morning Chorus is complete. The town has found its song.' : marker.sideQuest === 'lantern' ? 'Take the lens to the teal signal marker.' : 'Take the tune to the rose bell marker.')
+  }
+
+  private updateRestorationLighting(): void {
+    this.applyRestorationLighting(this.harbourRestorationLights, 'harbour', this.save.quest.harbour)
+    this.applyRestorationLighting(this.observatoryRestorationLights, 'observatory', this.save.quest.observatory)
+  }
+
+  private applyRestorationLighting(materials: MeshLambertMaterial[], district: RestorationDistrict, stage: SideQuestStage): void {
+    const profile = restorationLightProfile(district, stage)
+    for (const material of materials) {
+      material.color.set(profile.color)
+      material.emissive.set(profile.emissive)
+      material.emissiveIntensity = profile.intensity
+    }
   }
 
   private updateSideQuestMarkers(): void {

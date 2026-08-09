@@ -74,6 +74,7 @@
 - ✅ Extend Harbour Works beyond Rail Shed with Chandlery Yard: a paved eastward supply route, sail rack, capstan, cargo and workshop make the dockyard's inland shoulder a real destination.
 - ✅ Connect Moonhill's Archive Terrace to Almanac Garden with Comet Walk: a protected eastern high-road, skyhouse, meteor marker and lamps complete a readable street-scale circuit.
 - ✅ Persist the last safe local street coordinate in the versioned save and restore it only when the player resumes the same selected district.
+- ✅ Make completing Harbour Works and Moonhill visibly restore route hardware: tide-clock lamps and Comet Walk signal lenses brighten without adding expensive dynamic lighting.
 - Extend L2/L3 with rail hardware, dense interaction pockets and collision-aware terrain.
 - Add recorded ambience and music after an original audio session.
 
