@@ -610,6 +610,7 @@ export class GameWorld implements PlayerController {
     this.addFlatBuilding(-7.1, 5.3, '#c9ded6', '#50666a', 'DEPOT')
     this.addRavnbroLaneThreshold()
     this.addRavnbroDepotYard()
+    this.addRavnbroFreightSpur()
     this.addMarketFold()
     this.addMarketCourtyard()
     this.addRavnbroClockmakersCourt()
@@ -1658,6 +1659,102 @@ export class GameWorld implements PlayerController {
     yardSign.scale.set(1.06, 0.28, 1)
     yardSign.position.set(-9.25, gentleStreetHeight(-9.25, 6.0) + 1.14, 6.0)
     this.hillsideStreet.add(yardSign)
+  }
+
+  /**
+   * A short northbound siding makes the depot a real part of the railway.
+   * The rails are decorative ground hardware; only the wagon, scale and
+   * buffers collide, preserving a generous crossing through the market walk.
+   */
+  private addRavnbroFreightSpur(): void {
+    const spurX = -12.3
+    const startZ = 0.85
+    const endZ = 7.95
+    const centerZ = (startZ + endZ) / 2
+    const ballast = this.createRollingStreetSurface(2.08, endZ - startZ + 0.42, spurX, centerZ, '#94886d', 0.115)
+    this.hillsideStreet.add(ballast)
+
+    const iron = new MeshLambertMaterial({ color: '#3e5659', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#674a3a', flatShading: true })
+    const paleWood = new MeshLambertMaterial({ color: '#a67d55', flatShading: true })
+    const railLength = endZ - startZ + 0.16
+    for (const xOffset of [-0.36, 0.36]) {
+      const rail = new Mesh(new BoxGeometry(0.075, 0.075, railLength), iron)
+      rail.position.set(spurX + xOffset, gentleStreetHeight(spurX + xOffset, centerZ) + 0.22, centerZ)
+      this.hillsideStreet.add(rail)
+    }
+    for (let z = startZ; z <= endZ; z += 0.47) {
+      const sleeper = new Mesh(new BoxGeometry(1.48, 0.075, 0.13), timber)
+      sleeper.position.set(spurX, gentleStreetHeight(spurX, z) + 0.165, z)
+      this.hillsideStreet.add(sleeper)
+    }
+
+    const crossingZ = 7.42
+    for (let z = crossingZ - 0.3; z <= crossingZ + 0.3; z += 0.2) {
+      const crossingPlank = new Mesh(new BoxGeometry(1.62, 0.07, 0.12), paleWood)
+      crossingPlank.position.set(spurX, gentleStreetHeight(spurX, z) + 0.255, z)
+      this.hillsideStreet.add(crossingPlank)
+    }
+
+    const wagon = new Group()
+    const wagonFrame = new Mesh(new BoxGeometry(1.4, 0.22, 1.62), new MeshLambertMaterial({ color: '#7f5b43', flatShading: true }))
+    wagonFrame.position.y = 0.56
+    wagon.add(wagonFrame)
+    const wagonBed = new Mesh(new BoxGeometry(1.18, 0.16, 1.34), paleWood)
+    wagonBed.position.y = 0.76
+    wagon.add(wagonBed)
+    for (const zOffset of [-0.53, 0.53]) {
+      for (const xOffset of [-0.52, 0.52]) {
+        const wheel = new Mesh(new CylinderGeometry(0.17, 0.17, 0.08, 7), iron)
+        wheel.rotation.z = Math.PI / 2
+        wheel.position.set(xOffset, 0.28, zOffset)
+        wagon.add(wheel)
+      }
+    }
+    for (const [x, z, color] of [[-0.22, -0.18, '#b36f44'], [0.22, 0.14, '#d0a152'], [0.04, -0.02, '#8c6045']] as Array<[number, number, string]>) {
+      const crate = new Mesh(new BoxGeometry(0.36, 0.34, 0.38), new MeshLambertMaterial({ color, flatShading: true }))
+      crate.position.set(x, 1.01, z)
+      wagon.add(crate)
+    }
+    wagon.position.set(spurX, gentleStreetHeight(spurX, 4.24), 4.24)
+    this.hillsideStreet.add(wagon)
+    this.addStreetBlocker(spurX, 4.24, 0.98)
+
+    const scaleX = -10.76
+    const scaleZ = 5.58
+    const scale = new Group()
+    const scaleBase = new Mesh(new BoxGeometry(1.1, 0.16, 1.0), new MeshLambertMaterial({ color: '#b8aa87', flatShading: true }))
+    scaleBase.position.y = 0.08
+    scale.add(scaleBase)
+    const scalePost = new Mesh(new BoxGeometry(0.1, 1.18, 0.1), iron)
+    scalePost.position.set(0.36, 0.59, -0.35)
+    scale.add(scalePost)
+    const scaleFace = new Mesh(new BoxGeometry(0.45, 0.35, 0.08), new MeshLambertMaterial({ color: '#e8dfbc', flatShading: true }))
+    scaleFace.position.set(0.36, 1.04, -0.35)
+    scale.add(scaleFace)
+    const scaleNeedle = new Mesh(new BoxGeometry(0.025, 0.17, 0.025), new MeshLambertMaterial({ color: '#bc664d', flatShading: true }))
+    scaleNeedle.position.set(0.36, 1.04, -0.405)
+    scaleNeedle.rotation.z = 0.52
+    scale.add(scaleNeedle)
+    scale.position.set(scaleX, gentleStreetHeight(scaleX, scaleZ), scaleZ)
+    this.hillsideStreet.add(scale)
+    this.addStreetBlocker(scaleX, scaleZ, 0.68)
+
+    for (const zOffset of [-0.28, 0.28]) {
+      const bufferPost = new Mesh(new BoxGeometry(1.38, 0.16, 0.14), iron)
+      bufferPost.position.set(spurX, gentleStreetHeight(spurX, endZ + zOffset) + 0.48 + zOffset * 0.12, endZ + zOffset)
+      this.hillsideStreet.add(bufferPost)
+    }
+    for (const xOffset of [-0.58, 0.58]) {
+      const bufferLeg = new Mesh(new BoxGeometry(0.12, 0.72, 0.12), iron)
+      bufferLeg.position.set(spurX + xOffset, gentleStreetHeight(spurX + xOffset, endZ) + 0.36, endZ)
+      this.hillsideStreet.add(bufferLeg)
+      this.addStreetBlocker(spurX + xOffset, endZ, 0.2)
+    }
+    const spurSign = this.createSign('FREIGHT SPUR', '#edf0d8', 180, 44)
+    spurSign.scale.set(1.0, 0.25, 1)
+    spurSign.position.set(-10.92, gentleStreetHeight(-10.92, 2.72) + 1.1, 2.72)
+    this.hillsideStreet.add(spurSign)
   }
 
   /**
