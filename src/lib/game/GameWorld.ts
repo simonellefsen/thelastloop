@@ -628,6 +628,7 @@ export class GameWorld implements PlayerController {
     this.addStreetLoopSection('hillside', this.hillsideStreet, gentleStreetHeight, [
       [-14.5, 8.4], [-15.2, 1.5], [-13.8, -6.5], [-8.8, -12.2], [0, -14.1], [8.8, -12.2], [14.2, -6], [15.1, 2.4], [12.2, 9.4], [4.5, 13.2], [-5.5, 13.6],
     ], 'TO REEDWATER VIADUCT', -11.2, 10.2)
+    this.addRavnbroOutboundRail()
     this.addMarketFold()
     this.addMarketCourtyard()
     this.addRavnbroClockmakersCourt()
@@ -641,7 +642,9 @@ export class GameWorld implements PlayerController {
     this.addHillsideTraversalDetail()
     this.addBellRise()
     this.addReedwaterEdge()
+    this.addReedwaterFord()
     this.addRiverTradeLane()
+    this.addBellOrchard()
     this.addFlatSideRouteLandmarks()
     this.addStreetBlocker(0, -1.7, 2.25)
     this.addStreetBlocker(6.8, -4.7, 1.75)
@@ -788,12 +791,41 @@ export class GameWorld implements PlayerController {
     this.hillsideStreet.add(floodSign)
     this.addReedwaterLanding(bridgeX)
 
-    // The shore is physical except where the bridge gives a deliberate view and
-    // turn-around point. This prevents accidental walks into the water plane.
+    // The shore is physical except at the bridge and marked ford. This makes
+    // Reedwater a shallow place that can be crossed deliberately, rather than
+    // a decorative line at the end of the playable town.
     for (let x = -18; x <= 18; x += 2.35) {
-      if (Math.abs(x - bridgeX) > 1.65) this.addStreetBlocker(x, -14.05, 1.03)
+      if (Math.abs(x - bridgeX) > 1.65 && Math.abs(x - 5.5) > 1.65) this.addStreetBlocker(x, -14.05, 1.03)
     }
-    this.addStreetBlocker(bridgeX, -15.32, 0.62)
+    this.addStreetBlocker(bridgeX, -17.7, 0.7)
+  }
+
+  /** A marked stone ford makes the river a route, with a far-bank rest point. */
+  private addReedwaterFord(): void {
+    const fordX = 5.5
+    const ford = this.createRollingStreetSurface(2.05, 3.7, fordX, -15.65, '#9d9a7b', 0.145)
+    this.hillsideStreet.add(ford)
+    const stone = new MeshLambertMaterial({ color: '#d2c89d', flatShading: true })
+    for (let index = 0; index < 8; index += 1) {
+      const z = -14.25 - index * 0.42
+      const x = fordX + (index % 2 === 0 ? -0.24 : 0.22)
+      const slab = new Mesh(new BoxGeometry(0.82, 0.09, 0.32), stone)
+      slab.position.set(x, gentleStreetHeight(x, z) + 0.22, z)
+      slab.rotation.y = index % 2 === 0 ? 0.08 : -0.1
+      this.hillsideStreet.add(slab)
+    }
+    const farBank = this.createRollingStreetSurface(3.5, 1.15, fordX, -17.05, '#b9af77', 0.16)
+    this.hillsideStreet.add(farBank)
+    const railMaterial = new MeshLambertMaterial({ color: '#5a6860', flatShading: true })
+    for (const xOffset of [-1.24, 1.24]) {
+      const post = new Mesh(new CylinderGeometry(0.045, 0.06, 0.82, 5), railMaterial)
+      post.position.set(fordX + xOffset, gentleStreetHeight(fordX + xOffset, -16.95) + 0.45, -16.95)
+      this.hillsideStreet.add(post)
+    }
+    const sign = this.createSign('SHALLOW FORD', '#eef2dc', 175, 44)
+    sign.scale.set(0.94, 0.25, 1)
+    sign.position.set(fordX, gentleStreetHeight(fordX, -14.12) + 1.02, -14.12)
+    this.hillsideStreet.add(sign)
   }
 
   /** Turns the old bridge's view point into a small usable landing by the reeds. */
@@ -910,6 +942,47 @@ export class GameWorld implements PlayerController {
     laneSign.scale.set(1.22, 0.28, 1)
     laneSign.position.set(-5.65, gentleStreetHeight(-5.65, -8.0) + 1.18, -8.0)
     this.hillsideStreet.add(laneSign)
+  }
+
+  /** Bell Orchard is Ravnbro's public green between the station town and river routes. */
+  private addBellOrchard(): void {
+    const orchardX = 9.4
+    const orchardZ = -7.35
+    this.hillsideStreet.add(this.createRollingStreetSurface(5.7, 3.65, orchardX, orchardZ, '#719b5f', 0.1))
+    this.hillsideStreet.add(this.createRollingStreetSurface(1.18, 4.35, 7.2, -8.55, '#d8d2b2', 0.13))
+    const trunk = new MeshLambertMaterial({ color: '#694d3c', flatShading: true })
+    const leafColors = ['#3d7d53', '#4e9361', '#5b8955']
+    for (const [index, x, z] of [[0, 8.55, -6.6], [1, 10.45, -7.1], [2, 9.0, -8.8], [0, 11.5, -8.45]] as Array<[number, number, number]>) {
+      const tree = new Group()
+      const stem = new Mesh(new CylinderGeometry(0.1, 0.15, 1.22, 5), trunk)
+      stem.position.y = 0.61
+      tree.add(stem)
+      const crown = new Mesh(new SphereGeometry(0.68, 7, 5), new MeshLambertMaterial({ color: leafColors[index], flatShading: true }))
+      crown.scale.set(1, 0.82, 0.9)
+      crown.position.y = 1.42
+      tree.add(crown)
+      tree.position.set(x, gentleStreetHeight(x, z), z)
+      this.hillsideStreet.add(tree)
+      this.addStreetBlocker(x, z, 0.5)
+    }
+    const benchMaterial = new MeshLambertMaterial({ color: '#765440', flatShading: true })
+    const bench = new Mesh(new BoxGeometry(1.46, 0.14, 0.38), benchMaterial)
+    bench.position.set(11.25, gentleStreetHeight(11.25, -6.15) + 0.42, -6.15)
+    this.hillsideStreet.add(bench)
+    const benchBack = new Mesh(new BoxGeometry(1.46, 0.29, 0.08), benchMaterial)
+    benchBack.position.set(11.25, gentleStreetHeight(11.25, -6.15) + 0.61, -6.0)
+    this.hillsideStreet.add(benchBack)
+    const fountain = new Mesh(new CylinderGeometry(0.54, 0.68, 0.28, 8), new MeshLambertMaterial({ color: '#a7b5aa', flatShading: true }))
+    fountain.position.set(7.85, gentleStreetHeight(7.85, -7.6) + 0.14, -7.6)
+    this.hillsideStreet.add(fountain)
+    const water = new Mesh(new CylinderGeometry(0.36, 0.36, 0.035, 8), new MeshLambertMaterial({ color: '#70b6b2', emissive: new Color('#4b8d91'), emissiveIntensity: 0.12, flatShading: true }))
+    water.position.set(7.85, gentleStreetHeight(7.85, -7.6) + 0.3, -7.6)
+    this.hillsideStreet.add(water)
+    this.addStreetBlocker(7.85, -7.6, 0.48)
+    const sign = this.createSign('BELL ORCHARD', '#f4ecd5', 200, 46)
+    sign.scale.set(1.1, 0.27, 1)
+    sign.position.set(9.45, gentleStreetHeight(9.45, -5.5) + 1.06, -5.5)
+    this.hillsideStreet.add(sign)
   }
 
   /** A dense, open-ended pocket that makes the mural clue a place to discover. */
@@ -1674,6 +1747,45 @@ export class GameWorld implements PlayerController {
     routeMark.scale.set(0.76, 0.22, 1)
     routeMark.position.set(signX, heightAt(signX, signZ) + 0.72, signZ)
     district.add(routeMark)
+  }
+
+  /** The station's outbound line visibly joins Ravnbro to the planet-wide loop. */
+  private addRavnbroOutboundRail(): void {
+    const route = new CatmullRomCurve3([
+      new Vector3(4.45, gentleStreetHeight(4.45, -4.45) + 0.21, -4.45),
+      new Vector3(5.15, gentleStreetHeight(5.15, -5.85) + 0.21, -5.85),
+      new Vector3(6.05, gentleStreetHeight(6.05, -7.55) + 0.21, -7.55),
+      new Vector3(7.25, gentleStreetHeight(7.25, -9.55) + 0.21, -9.55),
+      new Vector3(8.8, gentleStreetHeight(8.8, -12.2) + 0.21, -12.2),
+    ], false, 'centripetal')
+    const ballast = new Mesh(new TubeGeometry(route, 56, 0.36, 5, false), new MeshLambertMaterial({ color: '#8e856d', flatShading: true }))
+    this.hillsideStreet.add(ballast)
+    const iron = new MeshLambertMaterial({ color: '#365258', flatShading: true })
+    for (const offset of [-0.27, 0.27]) {
+      const railPoints: Vector3[] = []
+      for (let index = 0; index <= 28; index += 1) {
+        const progress = index / 28
+        const point = route.getPointAt(progress)
+        const ahead = route.getPointAt(Math.min(1, progress + 0.01))
+        const tangent = ahead.sub(point).normalize()
+        railPoints.push(point.add(new Vector3(-tangent.z * offset, 0.03, tangent.x * offset)))
+      }
+      this.hillsideStreet.add(new Mesh(new TubeGeometry(new CatmullRomCurve3(railPoints, false, 'centripetal'), 56, 0.055, 5, false), iron))
+    }
+    const timber = new MeshLambertMaterial({ color: '#64493a', flatShading: true })
+    for (let index = 0; index < 24; index += 1) {
+      const progress = index / 24
+      const point = route.getPointAt(progress)
+      const ahead = route.getPointAt(Math.min(1, progress + 0.01))
+      const sleeper = new Mesh(new BoxGeometry(0.98, 0.075, 0.13), timber)
+      sleeper.position.copy(point).add(new Vector3(0, -0.055, 0))
+      sleeper.rotation.y = Math.atan2(ahead.z - point.z, ahead.x - point.x) + Math.PI / 2
+      this.hillsideStreet.add(sleeper)
+    }
+    const sign = this.createSign('RAVNBRO OUTBOUND', '#f4ecd5', 210, 46)
+    sign.scale.set(1.15, 0.28, 1)
+    sign.position.set(6.95, gentleStreetHeight(6.95, -8.1) + 1.18, -8.1)
+    this.hillsideStreet.add(sign)
   }
 
   private addFlatBuilding(x: number, z: number, wall: string, roofColor: string, label: string): void {
@@ -4563,7 +4675,7 @@ export class GameWorld implements PlayerController {
 
   private updateHillsideStreetPlayer(delta: number): void {
     this.moveStreetPlayer(delta, 4.2, (candidate) => {
-      const inBounds = Math.abs(candidate.x) < 18.5 && candidate.z < 14.5 && candidate.z > -15.5
+      const inBounds = Math.abs(candidate.x) < 18.5 && candidate.z < 14.5 && candidate.z > -17.55
       const clearOfBuildings = isOutsideStreetBlockers(candidate, this.streetBlockers)
       return inBounds && clearOfBuildings
     })
