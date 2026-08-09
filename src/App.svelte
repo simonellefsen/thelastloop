@@ -4,7 +4,7 @@
   import { arrivalCopy } from './lib/game/arrival'
   import { guidanceRotation, guideInput } from './lib/game/controls'
   import type { DistrictId, GameHud, QuestState } from './lib/game/types'
-  import { sideQuestLabel } from './lib/game/quest'
+  import { isJourneyComplete, sideQuestLabel } from './lib/game/quest'
 
   let gameHost: HTMLDivElement
   let game: GameWorld | undefined
@@ -260,6 +260,13 @@
       {:else}
       <aside class="station-panel">
         <p class="eyebrow">SUNSET LOOP STATION</p>
+        {#if isJourneyComplete(hud.quest)}
+          <section class="completion-card" aria-live="polite">
+            <h2>The Last Loop is complete</h2>
+            <p>Ravnbro, Harbour Works and Moonhill are lit again. The last train can find its way home.</p>
+            <button class="completion-button" onclick={startFresh}>Begin a fresh loop</button>
+          </section>
+        {:else}
         <h2>Route map</h2>
         <div class="route-map" aria-label="Railway destinations">
           <div class="map-loop"></div>
@@ -268,6 +275,7 @@
           <button class="map-stop observatory available" onclick={travelToObservatory}>Moonhill Observatory<br /><small>ride now</small></button>
         </div>
         <p class="station-copy">The restored loop now reaches Harbour Works and Moonhill Observatory.</p>
+        {/if}
         <div class="carriage-board" aria-label="Local carriage status">
           <strong>{hud.identity.callsign}</strong>
           <span>Quiet carriage · 1 / 6</span>

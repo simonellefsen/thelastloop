@@ -35,7 +35,7 @@ import { nextPassengerIdentity } from './presence'
 import { globalRailStops, nextGlobalRailStop } from './railway'
 import { restorationLightProfile, type RestorationDistrict } from './restoration'
 import { animationTime, nextRenderResolution, shouldRender } from './runtime'
-import { advanceSideQuest, defaultQuest, resolveClue, unlockHarbour, unlockObservatory } from './quest'
+import { advanceSideQuest, defaultQuest, isJourneyComplete, resolveClue, unlockHarbour, unlockObservatory } from './quest'
 import { coatColors, nextCoatColor } from './style'
 import { Soundscape, soundscapeProfile } from './soundscape'
 import { freshStorySave, readSave, writeSave } from './storage'
@@ -276,7 +276,7 @@ export class GameWorld implements PlayerController {
     }
     if (this.nearby === 'station-keeper') {
       if (this.save.quest.stationNameRestored && (this.save.quest.lantern !== 'complete' || this.save.quest.chorus !== 'complete')) this.emitHud('Sunset Loop has a name again, but the signal is dark and the hill has forgotten its song.', 'Follow the teal and rose markers for two small side routes.')
-      else if (this.save.quest.stationNameRestored) this.emitHud('The station is bright, the birds are singing, and a short train is ready for Harbour Works.', 'Walk to the blue station door to enter.')
+      else if (this.save.quest.stationNameRestored) this.enterStation()
       else this.emitHud('The old sign is blank again. The town kept its name in three little stories.', 'Look for the signal box, market mural and hill bell.')
       return
     }
@@ -4950,6 +4950,7 @@ export class GameWorld implements PlayerController {
 
   private stationKeeperDialogue(): string {
     if (this.save.quest.stationNameRestored && (this.save.quest.lantern !== 'complete' || this.save.quest.chorus !== 'complete')) return '“The sign is bright again. If you have time, the signal and hill bell still need a little care.”'
+    if (isJourneyComplete(this.save.quest)) return '“Every light is on. The Last Loop is complete, and every town has a way home.”'
     if (this.save.quest.stationNameRestored) return '“You did it. The last train has a name to come home to.”'
     return '“The station sign has faded. Find the three amber beacons, and bring our name back.”'
   }
@@ -4975,12 +4976,16 @@ export class GameWorld implements PlayerController {
 
   private currentHud(): GameHud {
     const npcName = this.nearby === 'station-keeper' ? 'STATION KEEPER' : this.nearby === 'harbour-keeper' ? 'DOCK KEEPER' : this.nearby === 'moon-warden' ? 'MOONHILL WARDEN' : ''
-    const nearbyLabel = npcName ? 'Talk' : this.nearby === 'station-door' ? 'Enter station' : typeof this.nearby === 'object' ? `Investigate ${this.nearby.label}` : ''
+    const keeperCanBoard = this.nearby === 'station-keeper'
+      && this.save.quest.stationNameRestored
+      && this.save.quest.lantern === 'complete'
+      && this.save.quest.chorus === 'complete'
+    const nearbyLabel = keeperCanBoard ? 'Board train' : npcName ? 'Talk' : this.nearby === 'station-door' ? 'Enter station' : typeof this.nearby === 'object' ? `Investigate ${this.nearby.label}` : ''
     const showNpcDialogue = !this.inStation && npcName !== ''
     const npcDialogue = this.nearby === 'station-keeper' ? this.stationKeeperDialogue() : this.nearby === 'harbour-keeper' ? this.harbourKeeperDialogue() : this.nearby === 'moon-warden' ? this.moonWardenDialogue() : ''
     const objective = this.currentObjective()
     return {
-      hint: showNpcDialogue ? 'Tap Talk to speak.' : this.displayedHint || this.hint(),
+      hint: showNpcDialogue ? keeperCanBoard ? 'Tap Board train to open the route map.' : 'Tap Talk to speak.' : this.displayedHint || this.hint(),
       dialogue: showNpcDialogue ? npcDialogue : this.displayedDialogue || this.dialogue(),
       objectiveLabel: objective.label,
       objectiveDirection: objective.direction,

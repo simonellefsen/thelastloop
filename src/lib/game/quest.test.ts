@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { advanceSideQuest, defaultQuest, resolveClue, sideQuestLabel, unlockHarbour, unlockObservatory } from './quest'
+import { advanceSideQuest, defaultQuest, isJourneyComplete, resolveClue, sideQuestLabel, unlockHarbour, unlockObservatory } from './quest'
 
 describe('station-name quest', () => {
   it('restores the station after three distinct clues', () => {
@@ -40,5 +40,11 @@ describe('station-name quest', () => {
     expect(lensFound.observatory).toBe('second')
     expect(advanceSideQuest(lensFound, 'observatory').observatory).toBe('complete')
     expect(sideQuestLabel('observatory', 'second')).toBe('Align the telescope')
+  })
+
+  it('closes the journey only when all three towns and their side routes are restored', () => {
+    const almostThere = { ...defaultQuest(), stationNameRestored: true, lantern: 'complete' as const, chorus: 'complete' as const, harbour: 'complete' as const, observatory: 'second' as const }
+    expect(isJourneyComplete(almostThere)).toBe(false)
+    expect(isJourneyComplete({ ...almostThere, observatory: 'complete' })).toBe(true)
   })
 })

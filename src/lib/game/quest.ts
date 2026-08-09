@@ -39,6 +39,15 @@ export function unlockObservatory(quest: QuestState): QuestState {
   return { ...quest, observatory: 'first' }
 }
 
+/** The vertical slice closes only after every town has regained its light. */
+export function isJourneyComplete(quest: QuestState): boolean {
+  return quest.stationNameRestored
+    && quest.lantern === 'complete'
+    && quest.chorus === 'complete'
+    && quest.harbour === 'complete'
+    && quest.observatory === 'complete'
+}
+
 export function sideQuestLabel(id: SideQuestId, stage: SideQuestStage): string {
   if (stage === 'complete') return id === 'lantern' ? 'Green light restored' : id === 'chorus' ? 'Morning chorus heard' : id === 'harbour' ? 'Tide clock restored' : 'Moon signal restored'
   if (stage === 'second') return id === 'lantern' ? 'Fit the lens at the signal' : id === 'chorus' ? 'Ring the hill bell with the tune' : id === 'harbour' ? 'Return to the dock pump' : 'Align the telescope'
