@@ -48,6 +48,8 @@ Lens Path is Moonhill's westward branch from the observatory road. Low handrails
 
 Archive Terrace gives Moonhill an eastern counterweight: an open stone branch has a small records shelter, chart desk and hand-built brass orrery behind a low protected edge. It uses the same shallow local terrain and collision system as the telescope route, but deliberately keeps its centre open so the observatory remains the primary navigational landmark.
 
+Moonhill's northern Signal Terrace is a compact upland stop rather than an empty starting verge: its short rail, shelter, signal lens and luggage cart make the mountain route feel linked to the same loop as Ravnbro and Harbour Works. The platform centre stays open, with collision limited to the shelter, cart, signal and buffers.
+
 Ravnbro's bridge now reaches Reedwater Landing rather than stopping at a collision wall. A plank deck, tiny shelter, moored skiff and boundary posts make its river edge a deliberate, safe walkable destination.
 
 River Trade Lane completes that southern approach: a cobbled branch runs from the older home frontage down to Reedwater, with a goods hoist, covered produce stall and a protected line of mooring bollards. It is a fictional Ravnbro trade route, not an interpretation of a real street.

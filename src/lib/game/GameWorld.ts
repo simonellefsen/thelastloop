@@ -2522,6 +2522,7 @@ export class GameWorld implements PlayerController {
     this.addMoonhillLookout()
     this.addMoonhillArchiveTerrace()
     this.addMoonhillLensPath()
+    this.addMoonhillSignalTerrace()
     this.addMoonhillWarden(-2.55, -1.5)
     this.addObservatoryStreetMarker('observatory-lens', 'Starlight lens', 'first', -5.5, -2.2, 'A starlight lens rests beside the hill path. The telescope can see again.')
     this.addObservatoryStreetMarker('observatory-scope', 'Align scope', 'second', 1.5, -3.85, 'The moon signal crosses the glass. Every faraway station gets one clear night.')
@@ -2740,6 +2741,105 @@ export class GameWorld implements PlayerController {
     sign.scale.set(1.04, 0.28, 1)
     sign.position.set(-3.05, observatoryStreetHeight(-3.05, -0.95) + 1.03, -0.95)
     this.observatoryStreet.add(sign)
+  }
+
+  /**
+   * A tiny upland stop gives Moonhill's street district a visible rail-side
+   * arrival point. The shelter and parcels are physical, but the track centre
+   * is kept clear so the player can cross the terrace rather than being boxed
+   * into the observatory road.
+   */
+  private addMoonhillSignalTerrace(): void {
+    const stone = new MeshLambertMaterial({ color: '#a9a4a0', flatShading: true })
+    const paleStone = new MeshLambertMaterial({ color: '#d8d3c0', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#665047', flatShading: true })
+    const iron = new MeshLambertMaterial({ color: '#454f68', flatShading: true })
+    const violet = new MeshLambertMaterial({ color: '#75659a', flatShading: true })
+
+    this.observatoryStreet.add(this.createObservatoryStreetSurface(6.8, 3.65, -5.22, 6.08, '#aaa4a0', 0.13))
+    this.observatoryStreet.add(this.createObservatoryStreetSurface(3.35, 1.7, -2.5, 7.12, '#aaa4a0', 0.13))
+    for (let x = -8.18; x <= -2.28; x += 0.5) {
+      for (const z of [5.35, 6.43]) {
+        const slab = new Mesh(new BoxGeometry(0.4, 0.04, 0.76), (Math.round((x - z) * 2) % 2 === 0) ? stone : paleStone)
+        slab.position.set(x, observatoryStreetHeight(x, z) + 0.18, z)
+        this.observatoryStreet.add(slab)
+      }
+      const sleeper = new Mesh(new BoxGeometry(0.13, 0.06, 1.56), timber)
+      sleeper.position.set(x, observatoryStreetHeight(x, 5.89) + 0.22, 5.89)
+      this.observatoryStreet.add(sleeper)
+    }
+    for (const z of [5.35, 6.43]) {
+      const rail = new Mesh(new BoxGeometry(6.15, 0.065, 0.07), iron)
+      rail.position.set(-5.25, observatoryStreetHeight(-5.25, z) + 0.28, z)
+      this.observatoryStreet.add(rail)
+    }
+
+    const shelter = new Group()
+    for (const xOffset of [-0.72, 0.72]) {
+      const post = new Mesh(new BoxGeometry(0.11, 1.4, 0.11), timber)
+      post.position.set(xOffset, 0.7, 0)
+      shelter.add(post)
+    }
+    const canopy = new Mesh(new ConeGeometry(1.18, 0.54, 4), new MeshLambertMaterial({ color: '#3d4867', flatShading: true }))
+    canopy.rotation.y = Math.PI / 4
+    canopy.position.y = 1.56
+    shelter.add(canopy)
+    const bench = new Mesh(new BoxGeometry(1.22, 0.14, 0.36), timber)
+    bench.position.set(0, 0.47, -0.14)
+    shelter.add(bench)
+    const shelterSign = this.createSign('SKYRAIL', '#eee9da', 155, 42)
+    shelterSign.scale.set(0.86, 0.24, 1)
+    shelterSign.position.set(0, 1.44, 0.2)
+    shelter.add(shelterSign)
+    shelter.position.set(-7.15, observatoryStreetHeight(-7.15, 7.12), 7.12)
+    this.observatoryStreet.add(shelter)
+    this.addObservatoryStreetBlocker(-7.15, 7.12, 0.92)
+
+    const signal = new Group()
+    const pole = new Mesh(new CylinderGeometry(0.07, 0.09, 2.05, 6), iron)
+    pole.position.y = 1.02
+    signal.add(pole)
+    const arm = new Mesh(new BoxGeometry(0.72, 0.09, 0.09), iron)
+    arm.position.set(0.3, 1.73, 0)
+    arm.rotation.z = -0.26
+    signal.add(arm)
+    const lens = new Mesh(new SphereGeometry(0.14, 7, 5), new MeshLambertMaterial({ color: '#e5d995', emissive: new Color('#9d7acd'), emissiveIntensity: 0.74, flatShading: true }))
+    lens.position.set(0.64, 1.6, 0)
+    signal.add(lens)
+    signal.position.set(-3.0, observatoryStreetHeight(-3.0, 4.8), 4.8)
+    this.observatoryStreet.add(signal)
+    this.addObservatoryStreetBlocker(-3.0, 4.8, 0.24)
+
+    const baggage = new Group()
+    const trolley = new Mesh(new BoxGeometry(0.98, 0.17, 0.58), iron)
+    trolley.position.y = 0.34
+    baggage.add(trolley)
+    for (const xOffset of [-0.34, 0.34]) {
+      const wheel = new Mesh(new TorusGeometry(0.12, 0.035, 5, 8), iron)
+      wheel.rotation.y = Math.PI / 2
+      wheel.position.set(xOffset, 0.18, -0.23)
+      baggage.add(wheel)
+    }
+    const caseOne = new Mesh(new BoxGeometry(0.4, 0.34, 0.36), violet)
+    caseOne.position.set(-0.16, 0.61, 0)
+    baggage.add(caseOne)
+    const caseTwo = new Mesh(new BoxGeometry(0.31, 0.28, 0.31), new MeshLambertMaterial({ color: '#c19059', flatShading: true }))
+    caseTwo.position.set(0.2, 0.54, 0.04)
+    baggage.add(caseTwo)
+    baggage.position.set(-5.05, observatoryStreetHeight(-5.05, 7.05), 7.05)
+    this.observatoryStreet.add(baggage)
+    this.addObservatoryStreetBlocker(-5.05, 7.05, 0.72)
+
+    for (const [x, z] of [[-8.45, 5.35], [-8.45, 6.43], [-2.05, 5.35], [-2.05, 6.43]] as Array<[number, number]>) {
+      const buffer = new Mesh(new BoxGeometry(0.16, 0.46, 0.22), iron)
+      buffer.position.set(x, observatoryStreetHeight(x, z) + 0.23, z)
+      this.observatoryStreet.add(buffer)
+      this.addObservatoryStreetBlocker(x, z, 0.18)
+    }
+    const platformSign = this.createSign('SIGNAL TERRACE', '#eee9da', 215, 48)
+    platformSign.scale.set(1.18, 0.29, 1)
+    platformSign.position.set(-5.28, observatoryStreetHeight(-5.28, 4.5) + 1.14, 4.5)
+    this.observatoryStreet.add(platformSign)
   }
 
   /** Moonhill's quiet warden is decorative until the player enters a short talk radius. */
