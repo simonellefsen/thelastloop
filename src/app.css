@@ -67,6 +67,7 @@ h1 span { display: inline-block; font-size: .39em; letter-spacing: -.08em; verti
 .dialogue small { display: block; margin-top: 5px; color: #5d6c6d; font-size: clamp(.57rem, 1.2vw, .7rem); }
 .npc-dialogue .eyebrow { margin: 0 0 5px; color: #c85b46; font-size: .58rem; letter-spacing: .11em; }
 .touch-guide { position: fixed; z-index: 2; display: grid; width: 38px; height: 38px; place-items: center; border: 2px solid rgba(255, 249, 220, .86); border-radius: 50%; background: rgba(33, 77, 84, .48); box-shadow: 0 2px 0 rgba(14, 45, 51, .5); color: #fff5d6; font-size: 1rem; font-weight: 900; pointer-events: none; transform: translate(-50%, -50%); }
+.touch-guide span { display: block; line-height: 1; transform: rotate(var(--guide-turn, 0deg)); transition: transform .06s linear; }
 .interact-button { position: absolute; right: max(20px, env(safe-area-inset-right)); bottom: max(24px, env(safe-area-inset-bottom)); min-width: 96px; min-height: 72px; padding: 8px 11px; border-radius: 11px; font-size: .66rem; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
 .interact-button span { display: block; color: #c85b46; font-size: 1.3rem; line-height: 1; }
 .interact-button:disabled { opacity: .63; cursor: default; }

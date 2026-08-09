@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { GameWorld } from './lib/game/GameWorld'
-  import { guideInput } from './lib/game/controls'
+  import { guidanceRotation, guideInput } from './lib/game/controls'
   import type { DistrictId, GameHud, QuestState } from './lib/game/types'
   import { sideQuestLabel } from './lib/game/quest'
 
@@ -15,6 +15,7 @@
   let guideActive = false
   let guideX = 0
   let guideY = 0
+  let guideRotation = 0
   let titleDistrict: DistrictId = 'hillside'
   let hud: GameHud = {
     hint: 'Enter the town when you are ready.',
@@ -109,13 +110,15 @@
   function guidePlayer(event: PointerEvent) {
     const target = event.currentTarget as HTMLElement
     const bounds = target.getBoundingClientRect()
-    game?.setJoystick(guideInput(event.clientX, event.clientY, bounds))
+    const input = guideInput(event.clientX, event.clientY, bounds)
+    game?.setJoystick(input)
     guideX = event.clientX
     guideY = event.clientY
+    guideRotation = guidanceRotation(input)
   }
 
   function beginGuidance(event: PointerEvent) {
-    if (!started || hud.inStation || event.pointerType === 'mouse') return
+    if (!started || hud.inStation || event.pointerType === 'mouse' || !event.isPrimary) return
     const target = event.currentTarget as HTMLElement
     guidingPointer = event.pointerId
     guideActive = true
@@ -132,6 +135,7 @@
     if (guidingPointer !== event.pointerId) return
     guidingPointer = undefined
     guideActive = false
+    guideRotation = 0
     game?.setJoystick({ x: 0, y: 0 })
   }
 
@@ -155,6 +159,7 @@
     onpointermove={continueGuidance}
     onpointerup={endGuidance}
     onpointercancel={endGuidance}
+    onlostpointercapture={endGuidance}
   ></div>
 
   {#if error}
@@ -254,7 +259,7 @@
         </div>
       {/if}
 
-      {#if !hud.inStation && guideActive}<div class="touch-guide" style={`left: ${guideX}px; top: ${guideY}px`} aria-hidden="true">↗</div>{/if}
+      {#if !hud.inStation && guideActive}<div class="touch-guide" style={`left: ${guideX}px; top: ${guideY}px; --guide-turn: ${guideRotation}deg`} aria-hidden="true"><span>↑</span></div>{/if}
 
       {#if !hud.inStation && hud.objectiveLabel}
         <p class="objective-cue" aria-label={`${hud.objectiveLabel}, ${hud.objectiveDirection}`}>↗ <strong>{hud.objectiveLabel}</strong><span>{hud.objectiveDirection}</span></p>

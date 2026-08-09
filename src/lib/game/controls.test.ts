@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { guideInput, objectiveDirection } from './controls'
+import { guidanceRotation, guideInput, objectiveDirection } from './controls'
 
 const bounds = { left: 0, top: 0, width: 400, height: 800 }
 
@@ -8,6 +8,12 @@ describe('phone guidance input', () => {
   it('moves forward for a finger above the character', () => expect(guideInput(200, 160, bounds).y).toBeGreaterThan(0.9))
   it('moves right for a finger to the right of the character', () => expect(guideInput(390, 496, bounds).x).toBeGreaterThan(0.9))
   it('keeps guidance within the controller range', () => expect(Math.hypot(...Object.values(guideInput(900, -100, bounds)))).toBeLessThanOrEqual(1))
+
+  it('turns the touch arrow toward the held finger', () => {
+    expect(guidanceRotation({ x: 0, y: 1 })).toBe(0)
+    expect(guidanceRotation({ x: 1, y: 0 })).toBe(90)
+    expect(guidanceRotation({ x: -1, y: 0 })).toBe(-90)
+  })
 })
 
 describe('objective route bearing', () => {

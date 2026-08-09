@@ -32,3 +32,10 @@ export function guideInput(clientX: number, clientY: number, bounds: ScreenBound
   const strength = Math.min(1, (distance - deadZone) / 0.28)
   return { x: x / distance * strength, y: y / distance * strength }
 }
+
+/** Turns a guidance vector into the rotation for an upright touch arrow.
+ * Zero degrees points forward, matching the character's screen-facing direction. */
+export function guidanceRotation(input: { x: number; y: number }): number {
+  if (Math.hypot(input.x, input.y) < 0.001) return 0
+  return Math.atan2(input.x, input.y) * (180 / Math.PI)
+}
