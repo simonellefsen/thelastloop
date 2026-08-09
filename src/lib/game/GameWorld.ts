@@ -603,6 +603,7 @@ export class GameWorld implements PlayerController {
     this.addRavnbroDepotYard()
     this.addMarketFold()
     this.addMarketCourtyard()
+    this.addRavnbroClockmakersCourt()
     this.addSignalYard()
     this.addFlatKeeper(0, 2.2)
     this.addFlatClue('signal', 'Signal box', -7.2, -0.5, 'The brass plate reads: “Every last train returns in a LOOP.”')
@@ -1034,6 +1035,124 @@ export class GameWorld implements PlayerController {
     this.addStreetBlocker(13.62, -0.68, 1.1)
     this.addStreetBlocker(11.35, -1.16, 0.34)
     this.addStreetBlocker(12.18, -1.33, 0.55)
+  }
+
+  /**
+   * A compact northern cut gives the Market Fold somewhere to lead. It uses
+   * purpose-built cobbles, a clock repair workshop and a sheltered workbench
+   * instead of treating the ground behind the market as unused lawn. The
+   * centre remains deliberately open so this is a shortcut, not a prop maze.
+   */
+  private addRavnbroClockmakersCourt(): void {
+    const laneX = 6.25
+    const laneZ = 3.18
+    this.hillsideStreet.add(this.createRollingStreetSurface(2.65, 5.35, laneX, laneZ, '#c7b58b', 0.105))
+    this.hillsideStreet.add(this.createRollingStreetSurface(4.95, 2.48, 8.35, 5.45, '#c2af86', 0.11))
+
+    const paleStone = new MeshLambertMaterial({ color: '#d8c8a2', flatShading: true })
+    const warmStone = new MeshLambertMaterial({ color: '#ab966f', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#62463a', flatShading: true })
+    const brick = new MeshLambertMaterial({ color: '#a35543', flatShading: true })
+    const slate = new MeshLambertMaterial({ color: '#40575a', flatShading: true })
+    const clockFace = new MeshLambertMaterial({ color: '#f1e6c8', flatShading: true })
+    const iron = new MeshLambertMaterial({ color: '#3c5659', flatShading: true })
+
+    for (let x = 5.12; x <= 7.38; x += 0.48) {
+      for (let z = 0.95; z <= 5.3; z += 0.5) {
+        const stone = new Mesh(new BoxGeometry(0.4, 0.038, 0.42), (Math.round((x + z) * 2) % 2 === 0) ? paleStone : warmStone)
+        stone.position.set(x, gentleStreetHeight(x, z) + 0.14, z)
+        this.hillsideStreet.add(stone)
+      }
+    }
+    for (let x = 6.4; x <= 10.45; x += 0.5) {
+      for (let z = 4.52; z <= 6.28; z += 0.48) {
+        const stone = new Mesh(new BoxGeometry(0.42, 0.038, 0.38), (Math.round((x - z) * 2) % 2 === 0) ? warmStone : paleStone)
+        stone.position.set(x, gentleStreetHeight(x, z) + 0.145, z)
+        this.hillsideStreet.add(stone)
+      }
+    }
+
+    const workshop = new Group()
+    const workshopBody = new Mesh(new BoxGeometry(1.72, 1.58, 1.62), brick)
+    workshopBody.position.y = 0.79
+    workshop.add(workshopBody)
+    const workshopRoof = new Mesh(new ConeGeometry(1.18, 0.65, 4), slate)
+    workshopRoof.rotation.y = Math.PI / 4
+    workshopRoof.position.y = 1.78
+    workshop.add(workshopRoof)
+    const workshopDoor = new Mesh(new PlaneGeometry(0.52, 0.9), new MeshLambertMaterial({ color: '#31565a', side: DoubleSide }))
+    workshopDoor.position.set(-0.32, 0.48, 0.816)
+    workshop.add(workshopDoor)
+    const workshopWindow = new Mesh(new PlaneGeometry(0.44, 0.44), new MeshLambertMaterial({ color: '#dce6d9', side: DoubleSide }))
+    workshopWindow.position.set(0.42, 0.96, 0.82)
+    workshop.add(workshopWindow)
+    const workshopSign = this.createSign('CLOCK REPAIR', '#f6edd5', 190, 46)
+    workshopSign.scale.set(1.05, 0.28, 1)
+    workshopSign.position.set(0, 1.8, 0.83)
+    workshop.add(workshopSign)
+    const clock = new Mesh(new CylinderGeometry(0.27, 0.27, 0.06, 12), clockFace)
+    clock.rotation.x = Math.PI / 2
+    clock.position.set(0, 1.34, 0.85)
+    workshop.add(clock)
+    for (const angle of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) {
+      const hand = new Mesh(new BoxGeometry(0.025, 0.12, 0.02), iron)
+      hand.position.set(Math.sin(angle) * 0.15, 1.34 + Math.cos(angle) * 0.15, 0.89)
+      workshop.add(hand)
+    }
+    workshop.position.set(9.92, gentleStreetHeight(9.92, 5.3), 5.3)
+    this.hillsideStreet.add(workshop)
+    this.addStreetBlocker(9.92, 5.3, 1.08)
+
+    const workbench = new Group()
+    const top = new Mesh(new BoxGeometry(1.18, 0.14, 0.54), timber)
+    top.position.y = 0.72
+    workbench.add(top)
+    for (const xOffset of [-0.43, 0.43]) {
+      const leg = new Mesh(new BoxGeometry(0.1, 0.72, 0.1), timber)
+      leg.position.set(xOffset, 0.36, 0)
+      workbench.add(leg)
+    }
+    const gear = new Mesh(new TorusGeometry(0.18, 0.045, 6, 10), new MeshLambertMaterial({ color: '#c7934d', flatShading: true }))
+    gear.rotation.x = Math.PI / 2
+    gear.position.set(-0.23, 0.83, 0.04)
+    workbench.add(gear)
+    const lamp = new Mesh(new SphereGeometry(0.11, 7, 5), new MeshLambertMaterial({ color: '#f2ce69', emissive: new Color('#bd8137'), emissiveIntensity: 0.68, flatShading: true }))
+    lamp.position.set(0.34, 1.12, 0)
+    workbench.add(lamp)
+    workbench.position.set(8.02, gentleStreetHeight(8.02, 5.62), 5.62)
+    this.hillsideStreet.add(workbench)
+    this.addStreetBlocker(8.02, 5.62, 0.74)
+
+    const cover = new Group()
+    for (const xOffset of [-0.7, 0.7]) {
+      const post = new Mesh(new BoxGeometry(0.1, 1.38, 0.1), timber)
+      post.position.set(xOffset, 0.69, 0)
+      cover.add(post)
+    }
+    const coverRoof = new Mesh(new BoxGeometry(1.78, 0.13, 0.86), new MeshLambertMaterial({ color: '#d1a356', flatShading: true }))
+    coverRoof.position.y = 1.36
+    cover.add(coverRoof)
+    cover.position.set(5.1, gentleStreetHeight(5.1, 4.92), 4.92)
+    this.hillsideStreet.add(cover)
+
+    const drainage = new Mesh(new BoxGeometry(2.38, 0.045, 0.12), slate)
+    drainage.position.set(6.28, gentleStreetHeight(6.28, 5.72) + 0.15, 5.72)
+    this.hillsideStreet.add(drainage)
+    for (const x of [5.48, 6.28, 7.08]) {
+      const grate = new Mesh(new BoxGeometry(0.13, 0.03, 0.25), iron)
+      grate.position.set(x, gentleStreetHeight(x, 5.72) + 0.18, 5.72)
+      this.hillsideStreet.add(grate)
+    }
+    for (const [x, z] of [[7.22, 4.78], [10.45, 4.22], [10.7, 6.2]] as Array<[number, number]>) {
+      const post = new Mesh(new CylinderGeometry(0.09, 0.12, 0.7, 6), iron)
+      post.position.set(x, gentleStreetHeight(x, z) + 0.35, z)
+      this.hillsideStreet.add(post)
+      this.addStreetBlocker(x, z, 0.18)
+    }
+    const courtSign = this.createSign('CLOCKMAKERS\' COURT', '#eef0d9', 228, 48)
+    courtSign.scale.set(1.25, 0.28, 1)
+    courtSign.position.set(6.26, gentleStreetHeight(6.26, 5.84) + 1.22, 5.84)
+    this.hillsideStreet.add(courtSign)
   }
 
   /** The signal clue sits in an open railway-service pocket, not behind scenery. */

@@ -55,6 +55,7 @@
 - ✅ Build the Market Fold interaction pocket around the mural clue: paved square, original sunset mural, canopy, stalls, crates and bunting.
 - ✅ Build Signal Yard around the signal clue: brick hut, yard paving, open fence bay, switch wheel and service crate.
 - ✅ Build Bell Rise around the bell clue: paved terrace, original brick bell tower, visible bell and rope, railings and a resting bench.
+- ✅ Add Clockmakers' Court: a cobbled market-to-depot cut with a purpose-built repair workshop, workbench, drainage and collision-aware street furniture.
 - ✅ Build Station Gate as the railway anchor: platform edge and rails, timetable board, luggage cart, benches and bollards.
 - ✅ Turn the station rails into a readable, collision-aware route: timber pedestrian crossing, warning posts and a single open way toward Bell Rise.
 - ✅ Add a parked Ravnbro shunter, platform cargo and physical rail-side clearance to complete the first L3 station rail pocket.
