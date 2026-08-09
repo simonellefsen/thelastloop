@@ -11,6 +11,12 @@ describe('art kit registry', () => {
     expect(ids).toContain('house-cream')
     expect(ids).toContain('char-player')
     expect(ids).toContain('tree-broad')
+    expect(ids).toContain('prop-laundry')
+    expect(ids).toContain('moonhill-observatory')
+    expect(ids).toContain('harbour-repair-boat')
+    expect(ids).toContain('moonhill-moon-dial')
+    expect(ids).toContain('harbour-tide-shed')
+    expect(ids).toContain('moonhill-star-archive')
     for (const id of ids) {
       expect(kitRegistry[id].build).toBeTypeOf('function')
     }
@@ -63,6 +69,8 @@ describe('art kit registry', () => {
   it('lists hero kit ids that match Blender export targets', () => {
     expect(HERO_KIT_IDS).toContain('station-civic')
     expect(HERO_KIT_IDS).toContain('tree-broad')
+    expect(HERO_KIT_IDS).toContain('char-player')
+    expect(HERO_KIT_IDS).toContain('harbour-warehouse')
     for (const id of HERO_KIT_IDS) {
       expect(kitRegistry[id].gltfUrl).toMatch(/\.glb$/)
     }

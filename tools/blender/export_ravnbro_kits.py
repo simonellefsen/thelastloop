@@ -37,6 +37,12 @@ METAL = (0.173, 0.208, 0.220, 1.0)
 BAG = (0.420, 0.275, 0.212, 1.0)
 DARK_BRICK = (0.498, 0.212, 0.184, 1.0)
 CLOCK = (0.953, 0.933, 0.843, 1.0)
+SKIN = (0.922, 0.710, 0.553, 1.0)
+HAIR = (0.188, 0.122, 0.098, 1.0)
+COAT = (0.961, 0.682, 0.243, 1.0)
+HAT = (0.192, 0.286, 0.333, 1.0)
+SOCK = (0.765, 0.690, 0.584, 1.0)
+SHOE = (0.129, 0.157, 0.169, 1.0)
 
 
 def log(msg: str) -> None:
@@ -108,6 +114,36 @@ def sphere(root, name, radius, loc, material, scale=(1, 1, 1)):
     obj.name = name
     obj.scale = scale
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    obj.location = loc
+    obj.data.materials.append(material)
+    return parent(obj, root)
+
+
+def hemisphere(root, name, radius, loc, material, segments=12, rings=7):
+    """Low-poly upper hemisphere with its flat edge resting on the base."""
+    verts = [(0, 0, radius)]
+    for ring in range(1, rings + 1):
+        theta = (math.pi / 2) * ring / rings
+        radial = math.sin(theta) * radius
+        z = math.cos(theta) * radius
+        for segment in range(segments):
+            angle = math.pi * 2 * segment / segments
+            verts.append((math.cos(angle) * radial, math.sin(angle) * radial, z))
+    faces = []
+    for segment in range(segments):
+        faces.append((0, 1 + segment, 1 + (segment + 1) % segments))
+    for ring in range(1, rings):
+        start = 1 + (ring - 1) * segments
+        next_start = start + segments
+        for segment in range(segments):
+            next_segment = (segment + 1) % segments
+            faces.append((start + segment, next_start + segment, next_start + next_segment, start + next_segment))
+    mesh = bpy.data.meshes.new(name + "Mesh")
+    mesh.from_pydata(verts, [], faces)
+    mesh.validate(verbose=False)
+    mesh.update()
+    obj = bpy.data.objects.new(name, mesh)
+    bpy.context.scene.collection.objects.link(obj)
     obj.location = loc
     obj.data.materials.append(material)
     return parent(obj, root)
@@ -331,6 +367,360 @@ def build_bike():
     export_root(root, "prop-bike-01.glb")
 
 
+def build_planter():
+    clear_scene()
+    root = new_root("Planter")
+    m_wood = mat("Wood", TIMBER_SOFT)
+    m_leaf = mat("Leaf", GRASS_DEEP)
+    m_flower = mat("Flower", (0.906, 0.510, 0.404, 1.0))
+    box(root, "PlanterBox", (0.52, 0.38, 0.28), (0, 0, 0.14), m_wood)
+    for i, (x, y, z, height) in enumerate([(-0.14, -0.04, 0.43, 0.30), (0.02, 0.04, 0.49, 0.42), (0.16, -0.03, 0.45, 0.34)]):
+        sphere(root, f"Leaf_{i}", 0.12, (x, y, z), m_leaf, scale=(0.78, 0.78, height / 0.12))
+        sphere(root, f"Flower_{i}", 0.07, (x + 0.025, y, z + height * 0.35), m_flower, scale=(1, 1, 0.82))
+    export_root(root, "prop-planter-01.glb")
+
+
+def build_laundry():
+    clear_scene()
+    root = new_root("Laundry")
+    m_post = mat("Post", TIMBER_SOFT)
+    m_line = mat("Line", (0.416, 0.400, 0.376, 1.0))
+    for x in (-0.68, 0.68):
+        cylinder(root, f"Post_{x}", 0.05, 1.55, (x, 0, 0.775), m_post, verts=6)
+    box(root, "Line", (1.38, 0.03, 0.03), (0, 0, 1.42), m_line)
+    for i, (x, colour, height) in enumerate([
+        (-0.35, (0.847, 0.365, 0.404, 1.0), 0.34),
+        (0.0, (0.961, 0.745, 0.306, 1.0), 0.40),
+        (0.35, (0.247, 0.553, 0.624, 1.0), 0.31),
+    ]):
+        plane(root, f"Cloth_{i}", (0.24, height), (x, 0.025, 1.42 - height * 0.5), mat(f"ClothMaterial_{i}", colour))
+    export_root(root, "prop-laundry-01.glb")
+
+
+def build_harbour_warehouse():
+    clear_scene()
+    root = new_root("HarbourWarehouse")
+    m_brick = mat("Brick", ROSE_BRICK)
+    m_roof = mat("Roof", (0.188, 0.306, 0.333, 1.0))
+    m_timber = mat("Timber", TIMBER)
+    m_glass = mat("Glass", GLASS)
+    m_door = mat("Door", DOOR)
+    m_canopy = mat("Canopy", (0.827, 0.706, 0.427, 1.0))
+    body_h, depth = 2.05, 2.25
+    box(root, "WarehouseBody", (3.5, depth, body_h), (0, 0, body_h * 0.5), m_brick)
+    gable_roof(root, "WarehouseRoof", 3.78, 2.48, 0.92, body_h, m_roof)
+    front = depth * 0.5 + 0.03
+    plane(root, "LoadingDoor", (1.12, 1.24), (-0.72, front, 0.62), m_door)
+    for x in (0.52, 1.2):
+        box(root, f"WindowFrame_{x}", (0.44, 0.07, 0.54), (x, front, 1.15), m_timber)
+        plane(root, f"Window_{x}", (0.32, 0.4), (x, front + 0.05, 1.15), m_glass)
+    box(root, "LoadingCanopy", (1.42, 0.48, 0.12), (-0.72, front + 0.22, 1.46), m_canopy)
+    box(root, "Chimney", (0.24, 0.26, 0.7), (1.18, -0.24, 2.55), mat("ChimneyBrick", DARK_BRICK))
+    export_root(root, "harbour-warehouse-01.glb")
+
+
+def build_harbour_crane():
+    clear_scene()
+    root = new_root("HarbourCrane")
+    m_orange = mat("PaintedMetal", (0.835, 0.490, 0.302, 1.0))
+    m_iron = mat("Iron", (0.161, 0.294, 0.318, 1.0))
+    m_brass = mat("HookBrass", (0.851, 0.702, 0.365, 1.0))
+    cylinder(root, "Base", 0.48, 0.24, (0, 0, 0.12), m_iron, verts=8)
+    box(root, "Mast", (0.25, 0.25, 4.1), (0, 0, 2.05), m_orange)
+    box(root, "Arm", (3.4, 0.18, 0.18), (-1.35, 0, 3.82), m_orange)
+    for i, (x, z, rotation) in enumerate([(-0.55, 2.1, -0.52), (0.56, 2.3, 0.42)]):
+        brace = box(root, f"Brace_{i}", (0.12, 0.12, 2.05), (x, 0, z), m_orange)
+        brace.rotation_euler[1] = rotation
+    cylinder(root, "Cable", 0.028, 1.18, (-2.44, 0, 3.18), m_iron, verts=6)
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.15, minor_radius=0.035, major_segments=9, minor_segments=5, location=(-2.44, 0, 2.53), rotation=(math.pi / 2, 0, 0))
+    hook = bpy.context.active_object
+    hook.name = "Hook"
+    hook.data.materials.append(m_brass)
+    parent(hook, root)
+    export_root(root, "harbour-crane-01.glb")
+
+
+def build_harbour_repair_workshop():
+    clear_scene()
+    root = new_root("RepairWorkshop")
+    m_brick = mat("Brick", (0.722, 0.404, 0.314, 1.0))
+    m_slate = mat("Slate", (0.188, 0.298, 0.329, 1.0))
+    m_timber = mat("Timber", TIMBER)
+    m_door = mat("Door", DOOR)
+    m_glass = mat("Glass", GLASS)
+    body_h, depth = 1.65, 1.85
+    box(root, "WorkshopBody", (2.5, depth, body_h), (0, 0, body_h * 0.5), m_brick)
+    gable_roof(root, "WorkshopRoof", 2.72, 2.08, 0.76, body_h, m_slate)
+    front = depth * 0.5 + 0.03
+    plane(root, "WorkshopDoor", (0.92, 1.06), (-0.25, front, 0.55), m_door)
+    box(root, "WindowFrame", (0.52, 0.07, 0.56), (0.8, front, 1.12), m_timber)
+    plane(root, "Window", (0.4, 0.42), (0.8, front + 0.05, 1.12), m_glass)
+    box(root, "Awning", (1.38, 0.46, 0.12), (-0.22, front + 0.22, 1.3), mat("Awning", (0.827, 0.647, 0.392, 1.0)))
+    cylinder(root, "RepairBarrel", 0.22, 0.5, (1.18, 0.76, 0.25), mat("Barrel", (0.541, 0.353, 0.235, 1.0)), verts=7)
+    export_root(root, "harbour-repair-workshop-01.glb")
+
+
+def build_harbour_repair_boat():
+    clear_scene()
+    root = new_root("RepairBoat")
+    m_hull = mat("Hull", CREAM)
+    m_timber = mat("Timber", TIMBER)
+    m_slate = mat("Cockpit", (0.188, 0.298, 0.329, 1.0))
+    m_patch = mat("RepairPatch", (0.827, 0.545, 0.310, 1.0))
+    box(root, "Hull", (2.28, 0.92, 0.5), (0, 0, 0.42), m_hull)
+    box(root, "Keel", (2.4, 0.38, 0.12), (0, 0, 0.2), m_timber)
+    box(root, "Gunwale", (2.42, 1.06, 0.11), (0, 0, 0.7), m_timber)
+    box(root, "Cockpit", (0.78, 0.64, 0.24), (0.22, 0, 0.83), m_slate)
+    cylinder(root, "Mast", 0.052, 1.45, (-0.5, 0, 1.28), m_timber, verts=5)
+    box(root, "Boom", (0.84, 0.05, 0.05), (-0.14, 0, 1.56), m_timber)
+    plane(root, "RepairPatch", (0.48, 0.38), (1.15, 0.49, 0.52), m_patch)
+    export_root(root, "harbour-repair-boat-01.glb")
+
+
+def build_harbour_tidehouse():
+    clear_scene()
+    root = new_root("Tidehouse")
+    m_brick = mat("Brick", (0.682, 0.384, 0.294, 1.0))
+    m_slate = mat("Slate", (0.192, 0.310, 0.337, 1.0))
+    m_timber = mat("Timber", TIMBER)
+    m_door = mat("Door", DOOR)
+    m_glass = mat("Glass", GLASS)
+    body_h, depth = 1.68, 1.72
+    box(root, "TidehouseBody", (2.22, depth, body_h), (0, 0, body_h * 0.5), m_brick)
+    gable_roof(root, "TidehouseRoof", 2.44, 1.94, 0.74, body_h, m_slate)
+    front = depth * 0.5 + 0.03
+    plane(root, "Door", (0.58, 0.94), (-0.4, front, 0.5), m_door)
+    box(root, "WindowFrame", (0.58, 0.07, 0.62), (0.46, front, 1.0), m_timber)
+    plane(root, "Window", (0.44, 0.48), (0.46, front + 0.05, 1.0), m_glass)
+    box(root, "Chimney", (0.2, 0.22, 0.58), (0.64, -0.2, 2.15), mat("Chimney", DARK_BRICK))
+    export_root(root, "harbour-tidehouse-01.glb")
+
+
+def build_harbour_net_rack():
+    clear_scene()
+    root = new_root("NetRack")
+    m_timber = mat("Timber", TIMBER)
+    m_canvas = mat("Canvas", (0.843, 0.812, 0.659, 1.0))
+    for x in (-0.84, 0.84):
+        box(root, f"Post_{x}", (0.1, 0.1, 1.62), (x, 0, 0.81), m_timber)
+    box(root, "Crossbar", (1.88, 0.09, 0.09), (0, 0, 1.42), m_timber)
+    for i, (x, colour) in enumerate([(-0.48, (0.843, 0.784, 0.435, 1.0)), (0, (0.365, 0.608, 0.627, 1.0)), (0.48, (0.843, 0.784, 0.435, 1.0))]):
+        plane(root, f"Net_{i}", (0.34, 0.7), (x, 0.045, 0.9), mat(f"NetMaterial_{i}", colour))
+    box(root, "Awning", (2.1, 0.72, 0.1), (0, -0.12, 1.58), m_canvas)
+    export_root(root, "harbour-net-rack-01.glb")
+
+
+def build_harbour_tide_shed():
+    clear_scene()
+    root = new_root("TideShed")
+    m_timber = mat("Timber", (0.459, 0.333, 0.259, 1.0))
+    m_slate = mat("Slate", (0.235, 0.333, 0.349, 1.0))
+    m_door = mat("Door", (0.161, 0.294, 0.322, 1.0))
+    m_board = mat("Tideboard", (0.843, 0.812, 0.659, 1.0))
+    m_rope = mat("Rope", (0.780, 0.706, 0.549, 1.0))
+    body_h, depth = 1.32, 1.14
+    box(root, "TideShedBody", (1.62, depth, body_h), (0, 0, body_h * 0.5), m_timber)
+    gable_roof(root, "TideShedRoof", 1.88, 1.38, 0.58, body_h, m_slate)
+    front = depth * 0.5 + 0.03
+    plane(root, "Door", (0.58, 0.82), (-0.28, front, 0.45), m_door)
+    plane(root, "Tideboard", (0.32, 0.7), (0.48, front + 0.01, 0.74), m_board)
+    for i, z in enumerate((0.54, 0.72, 0.90)):
+        box(root, f"TideTick_{i}", (0.15, 0.035, 0.025), (0.48, front + 0.03, z), m_rope)
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.19, minor_radius=0.045, major_segments=10, minor_segments=6, location=(0.76, front + 0.03, 0.27), rotation=(math.pi / 2, 0, 0))
+    coil = bpy.context.active_object
+    coil.name = "RopeCoil"
+    coil.data.materials.append(m_rope)
+    parent(coil, root)
+    export_root(root, "harbour-tide-shed-01.glb")
+
+
+def build_moonhill_observatory():
+    clear_scene()
+    root = new_root("MoonhillObservatory")
+    m_stone = mat("Stone", (0.851, 0.835, 0.749, 1.0))
+    m_slate = mat("Slate", (0.259, 0.298, 0.459, 1.0))
+    m_timber = mat("Timber", TIMBER)
+    m_door = mat("Door", DOOR)
+    m_glass = mat("Glass", GLASS)
+    cylinder(root, "ObservatoryBase", 2.15, 1.7, (0, 0, 0.85), m_stone, verts=10)
+    hemisphere(root, "ObservatoryDome", 2.18, (0, 0, 1.72), m_slate)
+    # The lower half is hidden inside the cylindrical base after the local lift.
+    box(root, "StudyWing", (1.25, 1.22, 1.05), (-1.65, -0.2, 0.525), m_stone)
+    gable_roof(root, "StudyRoof", 1.42, 1.4, 0.52, 1.05, m_slate, cx=-1.65, cy=-0.2)
+    plane(root, "Door", (0.72, 1.05), (0, 2.18, 0.58), m_door)
+    box(root, "WindowFrame", (0.56, 0.07, 0.64), (-1.65, 0.43, 0.7), m_timber)
+    plane(root, "Window", (0.42, 0.48), (-1.65, 0.47, 0.7), m_glass)
+    slit = box(root, "DomeSlit", (0.14, 0.10, 0.62), (0.2, 0.82, 3.12), mat("BrassSlit", (0.851, 0.780, 0.467, 1.0)))
+    slit.rotation_euler[1] = -0.22
+    export_root(root, "moonhill-observatory-01.glb")
+
+
+def build_moonhill_telescope():
+    clear_scene()
+    root = new_root("MoonhillTelescope")
+    m_violet = mat("Violet", (0.427, 0.357, 0.541, 1.0))
+    m_metal = mat("PaleMetal", (0.851, 0.827, 0.914, 1.0))
+    m_brass = mat("Brass", (0.788, 0.643, 0.404, 1.0))
+    m_lens = mat("Lens", (0.529, 0.459, 0.737, 1.0))
+    cylinder(root, "Pedestal", 0.3, 1.18, (0, 0, 0.59), m_violet, verts=7)
+    cradle = box(root, "Cradle", (0.64, 0.38, 0.15), (0.3, 0, 1.22), m_brass)
+    cradle.rotation_euler[1] = math.pi / 3.1
+    tube = cylinder(root, "TelescopeTube", 0.22, 2.2, (0.68, 0, 1.5), m_metal, verts=8)
+    tube.rotation_euler[1] = math.pi / 3.1
+    sphere(root, "Lens", 0.22, (1.28, 0, 1.94), m_lens, scale=(1, 0.84, 1))
+    export_root(root, "moonhill-telescope-01.glb")
+
+
+def build_moonhill_skyhouse():
+    clear_scene()
+    root = new_root("Skyhouse")
+    m_wall = mat("Wall", (0.408, 0.475, 0.467, 1.0))
+    m_slate = mat("Slate", (0.239, 0.286, 0.427, 1.0))
+    m_timber = mat("Timber", TIMBER)
+    m_brass = mat("Brass", (0.788, 0.647, 0.400, 1.0))
+    m_door = mat("Door", DOOR)
+    m_glass = mat("Glass", GLASS)
+    body_h, depth = 1.45, 1.48
+    box(root, "SkyhouseBody", (1.9, depth, body_h), (0, 0, body_h * 0.5), m_wall)
+    gable_roof(root, "SkyhouseRoof", 2.14, 1.72, 0.74, body_h, m_slate)
+    front = depth * 0.5 + 0.03
+    plane(root, "Door", (0.58, 0.88), (-0.3, front, 0.47), m_door)
+    box(root, "WindowFrame", (0.5, 0.07, 0.54), (0.43, front, 0.94), m_timber)
+    plane(root, "Window", (0.36, 0.4), (0.43, front + 0.05, 0.94), m_glass)
+    cylinder(root, "VanePost", 0.04, 0.92, (0.15, 0, 2.0), m_brass, verts=5)
+    vane = box(root, "WeatherVane", (0.76, 0.09, 0.045), (0.15, 0, 2.38), m_brass)
+    vane.rotation_euler[2] = -0.32
+    export_root(root, "moonhill-skyhouse-01.glb")
+
+
+def build_moonhill_moon_dial():
+    clear_scene()
+    root = new_root("MoonDial")
+    m_stone = mat("Stone", (0.851, 0.827, 0.741, 1.0))
+    m_face = mat("Face", (0.894, 0.875, 0.773, 1.0))
+    m_brass = mat("Brass", (0.788, 0.647, 0.404, 1.0))
+    cylinder(root, "DialBase", 0.86, 0.2, (0, 0, 0.1), m_stone, verts=10)
+    cylinder(root, "DialFace", 0.62, 0.06, (0, 0, 0.23), m_face, verts=10)
+    bpy.ops.mesh.primitive_cone_add(vertices=5, radius1=0.08, radius2=0.0, depth=0.76, location=(0, 0, 0.61))
+    gnomon = bpy.context.active_object
+    gnomon.name = "Gnomon"
+    gnomon.rotation_euler[1] = -0.28
+    gnomon.data.materials.append(m_brass)
+    parent(gnomon, root)
+    for i, angle in enumerate((0, math.pi / 2, math.pi, math.pi * 1.5)):
+        box(root, f"Marker_{i}", (0.09, 0.23, 0.05), (math.sin(angle) * 0.43, math.cos(angle) * 0.43, 0.29), m_brass)
+    export_root(root, "moonhill-moon-dial-01.glb")
+
+
+def build_moonhill_almanac_pavilion():
+    clear_scene()
+    root = new_root("AlmanacPavilion")
+    m_wall = mat("Wall", (0.396, 0.467, 0.459, 1.0))
+    m_slate = mat("Slate", (0.255, 0.302, 0.443, 1.0))
+    m_brass = mat("Brass", (0.788, 0.647, 0.404, 1.0))
+    m_door = mat("Door", DOOR)
+    body_h, depth = 1.28, 1.34
+    box(root, "PavilionBody", (1.7, depth, body_h), (0, 0, body_h * 0.5), m_wall)
+    gable_roof(root, "PavilionRoof", 1.94, 1.58, 0.68, body_h, m_slate)
+    plane(root, "OpenDoor", (0.52, 0.76), (-0.3, depth * 0.5 + 0.03, 0.42), m_door)
+    cylinder(root, "VanePost", 0.04, 0.92, (0, 0, 2.0), m_brass, verts=5)
+    box(root, "WeatherVane", (0.72, 0.08, 0.05), (0, 0, 2.35), m_brass)
+    export_root(root, "moonhill-almanac-pavilion-01.glb")
+
+
+def build_moonhill_star_archive():
+    clear_scene()
+    root = new_root("StarArchive")
+    m_wall = mat("Wall", (0.431, 0.486, 0.478, 1.0))
+    m_slate = mat("Slate", (0.251, 0.298, 0.447, 1.0))
+    m_timber = mat("Timber", (0.400, 0.314, 0.278, 1.0))
+    m_door = mat("Door", (0.192, 0.310, 0.349, 1.0))
+    m_glass = mat("Glass", GLASS)
+    m_star = mat("Star", (0.831, 0.714, 0.412, 1.0))
+    body_h, depth = 1.38, 1.44
+    box(root, "ArchiveBody", (1.78, depth, body_h), (0, 0, body_h * 0.5), m_wall)
+    gable_roof(root, "ArchiveRoof", 2.04, 1.64, 0.63, body_h, m_slate)
+    front = depth * 0.5 + 0.03
+    plane(root, "Door", (0.54, 0.86), (-0.32, front, 0.46), m_door)
+    box(root, "StarWindowFrame", (0.48, 0.07, 0.50), (0.43, front, 0.9), m_timber)
+    plane(root, "StarWindow", (0.34, 0.36), (0.43, front + 0.05, 0.9), m_glass)
+    sphere(root, "StarWindowMark", 0.07, (0.43, front + 0.08, 0.9), m_star, scale=(1, 0.45, 1))
+    box(root, "RecordBox", (0.38, 0.30, 0.26), (0.7, front + 0.03, 0.13), m_timber)
+    export_root(root, "moonhill-star-archive-01.glb")
+
+
+def build_moonhill_orrery():
+    clear_scene()
+    root = new_root("MoonhillOrrery")
+    m_stone = mat("Stone", (0.663, 0.635, 0.580, 1.0))
+    m_brass = mat("Brass", (0.784, 0.639, 0.388, 1.0))
+    m_sun = mat("Sun", (0.941, 0.839, 0.455, 1.0))
+    m_moon = mat("Moon", (0.847, 0.890, 0.875, 1.0))
+    cylinder(root, "Plinth", 0.52, 0.68, (0, 0, 0.34), m_stone, verts=8)
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.72, minor_radius=0.045, major_segments=16, minor_segments=6, location=(0, 0, 1.0), rotation=(math.pi / 2.8, 0, 0))
+    outer = bpy.context.active_object
+    outer.name = "OrbitOuter"
+    outer.data.materials.append(m_brass)
+    parent(outer, root)
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.5, minor_radius=0.04, major_segments=14, minor_segments=6, location=(0, 0, 1.0), rotation=(0, math.pi / 2.7, 0))
+    inner = bpy.context.active_object
+    inner.name = "OrbitInner"
+    inner.data.materials.append(m_brass)
+    parent(inner, root)
+    sphere(root, "Sun", 0.14, (0, 0, 1.0), m_sun)
+    sphere(root, "Moon", 0.08, (0.61, 0, 1.14), m_moon)
+    export_root(root, "moonhill-orrery-01.glb")
+
+
+def build_character(filename: str, player: bool):
+    """Original low-poly walker with named parts for runtime coat/hat styling."""
+    clear_scene()
+    root = new_root("Player" if player else "Townsperson")
+    m_skin = mat("Skin", SKIN)
+    m_coat = mat("Coat", COAT if player else (0.823, 0.373, 0.294, 1.0))
+    m_hair = mat("Hair", HAIR)
+    m_hat = mat("Hat", HAT)
+    m_leg = mat("Leg", (0.165, 0.200, 0.220, 1.0))
+    m_sock = mat("Sock", SOCK)
+    m_shoe = mat("Shoe", SHOE)
+    m_bag = mat("Bag", BAG)
+
+    box(root, "Hips", (0.42, 0.28, 0.18), (0, 0, 0.48), m_leg)
+    for side in (-1, 1):
+        cylinder(root, f"LegThigh_{side}", 0.105, 0.32, (side * 0.12, 0.02, 0.34), m_leg, verts=7)
+        cylinder(root, f"LegCalf_{side}", 0.088, 0.28, (side * 0.12, 0.03, 0.14), m_leg, verts=7)
+        cylinder(root, f"Sock_{side}", 0.084, 0.12, (side * 0.12, 0.04, 0.08), m_sock, verts=7)
+        box(root, f"Shoe_{side}", (0.15, 0.26, 0.09), (side * 0.12, 0.07, 0.035), m_shoe)
+
+    cylinder(root, "CoatTorso", 0.30, 0.58, (0, 0, 0.82), m_coat, verts=9)
+    box(root, "CoatShoulders", (0.72, 0.32, 0.16), (0, 0, 1.05), m_coat)
+    # Two short coat tails create a recognisable back silhouette at street scale.
+    box(root, "CoatTailLeft", (0.18, 0.12, 0.34), (-0.15, -0.09, 0.56), m_coat, rot_z=-0.10)
+    box(root, "CoatTailRight", (0.18, 0.12, 0.34), (0.15, -0.09, 0.56), m_coat, rot_z=0.10)
+    for side in (-1, 1):
+        upper = cylinder(root, f"CoatUpperArm_{side}", 0.08, 0.32, (side * 0.36, 0, 0.88), m_coat, verts=7)
+        upper.rotation_euler[1] = side * 0.20
+        lower = cylinder(root, f"CoatLowerArm_{side}", 0.07, 0.28, (side * 0.42, 0.02, 0.59), m_coat, verts=7)
+        lower.rotation_euler[1] = side * 0.12
+        sphere(root, f"Hand_{side}", 0.075, (side * 0.44, 0.04, 0.42), m_skin, scale=(1, 0.9, 1))
+
+    cylinder(root, "Neck", 0.09, 0.10, (0, 0, 1.18), m_skin, verts=7)
+    sphere(root, "Head", 0.23, (0, 0, 1.38), m_skin, scale=(1, 0.92, 1.05))
+    if player:
+        sphere(root, "HairBack", 0.265, (0, -0.035, 1.47), m_hair, scale=(1.08, 0.92, 1.08))
+        box(root, "HairFringe", (0.40, 0.14, 0.12), (0, 0.18, 1.43), m_hair)
+        for side in (-1, 1):
+            sphere(root, f"HairSide_{side}", 0.12, (side * 0.20, 0.01, 1.32), m_hair, scale=(1, 0.9, 1.18))
+        # A small folded map gives the player a journey-specific silhouette.
+        box(root, "BagMap", (0.18, 0.05, 0.22), (-0.37, 0.08, 0.63), m_bag, rot_z=-0.18)
+    else:
+        cylinder(root, "HatBrim", 0.34, 0.05, (0, 0, 1.54), m_hat, verts=12)
+        cylinder(root, "HatCrown", 0.21, 0.20, (0, 0, 1.66), m_hat, verts=12)
+    box(root, "BagBody", (0.26, 0.14, 0.36), (0.30, 0.10, 0.88), m_bag)
+    strap = box(root, "BagStrap", (0.05, 0.04, 0.58), (0.14, 0.04, 1.12), m_bag, rot_z=-0.55)
+    export_root(root, filename)
+
+
 def main() -> int:
     log(f"Blender {bpy.app.version_string}")
     log(f"output → {OUT}")
@@ -344,6 +734,24 @@ def main() -> int:
         ("station", build_station),
         ("tree", build_tree),
         ("bike", build_bike),
+        ("planter", build_planter),
+        ("laundry", build_laundry),
+        ("harbour-warehouse", build_harbour_warehouse),
+        ("harbour-crane", build_harbour_crane),
+        ("harbour-repair-workshop", build_harbour_repair_workshop),
+        ("harbour-repair-boat", build_harbour_repair_boat),
+        ("harbour-tidehouse", build_harbour_tidehouse),
+        ("harbour-net-rack", build_harbour_net_rack),
+        ("harbour-tide-shed", build_harbour_tide_shed),
+        ("moonhill-observatory", build_moonhill_observatory),
+        ("moonhill-telescope", build_moonhill_telescope),
+        ("moonhill-skyhouse", build_moonhill_skyhouse),
+        ("moonhill-moon-dial", build_moonhill_moon_dial),
+        ("moonhill-almanac-pavilion", build_moonhill_almanac_pavilion),
+        ("moonhill-star-archive", build_moonhill_star_archive),
+        ("moonhill-orrery", build_moonhill_orrery),
+        ("player", lambda: build_character("char-player.glb", player=True)),
+        ("npc", lambda: build_character("char-npc.glb", player=False)),
     ]
     for name, fn in jobs:
         log(f"building {name}…")

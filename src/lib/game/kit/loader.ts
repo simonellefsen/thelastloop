@@ -3,6 +3,7 @@ import {
   Group,
   Mesh,
   MeshStandardMaterial,
+  MeshToonMaterial,
   type Material,
   type Object3D,
 } from 'three'
@@ -10,9 +11,6 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { addMeshOutline, celMaterial, getOutlineMaterial } from '../style'
 import { kitRegistry } from './registry'
 import type { KitCharacterOptions, KitId } from './types'
-
-/** Kits that keep procedural builds (coat colour / per-instance options). */
-const PROCEDURAL_ONLY: ReadonlySet<KitId> = new Set(['char-player', 'char-npc'])
 
 /**
  * glTF cache with procedural fallback.
@@ -29,13 +27,12 @@ export class KitLoader {
 
   /** Prefer cached glTF clone; otherwise procedural build. */
   create(id: KitId, options?: KitCharacterOptions): Object3D {
-    if (PROCEDURAL_ONLY.has(id)) {
-      return kitRegistry[id].build(options)
-    }
     const definition = kitRegistry[id]
     const url = definition.gltfUrl
     if (url && this.cache.has(url)) {
-      return this.cache.get(url)!.clone(true)
+      const instance = this.cache.get(url)!.clone(true)
+      if (id === 'char-player' || id === 'char-npc') applyCharacterStyle(instance, options)
+      return instance
     }
     return definition.build(options)
   }
@@ -46,7 +43,6 @@ export class KitLoader {
   }
 
   private async loadGltf(id: KitId): Promise<void> {
-    if (PROCEDURAL_ONLY.has(id)) return
     const definition = kitRegistry[id]
     const url = definition.gltfUrl
     if (!url || this.cache.has(url) || this.failed.has(url)) return
@@ -61,6 +57,39 @@ export class KitLoader {
       this.failed.add(url)
     }
   }
+}
+
+/**
+ * Blender character meshes label their changeable parts by role. Each clone
+ * receives its own non-coat materials, while the player coat may deliberately
+ * reuse GameWorld's shared material for the wardrobe control.
+ */
+function applyCharacterStyle(root: Object3D, options?: KitCharacterOptions): void {
+  root.traverse((object) => {
+    if (!(object as Mesh).isMesh) return
+    const mesh = object as Mesh
+    const name = mesh.name.toLowerCase()
+    if (name.startsWith('coat')) {
+      mesh.material = options?.coatMaterial ?? celMaterial(options?.coat ?? '#d25f4b')
+      return
+    }
+    if (name.startsWith('hair') && options?.hair) {
+      mesh.material = celMaterial(options.hair)
+      return
+    }
+    if (name.startsWith('hat')) {
+      mesh.visible = options?.hat !== false
+      if (options?.hatColor) mesh.material = celMaterial(options.hatColor)
+      return
+    }
+    if (name.startsWith('bag')) {
+      mesh.visible = options?.bag !== false
+      return
+    }
+    // clone(true) shares material instances, so mutable local materials must
+    // be copied before any future instance-specific styling.
+    if (mesh.material instanceof MeshToonMaterial) mesh.material = mesh.material.clone()
+  })
 }
 
 /** Convert Blender Principled materials to project cel look + ink outlines. */
@@ -110,6 +139,24 @@ export const HERO_KIT_IDS: KitId[] = [
   'home-passage',
   'tree-broad',
   'prop-bike',
+  'prop-planter',
+  'prop-laundry',
+  'harbour-warehouse',
+  'harbour-crane',
+  'harbour-repair-workshop',
+  'harbour-repair-boat',
+  'harbour-tidehouse',
+  'harbour-net-rack',
+  'harbour-tide-shed',
+  'moonhill-observatory',
+  'moonhill-telescope',
+  'moonhill-skyhouse',
+  'moonhill-moon-dial',
+  'moonhill-almanac-pavilion',
+  'moonhill-star-archive',
+  'moonhill-orrery',
+  'char-player',
+  'char-npc',
 ]
 
 export const kitLoader = new KitLoader()

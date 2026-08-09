@@ -100,8 +100,24 @@ If a file is missing, `registry.ts` **must** fall back to procedural so the game
 | `bakery` | Bakehouse + awning | `buildBakery` | `ravnbro-bakery.glb` |
 | `tree-broad` | Soft crown tree | `buildBroadTree` | `tree-broad-01.glb` |
 | `prop-bike` | Street bike | `buildBike` | `prop-bike-01.glb` |
-| `char-player` | Player body | `buildPlayerFigure` | `char-player.glb` |
-| `char-npc` | Townsfolk base | `buildNpcFigure` | `char-npc.glb` |
+| `prop-planter` | Planted kerb detail | `buildPlanter` | `prop-planter-01.glb` |
+| `prop-laundry` | Colourful clothesline | `buildLaundryLine` | `prop-laundry-01.glb` |
+| `harbour-warehouse` | Harbour Works arrival frontage | `buildHarbourWarehouse` | `harbour-warehouse-01.glb` |
+| `harbour-crane` | Dockyard skyline anchor | `buildHarbourCrane` | `harbour-crane-01.glb` |
+| `harbour-repair-workshop` | Repair Quay workshop | `buildHarbourRepairWorkshop` | `harbour-repair-workshop-01.glb` |
+| `harbour-repair-boat` | Hauled repair boat | `buildHarbourRepairBoat` | `harbour-repair-boat-01.glb` |
+| `harbour-tidehouse` | Tidehouse Row home | `buildHarbourTidehouse` | `harbour-tidehouse-01.glb` |
+| `harbour-net-rack` | Net-drying canopy | `buildHarbourNetRack` | `harbour-net-rack-01.glb` |
+| `harbour-tide-shed` | Tide Yard net shed | `buildHarbourTideShed` | `harbour-tide-shed-01.glb` |
+| `moonhill-observatory` | Moonhill dome + study wing | `buildMoonhillObservatory` | `moonhill-observatory-01.glb` |
+| `moonhill-telescope` | Quest telescope (runtime lens tint) | `buildMoonhillTelescope` | `moonhill-telescope-01.glb` |
+| `moonhill-skyhouse` | Comet Walk lookout | `buildMoonhillSkyhouse` | `moonhill-skyhouse-01.glb` |
+| `moonhill-moon-dial` | Almanac Garden landmark | `buildMoonhillMoonDial` | `moonhill-moon-dial-01.glb` |
+| `moonhill-almanac-pavilion` | Almanac Garden shelter | `buildMoonhillAlmanacPavilion` | `moonhill-almanac-pavilion-01.glb` |
+| `moonhill-star-archive` | Archive Terrace record house | `buildMoonhillStarArchive` | `moonhill-star-archive-01.glb` |
+| `moonhill-orrery` | Archive Terrace landmark | `buildMoonhillOrrery` | `moonhill-orrery-01.glb` |
+| `char-player` | Player body | `buildCharacterFigure` | `char-player.glb` |
+| `char-npc` | Townsfolk base | `buildCharacterFigure` | `char-npc.glb` |
 
 Agents must **not** rename KitIds without a migration note in this file.
 
@@ -157,7 +173,7 @@ pnpm assets:export
 
 Script: `tools/blender/export_ravnbro_kits.py`  
 Output: `public/assets/gltf/*.glb`  
-Runtime: `App.svelte` preloads `HERO_KIT_IDS` via `kitLoader` before `GameWorld` starts; materials are re-skinned to cel + outlines on load. Characters stay procedural (coat colour).
+Runtime: `App.svelte` preloads `HERO_KIT_IDS` via `kitLoader` before `GameWorld` starts; materials are re-skinned to cel + outlines on load. The two Blender character kits use named `Coat*`, `Hair*`, `Hat*`, and `Bag*` meshes; the loader reuses the player's shared coat material and applies NPC hat/bag options per clone.
 
 ### Manual artist pass (next quality leap)
 
@@ -212,7 +228,8 @@ Manual:
 | Hero corridor uses kits | Done (station, bakery, depot, home, frontage row, trees, player/NPCs) |
 | glTF preload + cel restyle | Done (`App.svelte` + `loader.ts`) |
 | Blender-exported hero meshes | Done via `pnpm assets:export` (scripted originals; open for hand polish) |
+| Authored Blender character silhouettes | Done (`char-player.glb`, `char-npc.glb`; runtime-tintable) |
 | Hand-sculpted Messenger-level art | Next (optional artist pass on the same .glb paths) |
-| Harbour / Moonhill kit parity | Partial landmarks + shared characters |
+| Harbour / Moonhill kit parity | Arrival anchors plus Tide Yard, Repair Quay, Archive Terrace, Comet Walk, Tidehouse Row and Almanac Garden done; remaining street furniture is partial |
 
 When taking over: read this file, then `kit/registry.ts` and `kit/procedural.ts`, then only touch `GameWorld` for placement calls.

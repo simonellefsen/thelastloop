@@ -55,28 +55,32 @@
   }
 
   onMount(() => {
-    // Build the world immediately with procedural kits so Begin always works.
-    // glTF assets preload in the background for later sessions — never block start.
-    try {
-      game = new GameWorld(gameHost, {
-        onHud: (next) => (hud = next),
-        onArrival: (district) => showArrival(district),
-        onSound: (enabled) => (soundEnabled = enabled),
-        onReducedMotion: (enabled) => (reducedMotion = enabled),
-        onError: (message) => (error = message),
-      })
-      soundEnabled = game.getSoundEnabled()
-      reducedMotion = game.getReducedMotion()
-      worldReady = true
-    } catch {
-      error = 'This tiny world needs a browser with WebGL support.'
+    let disposed = false
+    const boot = async () => {
+      // The loader is allowed to fail individual files; its synchronous kit
+      // fallbacks keep the title playable. Waiting here means a successful
+      // preload is actually visible in the very first world construction.
+      await kitLoader.preload(HERO_KIT_IDS)
+      if (disposed) return
+      try {
+        game = new GameWorld(gameHost, {
+          onHud: (next) => (hud = next),
+          onArrival: (district) => showArrival(district),
+          onSound: (enabled) => (soundEnabled = enabled),
+          onReducedMotion: (enabled) => (reducedMotion = enabled),
+          onError: (message) => (error = message),
+        })
+        soundEnabled = game.getSoundEnabled()
+        reducedMotion = game.getReducedMotion()
+        worldReady = true
+      } catch {
+        error = 'This tiny world needs a browser with WebGL support.'
+      }
     }
-
-    void kitLoader.preload(HERO_KIT_IDS).catch(() => {
-      // Procedural fallback already in use.
-    })
+    void boot()
 
     return () => {
+      disposed = true
       if (arrivalTimer) clearTimeout(arrivalTimer)
       game?.dispose()
     }

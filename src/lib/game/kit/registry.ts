@@ -1,4 +1,26 @@
-import { buildBike, buildBroadTree, buildCharacterFigure, buildGableHouse, buildStationCivic } from './procedural'
+import {
+  buildBike,
+  buildBroadTree,
+  buildCharacterFigure,
+  buildGableHouse,
+  buildHarbourCrane,
+  buildHarbourRepairBoat,
+  buildHarbourRepairWorkshop,
+  buildHarbourNetRack,
+  buildHarbourTideShed,
+  buildHarbourTidehouse,
+  buildHarbourWarehouse,
+  buildLaundryLine,
+  buildMoonhillObservatory,
+  buildMoonhillSkyhouse,
+  buildMoonhillAlmanacPavilion,
+  buildMoonhillMoonDial,
+  buildMoonhillOrrery,
+  buildMoonhillStarArchive,
+  buildMoonhillTelescope,
+  buildPlanter,
+  buildStationCivic,
+} from './procedural'
 import type { KitDefinition, KitId } from './types'
 import { artPalette } from '../style'
 
@@ -65,6 +87,86 @@ export const kitRegistry: Record<KitId, KitDefinition> = {
     id: 'prop-bike',
     gltfUrl: '/assets/gltf/prop-bike-01.glb',
     build: () => buildBike(),
+  },
+  'prop-planter': {
+    id: 'prop-planter',
+    gltfUrl: '/assets/gltf/prop-planter-01.glb',
+    build: () => buildPlanter(),
+  },
+  'prop-laundry': {
+    id: 'prop-laundry',
+    gltfUrl: '/assets/gltf/prop-laundry-01.glb',
+    build: () => buildLaundryLine(),
+  },
+  'harbour-warehouse': {
+    id: 'harbour-warehouse',
+    gltfUrl: '/assets/gltf/harbour-warehouse-01.glb',
+    build: () => buildHarbourWarehouse(),
+  },
+  'harbour-crane': {
+    id: 'harbour-crane',
+    gltfUrl: '/assets/gltf/harbour-crane-01.glb',
+    build: () => buildHarbourCrane(),
+  },
+  'harbour-repair-workshop': {
+    id: 'harbour-repair-workshop',
+    gltfUrl: '/assets/gltf/harbour-repair-workshop-01.glb',
+    build: () => buildHarbourRepairWorkshop(),
+  },
+  'harbour-repair-boat': {
+    id: 'harbour-repair-boat',
+    gltfUrl: '/assets/gltf/harbour-repair-boat-01.glb',
+    build: () => buildHarbourRepairBoat(),
+  },
+  'harbour-tidehouse': {
+    id: 'harbour-tidehouse',
+    gltfUrl: '/assets/gltf/harbour-tidehouse-01.glb',
+    build: () => buildHarbourTidehouse(),
+  },
+  'harbour-net-rack': {
+    id: 'harbour-net-rack',
+    gltfUrl: '/assets/gltf/harbour-net-rack-01.glb',
+    build: () => buildHarbourNetRack(),
+  },
+  'harbour-tide-shed': {
+    id: 'harbour-tide-shed',
+    gltfUrl: '/assets/gltf/harbour-tide-shed-01.glb',
+    build: () => buildHarbourTideShed(),
+  },
+  'moonhill-observatory': {
+    id: 'moonhill-observatory',
+    gltfUrl: '/assets/gltf/moonhill-observatory-01.glb',
+    build: () => buildMoonhillObservatory(),
+  },
+  'moonhill-telescope': {
+    id: 'moonhill-telescope',
+    gltfUrl: '/assets/gltf/moonhill-telescope-01.glb',
+    build: () => buildMoonhillTelescope(),
+  },
+  'moonhill-skyhouse': {
+    id: 'moonhill-skyhouse',
+    gltfUrl: '/assets/gltf/moonhill-skyhouse-01.glb',
+    build: () => buildMoonhillSkyhouse(),
+  },
+  'moonhill-moon-dial': {
+    id: 'moonhill-moon-dial',
+    gltfUrl: '/assets/gltf/moonhill-moon-dial-01.glb',
+    build: () => buildMoonhillMoonDial(),
+  },
+  'moonhill-almanac-pavilion': {
+    id: 'moonhill-almanac-pavilion',
+    gltfUrl: '/assets/gltf/moonhill-almanac-pavilion-01.glb',
+    build: () => buildMoonhillAlmanacPavilion(),
+  },
+  'moonhill-star-archive': {
+    id: 'moonhill-star-archive',
+    gltfUrl: '/assets/gltf/moonhill-star-archive-01.glb',
+    build: () => buildMoonhillStarArchive(),
+  },
+  'moonhill-orrery': {
+    id: 'moonhill-orrery',
+    gltfUrl: '/assets/gltf/moonhill-orrery-01.glb',
+    build: () => buildMoonhillOrrery(),
   },
   'char-player': {
     id: 'char-player',
