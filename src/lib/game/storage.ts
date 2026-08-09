@@ -11,13 +11,14 @@ export interface StorageLike {
 
 export function defaultSave(): GameSave {
   return {
-    version: 5,
+    version: 6,
     soundEnabled: true,
     reducedMotion: false,
     coatColor: 'gold',
     identity: defaultPassengerIdentity(),
     district: 'hillside',
     playerNormal: [0.19, 0.96, 0.2],
+    streetPosition: [0, 7.4],
     quest: defaultQuest(),
   }
 }
@@ -26,15 +27,16 @@ export function readSave(storage: StorageLike): GameSave {
   const fallback = defaultSave()
   try {
     const parsed = JSON.parse(storage.getItem(SAVE_KEY) ?? '') as Omit<Partial<GameSave>, 'version'> & { version?: number }
-    if ((parsed.version !== 1 && parsed.version !== 2 && parsed.version !== 3 && parsed.version !== 4 && parsed.version !== 5) || !Array.isArray(parsed.playerNormal) || parsed.playerNormal.length !== 3 || !parsed.quest) return fallback
+    if ((parsed.version !== 1 && parsed.version !== 2 && parsed.version !== 3 && parsed.version !== 4 && parsed.version !== 5 && parsed.version !== 6) || !Array.isArray(parsed.playerNormal) || parsed.playerNormal.length !== 3 || !parsed.quest) return fallback
     return {
-      version: 5,
+      version: 6,
       soundEnabled: typeof parsed.soundEnabled === 'boolean' ? parsed.soundEnabled : fallback.soundEnabled,
       reducedMotion: typeof parsed.reducedMotion === 'boolean' ? parsed.reducedMotion : fallback.reducedMotion,
       coatColor: isCoatColor(parsed.coatColor) ? parsed.coatColor : fallback.coatColor,
       identity: isPassengerIdentity(parsed.identity) ? parsed.identity : fallback.identity,
       district: isDistrict(parsed.district) ? parsed.district : fallback.district,
       playerNormal: parsed.playerNormal as GameSave['playerNormal'],
+      streetPosition: isStreetPosition(parsed.streetPosition) ? parsed.streetPosition : fallback.streetPosition,
       quest: hydrateQuest(parsed.quest),
     }
   } catch {
@@ -66,6 +68,12 @@ function isCoatColor(value: unknown): value is CoatColor {
 
 function isDistrict(value: unknown): value is DistrictId {
   return value === 'hillside' || value === 'harbour' || value === 'observatory'
+}
+
+function isStreetPosition(value: unknown): value is GameSave['streetPosition'] {
+  return Array.isArray(value)
+    && value.length === 2
+    && value.every((coordinate) => typeof coordinate === 'number' && Number.isFinite(coordinate) && Math.abs(coordinate) <= 18)
 }
 
 export function writeSave(storage: StorageLike, save: GameSave): void {

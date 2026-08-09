@@ -130,6 +130,7 @@ export class GameWorld implements PlayerController {
   private titlePreviewDistrict: DistrictId = 'hillside'
   private animationFrame = 0
   private entryCameraProgress = 1
+  private lastStreetSaveTime = 0
   private nearby: Clue | SideMarker | 'station-keeper' | 'station-door' | 'harbour-keeper' | 'moon-warden' | undefined
   private stationSign: Sprite | undefined
   private streetStationSign: Sprite | undefined
@@ -227,23 +228,26 @@ export class GameWorld implements PlayerController {
 
   start(): void {
     this.setTitlePreview(this.titlePreviewDistrict)
+    const resumesSelectedDistrict = this.save.district === this.titlePreviewDistrict
     this.started = true
     this.entryCameraProgress = 0
     this.save.district = this.titlePreviewDistrict
     this.save.quest.introductionSeen = true
-    this.persist()
     this.soundscape.start(soundscapeProfile(this.save.quest))
     if (this.titlePreviewDistrict === 'harbour') {
-      this.showHarbour(false)
+      this.showHarbour(!resumesSelectedDistrict)
+      this.persist()
       this.emitHud('The tide clock is still waiting at Harbour Works.', 'Find the blue valve, then return it to the dock pump.')
       return
     }
     if (this.titlePreviewDistrict === 'observatory') {
-      this.showObservatory(false)
+      this.showObservatory(!resumesSelectedDistrict)
+      this.persist()
       this.emitHud('Moonhill is quiet beneath the stars.', 'Find the starlight lens, then align the telescope.')
       return
     }
-    this.enterHillsideStreet()
+    this.enterHillsideStreet(!resumesSelectedDistrict)
+    this.persist()
     this.emitHud('Find three fragments of the station name.', 'Follow the amber beacons and tap Investigate when the button appears.')
   }
 
@@ -317,9 +321,10 @@ export class GameWorld implements PlayerController {
     if (!this.inStation) return
     this.inStation = false
     this.stationInterior.visible = false
-    this.enterHillsideStreet()
+    this.enterHillsideStreet(true)
     this.save.district = 'hillside'
     this.soundscape.setProfile(soundscapeProfile(this.save.quest))
+    this.persist()
     this.emitHud('The route map now leads to Harbour Works.', 'Moonhill Observatory is still waiting for its story.')
   }
 
@@ -381,6 +386,7 @@ export class GameWorld implements PlayerController {
   }
 
   dispose(): void {
+    if (this.started && !this.inStation) this.persist()
     cancelAnimationFrame(this.animationFrame)
     this.resizeObserver.disconnect()
     this.visualViewport?.removeEventListener('resize', this.onResize)
@@ -4216,7 +4222,7 @@ export class GameWorld implements PlayerController {
     this.player.visible = true
     this.save.district = 'harbour'
     if (resetPosition) this.currentNormal.copy(this.normalAt(0.34, -0.3))
-    this.streetPosition.set(0, 0, 8)
+    this.restoreStreetPosition(0, 8, resetPosition)
     this.streetForward.set(0, 0, -1)
     this.streetVelocity.set(0, 0, 0)
     this.entryCameraProgress = 0
@@ -4244,7 +4250,7 @@ export class GameWorld implements PlayerController {
     this.player.visible = true
     this.save.district = 'observatory'
     if (resetPosition) this.currentNormal.copy(this.normalAt(0.34, -0.3))
-    this.streetPosition.set(0, 0, 8)
+    this.restoreStreetPosition(0, 8, resetPosition)
     this.streetForward.set(0, 0, -1)
     this.streetVelocity.set(0, 0, 0)
     this.entryCameraProgress = 0
@@ -4368,7 +4374,7 @@ export class GameWorld implements PlayerController {
     this.findNearby(playerPosition)
   }
 
-  private enterHillsideStreet(): void {
+  private enterHillsideStreet(resetPosition = true): void {
     this.root.visible = false
     this.ambient.visible = false
     this.harbourStreet.visible = false
@@ -4379,10 +4385,16 @@ export class GameWorld implements PlayerController {
     this.observatoryStreet.remove(this.player)
     this.hillsideStreet.add(this.player)
     this.player.visible = true
-    this.streetPosition.set(0, 0, 7.4)
+    this.restoreStreetPosition(0, 7.4, resetPosition)
     this.streetForward.set(0, 0, -1)
     this.streetVelocity.set(0, 0, 0)
     this.entryCameraProgress = 0
+  }
+
+  /** Restores only a versioned, validated street coordinate from the active district. */
+  private restoreStreetPosition(defaultX: number, defaultZ: number, resetPosition: boolean): void {
+    const [savedX, savedZ] = this.save.streetPosition
+    this.streetPosition.set(resetPosition ? defaultX : savedX, 0, resetPosition ? defaultZ : savedZ)
   }
 
   private updateHillsideStreetPlayer(delta: number): void {
@@ -4459,6 +4471,10 @@ export class GameWorld implements PlayerController {
     }
     this.streetPosition.copy(candidate)
     this.streetForward.lerp(this.streetVelocity.clone().normalize(), Math.min(1, delta * 11)).normalize()
+    if (this.clock.elapsed - this.lastStreetSaveTime >= 0.8) {
+      this.lastStreetSaveTime = this.clock.elapsed
+      this.persist()
+    }
   }
 
   private nextStreetArrivalProfile(delta: number, settled: StreetCameraProfile): StreetCameraProfile {
@@ -4786,6 +4802,7 @@ export class GameWorld implements PlayerController {
 
   private persist(write = true): void {
     this.save.playerNormal = [this.currentNormal.x, this.currentNormal.y, this.currentNormal.z]
+    if (this.started && !this.inStation) this.save.streetPosition = [this.streetPosition.x, this.streetPosition.z]
     if (write) writeSave(window.localStorage, this.save)
   }
 

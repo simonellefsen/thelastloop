@@ -27,13 +27,15 @@ export interface QuestState {
 }
 
 export interface GameSave {
-  version: 5
+  version: 6
   soundEnabled: boolean
   reducedMotion: boolean
   coatColor: CoatColor
   identity: PassengerIdentity
   district: DistrictId
   playerNormal: [number, number, number]
+  /** Last validated local X/Z position for the active street district. */
+  streetPosition: [number, number]
   quest: QuestState
 }
 

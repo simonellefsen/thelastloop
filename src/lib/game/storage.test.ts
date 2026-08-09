@@ -41,10 +41,11 @@ describe('game save', () => {
     const store = memoryStorage()
     store.setItem(SAVE_KEY, JSON.stringify({ version: 1, soundEnabled: true, playerNormal: [0, 1, 0], quest: defaultSave().quest }))
     const save = readSave(store)
-    expect(save.version).toBe(5)
+    expect(save.version).toBe(6)
     expect(save.district).toBe('hillside')
     expect(save.identity).toEqual({ callsign: 'EMBER-7' })
     expect(save.reducedMotion).toBe(false)
+    expect(save.streetPosition).toEqual([0, 7.4])
   })
 
   it('persists the optional reduced-motion setting', () => {
@@ -52,5 +53,15 @@ describe('game save', () => {
     const save = { ...defaultSave(), reducedMotion: true }
     writeSave(store, save)
     expect(readSave(store).reducedMotion).toBe(true)
+  })
+
+  it('keeps a validated local street position and rejects a malformed one', () => {
+    const store = memoryStorage()
+    const save = { ...defaultSave(), district: 'harbour' as const, streetPosition: [11.2, 8.4] as [number, number] }
+    writeSave(store, save)
+    expect(readSave(store).streetPosition).toEqual([11.2, 8.4])
+
+    store.setItem(SAVE_KEY, JSON.stringify({ ...save, streetPosition: [Infinity, 'wrong'] }))
+    expect(readSave(store).streetPosition).toEqual(defaultSave().streetPosition)
   })
 })
