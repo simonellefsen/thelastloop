@@ -7,15 +7,17 @@
 
 * { box-sizing: border-box; }
 
-html, body, #app, main { width: 100%; min-width: 100%; min-height: 100%; height: 100%; margin: 0; overflow: hidden; }
-body { overscroll-behavior: none; touch-action: none; }
+html, body { width: 100%; min-width: 100%; min-height: 100%; height: 100%; margin: 0; overflow: hidden; }
+#app, main { position: relative; width: 100%; min-width: 100%; min-height: 100vh; height: 100vh; margin: 0; overflow: hidden; isolation: isolate; }
+@supports (height: 100dvh) { #app, main { min-height: 100dvh; height: 100dvh; } }
+body, main { overscroll-behavior: none; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 button { font: inherit; }
 button:focus-visible, [role="application"]:focus-visible { outline: 3px solid #fff3a0; outline-offset: 3px; }
 
-.game-host { position: fixed; inset: 0; background: radial-gradient(circle at 50% 30%, #8edbd0, #317e89 67%, #143943); }
+.game-host { position: absolute; inset: 0; background: radial-gradient(circle at 50% 30%, #8edbd0, #317e89 67%, #143943); }
 .game-host canvas { display: block; width: 100%; height: 100%; }
 
-.title-screen, .unsupported { position: fixed; inset: 0; display: grid; place-content: center; text-align: center; padding: 24px; color: #fff9df; pointer-events: none; }
+.title-screen, .unsupported { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); color: #fff9df; pointer-events: none; }
 .title-screen::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(9, 38, 46, .18), rgba(9, 38, 46, .38)); z-index: -1; }
 .eyebrow { margin: 0 0 8px; font-size: clamp(.62rem, 1.6vw, .78rem); font-weight: 800; letter-spacing: .18em; }
 h1 { margin: 0; max-width: 760px; color: #fff4cd; text-shadow: 3px 4px 0 #17333a, 0 0 30px rgba(255,255,255,.16); font-size: clamp(3.4rem, 12vw, 8.8rem); line-height: .76; letter-spacing: -.08em; transform: rotate(-2deg); }
@@ -26,7 +28,7 @@ h1 span { display: inline-block; font-size: .39em; letter-spacing: -.08em; verti
 .enter-button:hover { background: #ffe075; transform: translateY(-2px) rotate(-1deg); }
 .title-tip { margin: 23px 0 0; color: rgba(255,255,255,.78); font-size: .72rem; letter-spacing: .08em; }
 
-.hud { position: fixed; inset: 0; pointer-events: none; color: #173138; }
+.hud { position: absolute; inset: 0; pointer-events: none; color: #173138; }
 .hud header { position: absolute; top: max(14px, env(safe-area-inset-top)); left: max(18px, env(safe-area-inset-left)); right: max(18px, env(safe-area-inset-right)); display: flex; justify-content: space-between; align-items: center; }
 .wordmark { color: #fff5d6; font-size: clamp(.75rem, 2vw, 1rem); font-weight: 900; letter-spacing: .1em; text-shadow: 2px 2px 0 #183a42; }
 .header-actions { display: flex; gap: 7px; pointer-events: auto; }
@@ -87,7 +89,7 @@ h1 span { display: inline-block; font-size: .39em; letter-spacing: -.08em; verti
 }
 @media (orientation: portrait) {
   .title-screen { padding: 18px; }
-  .title-screen::after { content: "Hold a finger on the world to guide your walk."; position: fixed; bottom: 18px; left: 30px; right: 30px; color: #fff9df; font-size: .72rem; }
+  .title-screen::after { content: "Hold a finger on the world to guide your walk."; position: absolute; bottom: max(18px, env(safe-area-inset-bottom)); left: max(30px, env(safe-area-inset-left)); right: max(30px, env(safe-area-inset-right)); color: #fff9df; font-size: .72rem; }
   .quest-card { top: max(54px, env(safe-area-inset-top)); right: 10px; width: min(178px, 47vw); }
   .dialogue { width: 62vw; bottom: 15px; }
 }
