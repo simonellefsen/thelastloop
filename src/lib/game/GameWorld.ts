@@ -2839,6 +2839,7 @@ export class GameWorld implements PlayerController {
     this.addMoonhillArchiveTerrace()
     this.addMoonhillLensPath()
     this.addMoonhillSignalTerrace()
+    this.addMoonhillAlmanacGarden()
     this.addMoonhillWarden(-2.55, -1.5)
     this.addObservatoryStreetMarker('observatory-lens', 'Starlight lens', 'first', -5.5, -2.2, 'A starlight lens rests beside the hill path. The telescope can see again.')
     this.addObservatoryStreetMarker('observatory-scope', 'Align scope', 'second', 1.5, -3.85, 'The moon signal crosses the glass. Every faraway station gets one clear night.')
@@ -3156,6 +3157,113 @@ export class GameWorld implements PlayerController {
     platformSign.scale.set(1.18, 0.29, 1)
     platformSign.position.set(-5.28, observatoryStreetHeight(-5.28, 4.5) + 1.14, 4.5)
     this.observatoryStreet.add(platformSign)
+  }
+
+  /**
+   * An eastern counterpart to Signal Terrace gives Moonhill's high road a
+   * second destination. The garden is intentionally low and open so its
+   * silhouette supports the small-world horizon without obscuring the route.
+   */
+  private addMoonhillAlmanacGarden(): void {
+    this.observatoryStreet.add(this.createObservatoryStreetSurface(7.3, 3.15, 5.25, 7.28, '#aaa49a', 0.14))
+    this.observatoryStreet.add(this.createObservatoryStreetSurface(2.15, 2.1, 7.55, 8.88, '#a39e95', 0.15))
+
+    const paleStone = new MeshLambertMaterial({ color: '#d9d3bd', flatShading: true })
+    const warmStone = new MeshLambertMaterial({ color: '#9d978b', flatShading: true })
+    const timber = new MeshLambertMaterial({ color: '#675247', flatShading: true })
+    const slate = new MeshLambertMaterial({ color: '#414d71', flatShading: true })
+    const brass = new MeshLambertMaterial({ color: '#c9a467', emissive: new Color('#705b38'), emissiveIntensity: 0.2, flatShading: true })
+    const moss = new MeshLambertMaterial({ color: '#527467', flatShading: true })
+
+    for (let x = 2.05; x <= 8.3; x += 0.54) {
+      for (let z = 6.1; z <= 8.5; z += 0.5) {
+        const slab = new Mesh(new BoxGeometry(0.44, 0.04, 0.4), (Math.round((x + z) * 2) % 2 === 0) ? paleStone : warmStone)
+        slab.position.set(x, observatoryStreetHeight(x, z) + 0.195, z)
+        this.observatoryStreet.add(slab)
+      }
+    }
+
+    const moonDial = new Group()
+    const dialBase = new Mesh(new CylinderGeometry(0.8, 0.92, 0.2, 10), paleStone)
+    dialBase.position.y = 0.1
+    moonDial.add(dialBase)
+    const dialFace = new Mesh(new CylinderGeometry(0.62, 0.62, 0.06, 10), new MeshLambertMaterial({ color: '#e4dfc5', flatShading: true }))
+    dialFace.position.y = 0.23
+    moonDial.add(dialFace)
+    const gnomon = new Mesh(new ConeGeometry(0.08, 0.76, 5), brass)
+    gnomon.position.set(0, 0.61, 0)
+    gnomon.rotation.z = -0.28
+    moonDial.add(gnomon)
+    for (const angle of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) {
+      const marker = new Mesh(new BoxGeometry(0.09, 0.05, 0.23), brass)
+      marker.position.set(Math.sin(angle) * 0.43, 0.29, Math.cos(angle) * 0.43)
+      moonDial.add(marker)
+    }
+    moonDial.position.set(4.4, observatoryStreetHeight(4.4, 7.1), 7.1)
+    this.observatoryStreet.add(moonDial)
+    this.addObservatoryStreetBlocker(4.4, 7.1, 0.76)
+
+    const pavilion = new Group()
+    const body = new Mesh(new BoxGeometry(1.7, 1.28, 1.34), new MeshLambertMaterial({ color: '#657775', flatShading: true }))
+    body.position.y = 0.64
+    pavilion.add(body)
+    const roof = new Mesh(new ConeGeometry(1.2, 0.65, 4), slate)
+    roof.rotation.y = Math.PI / 4
+    roof.position.y = 1.55
+    pavilion.add(roof)
+    const openDoor = new Mesh(new PlaneGeometry(0.52, 0.76), new MeshLambertMaterial({ color: '#2f5060', side: DoubleSide }))
+    openDoor.position.set(-0.3, 0.42, 0.676)
+    pavilion.add(openDoor)
+    const weatherVane = new Mesh(new BoxGeometry(0.72, 0.05, 0.08), brass)
+    weatherVane.position.set(0, 2.35, 0)
+    pavilion.add(weatherVane)
+    const vanePost = new Mesh(new CylinderGeometry(0.035, 0.045, 0.92, 5), brass)
+    vanePost.position.set(0, 2.0, 0)
+    pavilion.add(vanePost)
+    const pavilionSign = this.createSign('ALMANAC', '#eee9d6', 145, 42)
+    pavilionSign.scale.set(0.82, 0.23, 1)
+    pavilionSign.position.set(0.15, 1.53, 0.69)
+    pavilion.add(pavilionSign)
+    pavilion.position.set(7.45, observatoryStreetHeight(7.45, 8.78), 8.78)
+    this.observatoryStreet.add(pavilion)
+    this.addObservatoryStreetBlocker(7.45, 8.78, 1.05)
+
+    for (const [x, z, flowerColor] of [[2.55, 8.18, '#8471ad'], [3.45, 8.35, '#d5bc66'], [6.05, 6.3, '#8a78b3']] as Array<[number, number, string]>) {
+      const bed = new Group()
+      const border = new Mesh(new BoxGeometry(0.88, 0.28, 0.58), timber)
+      border.position.y = 0.14
+      bed.add(border)
+      for (const xOffset of [-0.24, 0, 0.24]) {
+        const flower = new Mesh(new SphereGeometry(0.1, 6, 5), new MeshLambertMaterial({ color: flowerColor, emissive: new Color(flowerColor), emissiveIntensity: 0.16, flatShading: true }))
+        flower.position.set(xOffset, 0.38, 0)
+        bed.add(flower)
+      }
+      bed.position.set(x, observatoryStreetHeight(x, z), z)
+      this.observatoryStreet.add(bed)
+      this.addObservatoryStreetBlocker(x, z, 0.56)
+    }
+
+    for (const [x, z] of [[2.0, 8.72], [3.55, 8.72], [5.1, 8.72], [6.65, 8.72], [8.2, 8.72]] as Array<[number, number]>) {
+      const parapet = new Mesh(new BoxGeometry(0.72, 0.5, 0.26), moss)
+      parapet.position.set(x, observatoryStreetHeight(x, z) + 0.25, z)
+      this.observatoryStreet.add(parapet)
+      this.addObservatoryStreetBlocker(x, z, 0.35)
+    }
+    for (const [x, z] of [[2.12, 6.25], [6.1, 7.95]] as Array<[number, number]>) {
+      const lamp = new Group()
+      const post = new Mesh(new CylinderGeometry(0.05, 0.07, 1.58, 6), timber)
+      post.position.y = 0.79
+      lamp.add(post)
+      const glow = new Mesh(new SphereGeometry(0.12, 7, 5), new MeshLambertMaterial({ color: '#f0d575', emissive: new Color('#b77d42'), emissiveIntensity: 0.7, flatShading: true }))
+      glow.position.y = 1.54
+      lamp.add(glow)
+      lamp.position.set(x, observatoryStreetHeight(x, z), z)
+      this.observatoryStreet.add(lamp)
+    }
+    const gardenSign = this.createSign('ALMANAC GARDEN', '#eee9d6', 220, 48)
+    gardenSign.scale.set(1.2, 0.28, 1)
+    gardenSign.position.set(5.15, observatoryStreetHeight(5.15, 5.85) + 1.15, 5.85)
+    this.observatoryStreet.add(gardenSign)
   }
 
   /** Moonhill's quiet warden is decorative until the player enters a short talk radius. */
