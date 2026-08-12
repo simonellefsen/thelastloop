@@ -1,5 +1,17 @@
 # Roadmap
 
+> **Current priority: [MESSENGER_ROADMAP.md](./MESSENGER_ROADMAP.md).**
+>
+> The list below tracks *places and systems*, and it is close to complete. The stranger test in
+> [ART_PIPELINE.md](./ART_PIPELINE.md) is about *presentation*, and it is not passing. Those are
+> different axes. New district pockets should wait until phases M1 and M2 of the Messenger roadmap
+> have landed — they are the two that need no new art and change what every later pass is painted
+> for.
+>
+> **M0 comes before all of it**: the street camera flies 1.35 m above the building eaves, so roofs
+> hide the player. That is a defect, and it shares a root cause with the doll-house world scale
+> (buildings are 1.8× the character's height; Messenger's are 4–8×).
+
 ## Released vertical slice
 
 - Rotating mini-globe title scene.
@@ -15,8 +27,13 @@
 - ✅ Prop density on Station Gate → Market Fold (bike, laundry, planters, stall goods, sandwich board).
 - ✅ Harbour Works and Moonhill landmarks/NPCs/surfaces on the same cel + outline language.
 - ✅ **Art pipeline handoff** (`docs/ART_PIPELINE.md`): kit registry, procedural multi-volume modules, glTF drop-in folder, hero corridor continuous frontage, blob trees, improved character kit.
-- Drop original `.glb` assets into `public/assets/gltf/` using stable KitIds (no code change required if URLs match registry).
+- ✅ Drop original `.glb` assets into `public/assets/gltf/` using stable KitIds — 40 files ship and load.
+- ⚠️ **The pipeline works; the art has not happened.** `tools/blender/export_ravnbro_kits.py` builds
+  every kit from `box()`, `cylinder()`, `sphere()` and `plane()` with no modifiers, no UVs and no
+  textures, so the `.glb` files carry the same primitives the pipeline was built to replace. See
+  [MESSENGER_ROADMAP.md](./MESSENGER_ROADMAP.md) §1.
 - Continue prop density and kit modules deeper into side pockets; then Harbour/Moonhill full re-kit.
+  **Blocked behind M1–M2** — density under flat light and a surveying camera has to be built twice.
 
 ## Next: richer town
 

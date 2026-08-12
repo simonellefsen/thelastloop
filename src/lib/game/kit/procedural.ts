@@ -17,22 +17,32 @@ import {
   outlineCharacter,
 } from '../style'
 import type { KitCharacterOptions } from './types'
+import { DEFAULT_STOREYS, PLINTH_HEIGHT, ROOF_RISE, STOREY_HEIGHT } from './scale'
 
 function outlineMesh(mesh: Mesh, scale = 1.035): void {
   addMeshOutline(mesh, scale)
 }
 
-/** Multi-volume gable house — no single naked box. */
+/**
+ * Multi-volume, multi-storey gable house — no single naked box, and tall enough that
+ * the street camera passes beneath its eaves instead of through its roof. See
+ * `scale.ts` for why the height matters as much as the silhouette.
+ */
 export function buildGableHouse(options: {
   wall: string
   roof: string
   width?: number
+  /** Height of one floor. Total wall height is this times `storeys`. */
   bodyHeight?: number
+  /** Floors above the plinth. Two is the street default; three reads as a town centre. */
+  storeys?: number
   depth?: number
   label?: string
 }): Group {
   const width = options.width ?? 2.85
-  const bodyHeight = options.bodyHeight ?? 1.72
+  const storeyHeight = options.bodyHeight ?? STOREY_HEIGHT
+  const storeys = Math.max(1, Math.round(options.storeys ?? DEFAULT_STOREYS))
+  const bodyHeight = storeyHeight * storeys
   const depth = options.depth ?? 2.15
   const building = new Group()
   const wallMat = celMaterial(options.wall)
@@ -42,63 +52,83 @@ export function buildGableHouse(options: {
   const doorMat = celMaterial(artPalette.door, { side: DoubleSide })
 
   // Plinth so the mass sits on a visible base, not floating edges.
-  const plinth = new Mesh(new BoxGeometry(width + 0.12, 0.18, depth + 0.12), celMaterial(artPalette.cobbleWarm))
-  plinth.position.y = 0.09
+  const plinth = new Mesh(new BoxGeometry(width + 0.12, PLINTH_HEIGHT, depth + 0.12), celMaterial(artPalette.cobbleWarm))
+  plinth.position.y = PLINTH_HEIGHT / 2
   building.add(plinth)
   outlineMesh(plinth, 1.02)
 
   const body = new Mesh(new BoxGeometry(width, bodyHeight, depth), wallMat)
-  body.position.y = 0.18 + bodyHeight / 2
+  body.position.y = PLINTH_HEIGHT + bodyHeight / 2
   building.add(body)
   outlineMesh(body, 1.02)
 
-  // Slight rear wing for multi-volume silhouette.
-  const wing = new Mesh(new BoxGeometry(width * 0.55, bodyHeight * 0.72, depth * 0.45), wallMat)
-  wing.position.set(width * 0.12, 0.18 + (bodyHeight * 0.72) / 2, -depth * 0.28)
+  // Rear wing stops one floor short so the roofline steps instead of reading as one slab.
+  const wingHeight = Math.max(storeyHeight, bodyHeight - storeyHeight * 0.55)
+  const wing = new Mesh(new BoxGeometry(width * 0.55, wingHeight, depth * 0.45), wallMat)
+  wing.position.set(width * 0.12, PLINTH_HEIGHT + wingHeight / 2, -depth * 0.28)
   building.add(wing)
   outlineMesh(wing, 1.02)
 
-  const eavesY = 0.18 + bodyHeight
-  const roof = new Mesh(createGableRoofGeometry(width + 0.28, 0.82, depth + 0.28), roofMat)
+  const eavesY = PLINTH_HEIGHT + bodyHeight
+  const roof = new Mesh(createGableRoofGeometry(width + 0.28, ROOF_RISE, depth + 0.28), roofMat)
   roof.position.y = eavesY
   building.add(roof)
   outlineMesh(roof, 1.015)
 
   const wingRoof = new Mesh(createGableRoofGeometry(width * 0.62, 0.48, depth * 0.55), roofMat)
-  wingRoof.position.set(width * 0.12, 0.18 + bodyHeight * 0.72, -depth * 0.28)
+  wingRoof.position.set(width * 0.12, PLINTH_HEIGHT + wingHeight, -depth * 0.28)
   building.add(wingRoof)
 
-  // Timber grid on street façade.
+  // Timber grid on the street façade, ground floor only — upper floors are plastered.
   const frontZ = depth / 2 + 0.02
+  const groundTop = PLINTH_HEIGHT + storeyHeight
   for (const x of [-width * 0.38, 0, width * 0.38]) {
-    const upright = new Mesh(new BoxGeometry(0.1, bodyHeight + 0.08, 0.08), timber)
-    upright.position.set(x, 0.18 + bodyHeight / 2, frontZ)
+    const upright = new Mesh(new BoxGeometry(0.1, storeyHeight + 0.08, 0.08), timber)
+    upright.position.set(x, PLINTH_HEIGHT + storeyHeight / 2, frontZ)
     building.add(upright)
   }
-  for (const y of [0.55, 0.18 + bodyHeight - 0.28]) {
+  // A floor band at every storey line gives the frontage its vertical rhythm.
+  for (let floor = 1; floor <= storeys; floor += 1) {
     const beam = new Mesh(new BoxGeometry(width + 0.06, 0.09, 0.08), timber)
-    beam.position.set(0, y, frontZ)
+    beam.position.set(0, PLINTH_HEIGHT + storeyHeight * floor - 0.14, frontZ)
     building.add(beam)
   }
 
+  // Ground-floor shopfront windows sit at eye level for a 1.76 m character.
   for (const x of [-width * 0.28, width * 0.28]) {
     const frame = new Mesh(new BoxGeometry(0.5, 0.58, 0.07), timber)
-    frame.position.set(x, 0.18 + bodyHeight * 0.58, frontZ + 0.02)
+    frame.position.set(x, PLINTH_HEIGHT + 1.02, frontZ + 0.02)
     building.add(frame)
     const pane = new Mesh(new PlaneGeometry(0.36, 0.44), glass)
-    pane.position.set(x, 0.18 + bodyHeight * 0.58, frontZ + 0.06)
+    pane.position.set(x, PLINTH_HEIGHT + 1.02, frontZ + 0.06)
     building.add(pane)
-    // Sill
     const sill = new Mesh(new BoxGeometry(0.52, 0.05, 0.12), timber)
-    sill.position.set(x, 0.18 + bodyHeight * 0.42, frontZ + 0.05)
+    sill.position.set(x, PLINTH_HEIGHT + 0.7, frontZ + 0.05)
     building.add(sill)
   }
 
-  const doorFrame = new Mesh(new BoxGeometry(0.68, 1.05, 0.08), timber)
-  doorFrame.position.set(0, 0.18 + 0.52, frontZ + 0.02)
+  // Upper storeys: a repeated window row per floor. This rhythm is most of what makes
+  // a frontage read as a building rather than a box with a roof on it.
+  for (let floor = 1; floor < storeys; floor += 1) {
+    const sillY = groundTop + storeyHeight * (floor - 1) + 0.62
+    for (const x of [-width * 0.3, 0, width * 0.3]) {
+      const frame = new Mesh(new BoxGeometry(0.46, 0.7, 0.07), timber)
+      frame.position.set(x, sillY + 0.35, frontZ + 0.02)
+      building.add(frame)
+      const pane = new Mesh(new PlaneGeometry(0.32, 0.54), glass)
+      pane.position.set(x, sillY + 0.35, frontZ + 0.06)
+      building.add(pane)
+      const sill = new Mesh(new BoxGeometry(0.5, 0.05, 0.13), timber)
+      sill.position.set(x, sillY, frontZ + 0.05)
+      building.add(sill)
+    }
+  }
+
+  const doorFrame = new Mesh(new BoxGeometry(0.68, 1.24, 0.08), timber)
+  doorFrame.position.set(0, PLINTH_HEIGHT + 0.62, frontZ + 0.02)
   building.add(doorFrame)
-  const door = new Mesh(new PlaneGeometry(0.52, 0.92), doorMat)
-  door.position.set(0, 0.18 + 0.48, frontZ + 0.07)
+  const door = new Mesh(new PlaneGeometry(0.52, 1.1), doorMat)
+  door.position.set(0, PLINTH_HEIGHT + 0.57, frontZ + 0.07)
   building.add(door)
 
   const step = new Mesh(new BoxGeometry(0.9, 0.1, 0.32), celMaterial(artPalette.cobblePale))
@@ -141,72 +171,96 @@ export function buildStationCivic(): Group {
   plinth.position.y = 0.08
   station.add(plinth)
 
-  const wing = new Mesh(new BoxGeometry(6.9, 1.52, 2.0), brick)
-  wing.position.y = 0.16 + 0.76
+  // Civic anchor: the hall stands a storey above the frontage houses so it still
+  // reads as the tallest thing on the street after M0 raised the town.
+  const base = 0.16
+  // Two storeys puts the station eaves on the same cornice line as the frontage
+  // houses (4.56 vs 4.58); the hall then rises above as the civic accent.
+  const wingHeight = STOREY_HEIGHT * 2
+  const hallHeight = STOREY_HEIGHT * 2.5
+  const wingTop = base + wingHeight
+  const hallTop = base + hallHeight
+  const upperY = base + STOREY_HEIGHT + 1.05
+
+  const wing = new Mesh(new BoxGeometry(6.9, wingHeight, 2.0), brick)
+  wing.position.y = base + wingHeight / 2
   station.add(wing)
   outlineMesh(wing, 1.015)
 
-  const hall = new Mesh(new BoxGeometry(2.65, 2.25, 2.25), brick)
-  hall.position.y = 0.16 + 1.12
+  const hall = new Mesh(new BoxGeometry(2.65, hallHeight, 2.25), brick)
+  hall.position.y = base + hallHeight / 2
   station.add(hall)
   outlineMesh(hall, 1.015)
 
   // Side offices for multi-volume mass.
   for (const x of [-2.55, 2.55]) {
-    const bay = new Mesh(new BoxGeometry(1.55, 1.35, 1.35), brick)
-    bay.position.set(x, 0.16 + 0.68, -0.35)
+    const bay = new Mesh(new BoxGeometry(1.55, 2.6, 1.35), brick)
+    bay.position.set(x, base + 1.3, -0.35)
     station.add(bay)
     outlineMesh(bay, 1.02)
   }
 
-  const wingRoof = new Mesh(createGableRoofGeometry(7.25, 0.78, 2.25), roof)
-  wingRoof.position.y = 0.16 + 1.52
+  // Ridge along the length: a 7.25 m span sloping to a short ridge read as a flat
+  // slab from the low street camera instead of a roof.
+  const wingRoof = new Mesh(createGableRoofGeometry(2.45, 0.92, 7.25, true), roof)
+  wingRoof.position.y = wingTop
   station.add(wingRoof)
   outlineMesh(wingRoof, 1.012)
 
-  const hallRoof = new Mesh(createGableRoofGeometry(2.9, 1.0, 2.45), roof)
-  hallRoof.position.y = 0.16 + 2.25
+  const hallRoof = new Mesh(createGableRoofGeometry(2.9, 1.15, 2.45), roof)
+  hallRoof.position.y = hallTop
   station.add(hallRoof)
   outlineMesh(hallRoof, 1.015)
 
+  // Ground floor stays at human scale for a 1.76 m character.
   for (const x of [-2.85, -1.9, -0.85, 0.85, 1.9, 2.85]) {
     const frame = new Mesh(new BoxGeometry(0.5, 0.58, 0.07), timber)
-    frame.position.set(x, 0.95, 1.05)
+    frame.position.set(x, 1.15, 1.05)
     station.add(frame)
     const pane = new Mesh(new PlaneGeometry(0.38, 0.46), glass)
-    pane.position.set(x, 0.95, 1.1)
+    pane.position.set(x, 1.15, 1.1)
+    station.add(pane)
+  }
+  // Upper row on the wing, matching the frontage window rhythm.
+  for (const x of [-2.85, -1.9, 1.9, 2.85]) {
+    const frame = new Mesh(new BoxGeometry(0.46, 0.66, 0.07), timber)
+    frame.position.set(x, upperY, 1.05)
+    station.add(frame)
+    const pane = new Mesh(new PlaneGeometry(0.32, 0.5), glass)
+    pane.position.set(x, upperY, 1.1)
     station.add(pane)
   }
   for (const x of [-0.55, 0.55]) {
-    const frame = new Mesh(new BoxGeometry(0.42, 0.55, 0.07), timber)
-    frame.position.set(x, 1.85, 1.16)
+    const frame = new Mesh(new BoxGeometry(0.42, 0.62, 0.07), timber)
+    frame.position.set(x, upperY + 1.75, 1.16)
     station.add(frame)
-    const pane = new Mesh(new PlaneGeometry(0.32, 0.42), glass)
-    pane.position.set(x, 1.85, 1.2)
+    const pane = new Mesh(new PlaneGeometry(0.32, 0.46), glass)
+    pane.position.set(x, upperY + 1.75, 1.2)
     station.add(pane)
   }
 
   for (const x of [-0.4, 0.4]) {
-    const leaf = new Mesh(new PlaneGeometry(0.48, 0.95), door)
-    leaf.position.set(x, 0.62, 1.14)
+    const leaf = new Mesh(new PlaneGeometry(0.48, 1.15), door)
+    leaf.position.set(x, 0.74, 1.14)
     station.add(leaf)
   }
 
+  // Entrance canopy clears the character's head instead of grazing it.
   const canopy = new Mesh(new BoxGeometry(2.4, 0.12, 0.7), celMaterial(artPalette.cobblePale))
-  canopy.position.set(0, 1.2, 1.4)
+  canopy.position.set(0, 2.35, 1.4)
   station.add(canopy)
   outlineMesh(canopy, 1.03)
 
   for (const x of [-2.6, -1.0, 1.0, 2.6]) {
-    const chimney = new Mesh(new BoxGeometry(0.22, 0.72, 0.24), darkBrick)
-    chimney.position.set(x, 2.55, 0)
+    const chimney = new Mesh(new BoxGeometry(0.22, 0.78, 0.24), darkBrick)
+    chimney.position.set(x, wingTop + 0.62, 0)
     station.add(chimney)
     outlineMesh(chimney, 1.05)
   }
 
-  const clock = new Mesh(new CylinderGeometry(0.28, 0.28, 0.07, 14), celMaterial('#f3eed7'))
+  const clock = new Mesh(new CylinderGeometry(0.34, 0.34, 0.07, 14), celMaterial('#f3eed7'))
   clock.rotation.x = Math.PI / 2
-  clock.position.set(0, 2.35, 1.18)
+  clock.position.set(0, hallTop - 0.72, 1.18)
   station.add(clock)
 
   const forecourt = new Mesh(new CylinderGeometry(2.55, 2.85, 0.08, 14), celMaterial(artPalette.cobbleWarm))
@@ -533,6 +587,161 @@ export function buildHarbourTideShed(): Group {
   return shed
 }
 
+/** Rail Shed's brick freight shelter, with a large loading door and lamp bracket. */
+export function buildHarbourRailShed(): Group {
+  const shed = new Group()
+  const brick = celMaterial('#a15b48')
+  const slate = celMaterial('#334e55')
+  const timber = celMaterial('#694b3b')
+  const doorMaterial = celMaterial('#294c52', { side: DoubleSide })
+  const glass = celMaterial('#dce7dc', { side: DoubleSide })
+  const body = new Mesh(new BoxGeometry(2.24, 1.62, 1.72), brick)
+  body.position.y = 0.81
+  shed.add(body)
+  outlineMesh(body, 1.025)
+  const roof = new Mesh(createGableRoofGeometry(2.52, 0.72, 2.02), slate)
+  roof.position.y = 1.62
+  shed.add(roof)
+  outlineMesh(roof, 1.02)
+  const door = new Mesh(new PlaneGeometry(0.94, 1.0), doorMaterial)
+  door.position.set(-0.28, 0.53, 0.865)
+  shed.add(door)
+  const frame = new Mesh(new BoxGeometry(0.5, 0.54, 0.07), timber)
+  frame.position.set(0.7, 1.06, 0.87)
+  shed.add(frame)
+  const window = new Mesh(new PlaneGeometry(0.38, 0.42), glass)
+  window.position.set(0.7, 1.06, 0.915)
+  shed.add(window)
+  const bracket = new Mesh(new BoxGeometry(0.42, 0.06, 0.06), timber)
+  bracket.position.set(-0.28, 1.37, 0.97)
+  shed.add(bracket)
+  const lamp = new Mesh(new SphereGeometry(0.1, 6, 5), celMaterial('#f5d873'))
+  lamp.position.set(-0.28, 1.23, 1.0)
+  shed.add(lamp)
+  return shed
+}
+
+/** A compact loaded hand cart keeps Harbour's working rail sidings legible. */
+export function buildHarbourFreightCart(): Group {
+  const cart = new Group()
+  const timber = celMaterial('#694b3b')
+  const iron = celMaterial('#344f56')
+  const parcel = celMaterial('#c58a48')
+  const bed = new Mesh(new BoxGeometry(1.08, 0.34, 0.64), timber)
+  bed.position.y = 0.42
+  cart.add(bed)
+  outlineMesh(bed, 1.03)
+  const handle = new Mesh(new BoxGeometry(0.1, 0.1, 0.94), timber)
+  handle.position.set(0, 0.62, 0.66)
+  handle.rotation.x = -0.3
+  cart.add(handle)
+  for (const xOffset of [-0.37, 0.37]) {
+    const wheel = new Mesh(new CylinderGeometry(0.17, 0.17, 0.09, 7), iron)
+    wheel.rotation.z = Math.PI / 2
+    wheel.position.set(xOffset, 0.18, -0.22)
+    cart.add(wheel)
+  }
+  const crate = new Mesh(new BoxGeometry(0.44, 0.38, 0.38), parcel)
+  crate.position.set(-0.16, 0.77, -0.03)
+  cart.add(crate)
+  return cart
+}
+
+/** Outer Pier's painted beacon, with a lantern that reads against the sea. */
+export function buildHarbourPierBeacon(): Group {
+  const beacon = new Group()
+  const stone = celMaterial('#e0d6bd')
+  const paint = celMaterial('#e2c45e')
+  const iron = celMaterial('#36545a')
+  const glow = celMaterial('#fff0a3')
+  const tower = new Mesh(new CylinderGeometry(0.34, 0.48, 2.15, 7), stone)
+  tower.position.y = 1.08
+  beacon.add(tower)
+  outlineMesh(tower, 1.03)
+  const band = new Mesh(new CylinderGeometry(0.5, 0.5, 0.24, 7), paint)
+  band.position.y = 1.1
+  beacon.add(band)
+  const roof = new Mesh(new ConeGeometry(0.52, 0.48, 6), iron)
+  roof.position.y = 2.36
+  beacon.add(roof)
+  outlineMesh(roof, 1.04)
+  const lamp = new Mesh(new SphereGeometry(0.16, 7, 5), glow)
+  lamp.position.y = 2.09
+  beacon.add(lamp)
+  return beacon
+}
+
+/** Chandlery Yard's compact shop, with a broad service window and chimney. */
+export function buildHarbourChandlery(): Group {
+  const shop = new Group()
+  const brick = celMaterial('#a85d49')
+  const slate = celMaterial('#334f55')
+  const doorMaterial = celMaterial('#294d53', { side: DoubleSide })
+  const glass = celMaterial('#dbe8dc', { side: DoubleSide })
+  const body = new Mesh(new BoxGeometry(2.32, 1.7, 1.72), brick)
+  body.position.y = 0.85
+  shop.add(body)
+  outlineMesh(body, 1.025)
+  const roof = new Mesh(createGableRoofGeometry(2.58, 0.74, 2.0), slate)
+  roof.position.y = 1.7
+  shop.add(roof)
+  outlineMesh(roof, 1.02)
+  const door = new Mesh(new PlaneGeometry(0.62, 0.96), doorMaterial)
+  door.position.set(-0.43, 0.5, 0.87)
+  shop.add(door)
+  const frame = new Mesh(new BoxGeometry(0.62, 0.62, 0.07), celMaterial('#6b4c3b'))
+  frame.position.set(0.48, 1.01, 0.875)
+  shop.add(frame)
+  const window = new Mesh(new PlaneGeometry(0.52, 0.52), glass)
+  window.position.set(0.48, 1.01, 0.92)
+  shop.add(window)
+  const chimney = new Mesh(new BoxGeometry(0.25, 0.92, 0.25), celMaterial('#744138'))
+  chimney.position.set(0.64, 2.12, -0.32)
+  shop.add(chimney)
+  return shop
+}
+
+/** Three drying sails make Chandlery Yard read as a working outfitter. */
+export function buildHarbourSailRack(): Group {
+  const rack = new Group()
+  const timber = celMaterial('#6b4c3b')
+  for (const xOffset of [-0.78, 0.78]) {
+    const post = new Mesh(new BoxGeometry(0.11, 1.68, 0.11), timber)
+    post.position.set(xOffset, 0.84, 0)
+    rack.add(post)
+    outlineMesh(post, 1.035)
+  }
+  const crossbar = new Mesh(new BoxGeometry(1.82, 0.1, 0.1), timber)
+  crossbar.position.y = 1.47
+  rack.add(crossbar)
+  for (const [xOffset, color] of [[-0.42, '#d4c56f'], [0.08, '#6f9c9a'], [0.47, '#d07b55']] as Array<[number, string]>) {
+    const sail = new Mesh(new PlaneGeometry(0.36, 0.82), celMaterial(color, { side: DoubleSide }))
+    sail.position.set(xOffset, 0.98, 0.06)
+    rack.add(sail)
+  }
+  return rack
+}
+
+/** Low capstan with a contrasting crank arm for Harbour's loading rhythm. */
+export function buildHarbourCapstan(): Group {
+  const capstan = new Group()
+  const stone = celMaterial('#a48b68')
+  const iron = celMaterial('#34565d')
+  const timber = celMaterial('#6b4c3b')
+  const base = new Mesh(new CylinderGeometry(0.34, 0.42, 0.38, 7), stone)
+  base.position.y = 0.19
+  capstan.add(base)
+  outlineMesh(base, 1.03)
+  const post = new Mesh(new CylinderGeometry(0.12, 0.16, 0.8, 6), iron)
+  post.position.y = 0.58
+  capstan.add(post)
+  const arm = new Mesh(new BoxGeometry(1.05, 0.08, 0.09), timber)
+  arm.position.set(0, 0.84, 0)
+  arm.rotation.y = 0.24
+  capstan.add(arm)
+  return capstan
+}
+
 /** Moonhill's observatory, built as an asymmetrical dome with a small study wing. */
 export function buildMoonhillObservatory(): Group {
   const observatory = new Group()
@@ -745,6 +954,198 @@ export function buildMoonhillOrrery(): Group {
   moonMesh.position.set(0.61, 1.14, 0)
   orrery.add(moonMesh)
   return orrery
+}
+
+/** Signal Terrace's open shelter, deliberately low to keep the rail stop visible. */
+export function buildMoonhillSkyrailShelter(): Group {
+  const shelter = new Group()
+  const timber = celMaterial('#665047')
+  const slate = celMaterial('#3d4867')
+  for (const xOffset of [-0.72, 0.72]) {
+    const post = new Mesh(new BoxGeometry(0.11, 1.4, 0.11), timber)
+    post.position.set(xOffset, 0.7, 0)
+    shelter.add(post)
+    outlineMesh(post, 1.035)
+  }
+  const canopy = new Mesh(createGableRoofGeometry(1.92, 0.54, 1.44), slate)
+  canopy.position.y = 1.3
+  shelter.add(canopy)
+  outlineMesh(canopy, 1.02)
+  const bench = new Mesh(new BoxGeometry(1.22, 0.14, 0.36), timber)
+  bench.position.set(0, 0.47, -0.14)
+  shelter.add(bench)
+  const timetable = new Mesh(new BoxGeometry(0.42, 0.58, 0.06), celMaterial('#eee9da'))
+  timetable.position.set(0, 0.98, 0.13)
+  shelter.add(timetable)
+  return shelter
+}
+
+/** Baggage trolley with two contrasting cases for the small Moonhill stop. */
+export function buildMoonhillBaggageTrolley(): Group {
+  const trolley = new Group()
+  const iron = celMaterial('#454f68')
+  const violet = celMaterial('#75659a')
+  const leather = celMaterial('#c19059')
+  const bed = new Mesh(new BoxGeometry(0.98, 0.17, 0.58), iron)
+  bed.position.y = 0.34
+  trolley.add(bed)
+  outlineMesh(bed, 1.03)
+  for (const xOffset of [-0.34, 0.34]) {
+    const wheel = new Mesh(new TorusGeometry(0.12, 0.035, 5, 8), iron)
+    wheel.rotation.y = Math.PI / 2
+    wheel.position.set(xOffset, 0.18, -0.23)
+    trolley.add(wheel)
+  }
+  const largeCase = new Mesh(new BoxGeometry(0.4, 0.34, 0.36), violet)
+  largeCase.position.set(-0.16, 0.61, 0)
+  trolley.add(largeCase)
+  const smallCase = new Mesh(new BoxGeometry(0.31, 0.28, 0.31), leather)
+  smallCase.position.set(0.2, 0.54, 0.04)
+  trolley.add(smallCase)
+  return trolley
+}
+
+/** Wind Lookout's stout survey shelter with an open, view-facing front. */
+export function buildMoonhillWindShelter(): Group {
+  const shelter = new Group()
+  const timber = celMaterial('#654d42')
+  const slate = celMaterial('#364e5a')
+  const inset = celMaterial('#304f54', { side: DoubleSide })
+  const body = new Mesh(new BoxGeometry(1.85, 1.15, 1.25), timber)
+  body.position.y = 0.58
+  shelter.add(body)
+  outlineMesh(body, 1.025)
+  const opening = new Mesh(new PlaneGeometry(1.05, 0.72), inset)
+  opening.position.set(0, 0.58, 0.631)
+  shelter.add(opening)
+  const roof = new Mesh(createGableRoofGeometry(2.12, 0.7, 1.42), slate)
+  roof.position.y = 1.15
+  shelter.add(roof)
+  outlineMesh(roof, 1.02)
+  const bench = new Mesh(new BoxGeometry(1.05, 0.13, 0.32), timber)
+  bench.position.set(0, 0.38, -0.18)
+  shelter.add(bench)
+  return shelter
+}
+
+/** A circular star chart table gives the lookout a compact working purpose. */
+export function buildMoonhillStarChartTable(): Group {
+  const table = new Group()
+  const timber = celMaterial('#654d42')
+  const chart = celMaterial('#d8d3be')
+  const brass = celMaterial('#d4b669')
+  const leg = new Mesh(new CylinderGeometry(0.08, 0.11, 0.68, 5), timber)
+  leg.position.y = 0.34
+  table.add(leg)
+  outlineMesh(leg, 1.03)
+  const top = new Mesh(new CylinderGeometry(0.58, 0.58, 0.08, 7), chart)
+  top.position.y = 0.7
+  table.add(top)
+  for (const angle of [0.2, 2.1, 4.3]) {
+    const star = new Mesh(new SphereGeometry(0.045, 5, 4), brass)
+    star.position.set(Math.cos(angle) * 0.3, 0.76, Math.sin(angle) * 0.3)
+    table.add(star)
+  }
+  return table
+}
+
+/** Comet Walk's meteor monument: a cold stone with one warm brass fleck. */
+export function buildMoonhillMeteorMarker(): Group {
+  const marker = new Group()
+  const stone = celMaterial('#9b958c')
+  const meteor = celMaterial('#6b7085')
+  const brass = celMaterial('#c9a566')
+  const plinth = new Mesh(new CylinderGeometry(0.42, 0.54, 0.52, 7), stone)
+  plinth.position.y = 0.26
+  marker.add(plinth)
+  outlineMesh(plinth, 1.03)
+  const rock = new Mesh(new ConeGeometry(0.34, 0.65, 6), meteor)
+  rock.rotation.x = Math.PI
+  rock.rotation.z = 0.3
+  rock.position.y = 0.76
+  marker.add(rock)
+  const fleck = new Mesh(new SphereGeometry(0.08, 6, 5), brass)
+  fleck.position.set(0.18, 0.91, 0.06)
+  marker.add(fleck)
+  return marker
+}
+
+/** Moonhill's chartmaker has a deep map bay and a small roof lantern. */
+export function buildMoonhillChartmaker(): Group {
+  const shop = new Group()
+  const wall = celMaterial('#687977')
+  const slate = celMaterial('#3d496d')
+  const timber = celMaterial('#665047')
+  const doorMaterial = celMaterial('#315663', { side: DoubleSide })
+  const glass = celMaterial('#dce8dc', { side: DoubleSide })
+  const chart = celMaterial('#e8dec0', { side: DoubleSide })
+  const body = new Mesh(new BoxGeometry(2.22, 1.58, 1.66), wall)
+  body.position.y = 0.79
+  shop.add(body)
+  outlineMesh(body, 1.025)
+  const roof = new Mesh(createGableRoofGeometry(2.5, 0.72, 1.92), slate)
+  roof.position.y = 1.58
+  shop.add(roof)
+  outlineMesh(roof, 1.02)
+  const door = new Mesh(new PlaneGeometry(0.56, 0.92), doorMaterial)
+  door.position.set(-0.48, 0.49, 0.836)
+  shop.add(door)
+  const frame = new Mesh(new BoxGeometry(0.68, 0.66, 0.08), timber)
+  frame.position.set(0.44, 1.03, 0.85)
+  shop.add(frame)
+  const mapBay = new Mesh(new PlaneGeometry(0.55, 0.5), glass)
+  mapBay.position.set(0.44, 1.03, 0.9)
+  shop.add(mapBay)
+  const map = new Mesh(new PlaneGeometry(0.32, 0.27), chart)
+  map.position.set(0.44, 1.03, 0.925)
+  shop.add(map)
+  const awning = new Mesh(new BoxGeometry(1.22, 0.1, 0.44), celMaterial('#8a7db1'))
+  awning.position.set(0.26, 1.38, 1.02)
+  shop.add(awning)
+  const lantern = new Mesh(new SphereGeometry(0.095, 6, 5), celMaterial('#d4b669'))
+  lantern.position.set(0, 2.54, 0)
+  shop.add(lantern)
+  return shop
+}
+
+/** Open-fronted Star Tea kiosk with a star canopy and visible brass kettle. */
+export function buildMoonhillStarTeaKiosk(): Group {
+  const kiosk = new Group()
+  const violet = celMaterial('#876c8c')
+  const timber = celMaterial('#665047')
+  const cream = celMaterial('#e5d7a4')
+  const brass = celMaterial('#c9a467')
+  const counter = new Mesh(new BoxGeometry(1.42, 0.78, 0.74), violet)
+  counter.position.y = 0.39
+  kiosk.add(counter)
+  outlineMesh(counter, 1.03)
+  for (const xOffset of [-0.55, 0.55]) {
+    const post = new Mesh(new BoxGeometry(0.09, 1.5, 0.09), timber)
+    post.position.set(xOffset, 0.75, 0)
+    kiosk.add(post)
+    outlineMesh(post, 1.035)
+  }
+  const canopy = new Mesh(new ConeGeometry(1.08, 0.48, 4), cream)
+  canopy.rotation.y = Math.PI / 4
+  canopy.position.y = 1.55
+  kiosk.add(canopy)
+  outlineMesh(canopy, 1.02)
+  const kettle = new Mesh(new SphereGeometry(0.16, 7, 5), brass)
+  kettle.position.set(0.18, 0.88, 0)
+  kiosk.add(kettle)
+  const spout = new Mesh(new ConeGeometry(0.06, 0.3, 5), brass)
+  spout.rotation.z = -Math.PI / 2.8
+  spout.position.set(0.35, 0.9, 0)
+  kiosk.add(spout)
+  for (const xOffset of [-0.3, -0.06]) {
+    const cup = new Mesh(new CylinderGeometry(0.07, 0.085, 0.12, 6), cream)
+    cup.position.set(xOffset, 0.86, 0.16)
+    kiosk.add(cup)
+  }
+  const star = new Mesh(new SphereGeometry(0.07, 5, 4), brass)
+  star.position.set(0, 1.63, 0.05)
+  kiosk.add(star)
+  return kiosk
 }
 
 /** Readable third-person character — shared by player and NPCs. */

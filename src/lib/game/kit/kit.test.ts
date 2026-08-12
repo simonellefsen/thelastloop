@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { buildKit, listKitIds, kitRegistry } from './registry'
 import { HERO_KIT_IDS } from './loader'
 import { buildBroadTree, buildCharacterFigure, buildGableHouse, buildStationCivic } from './procedural'
-import { Group, Mesh } from 'three'
+import { CHARACTER_HEIGHT, MAX_STREET_CAMERA_HEIGHT, houseEavesHeight, houseRidgeHeight } from './scale'
+import { Box3, Group, Mesh } from 'three'
 
 describe('art kit registry', () => {
   it('exposes stable kit ids from the pipeline contract', () => {
@@ -17,6 +18,14 @@ describe('art kit registry', () => {
     expect(ids).toContain('moonhill-moon-dial')
     expect(ids).toContain('harbour-tide-shed')
     expect(ids).toContain('moonhill-star-archive')
+    expect(ids).toContain('harbour-rail-shed')
+    expect(ids).toContain('moonhill-skyrail-shelter')
+    expect(ids).toContain('harbour-pier-beacon')
+    expect(ids).toContain('moonhill-wind-shelter')
+    expect(ids).toContain('harbour-chandlery')
+    expect(ids).toContain('moonhill-meteor-marker')
+    expect(ids).toContain('moonhill-chartmaker')
+    expect(ids).toContain('moonhill-star-tea-kiosk')
     for (const id of ids) {
       expect(kitRegistry[id].build).toBeTypeOf('function')
     }
@@ -30,6 +39,28 @@ describe('art kit registry', () => {
     })
     expect(meshCount).toBeGreaterThan(8)
     expect(house).toBeInstanceOf(Group)
+  })
+
+  it('builds street frontage tall enough to keep the camera out of the roof', () => {
+    const house = buildGableHouse({ wall: '#f2e8d4', roof: '#c45c3a' })
+    const bounds = new Box3().setFromObject(house)
+    // Pre-M0 the ridge topped out at 2.72 m against a ~1.5 m character (1.8x).
+    expect(bounds.max.y).toBeGreaterThan(houseRidgeHeight() - 0.2)
+    expect(bounds.max.y / CHARACTER_HEIGHT).toBeGreaterThan(3)
+    expect(houseEavesHeight()).toBeGreaterThan(MAX_STREET_CAMERA_HEIGHT)
+  })
+
+  it('adds a window row per upper storey so frontage reads as floors', () => {
+    const countMeshes = (group: Group) => {
+      let n = 0
+      group.traverse((object) => {
+        if ((object as Mesh).isMesh) n += 1
+      })
+      return n
+    }
+    const two = countMeshes(buildGableHouse({ wall: '#f2e8d4', roof: '#c45c3a', storeys: 2 }))
+    const three = countMeshes(buildGableHouse({ wall: '#f2e8d4', roof: '#c45c3a', storeys: 3 }))
+    expect(three).toBeGreaterThan(two)
   })
 
   it('builds a multi-volume station and a blob-crown tree', () => {

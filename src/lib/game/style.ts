@@ -152,7 +152,17 @@ export function outlineCharacter(group: { traverse: (callback: (object: object) 
  * Triangular gable roof prism. Width spans the street frontage;
  * depth is the building depth; height is ridge rise above the eaves.
  */
-export function createGableRoofGeometry(width: number, height: number, depth: number): BufferGeometry {
+export function createGableRoofGeometry(
+  width: number,
+  height: number,
+  depth: number,
+  /**
+   * Run the ridge along X instead of Z. Long buildings need this: a wide, shallow
+   * span read as a flat slab from the low street camera rather than as a roof.
+   * With this set, `width` is the slope span and `depth` is the ridge length.
+   */
+  ridgeAlongX = false,
+): BufferGeometry {
   const shape = new Shape()
   shape.moveTo(-width / 2, 0)
   shape.lineTo(0, height)
@@ -167,6 +177,7 @@ export function createGableRoofGeometry(width: number, height: number, depth: nu
   // Extrude goes along +Z; lay the prism so Y is up and depth faces the street.
   geometry.rotateX(-Math.PI / 2)
   geometry.translate(0, 0, -depth / 2)
+  if (ridgeAlongX) geometry.rotateY(Math.PI / 2)
   geometry.computeVertexNormals()
   return geometry
 }

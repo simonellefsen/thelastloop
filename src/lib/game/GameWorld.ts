@@ -31,7 +31,7 @@ import {
   Vector3,
   WebGLRenderer,
 } from 'three'
-import { occludedFollowDistance, streetArrivalProfile, type StreetCameraProfile } from './camera'
+import { occludedFollowDistance, streetArrivalProfile, streetCameraProfiles, type StreetCameraProfile } from './camera'
 import { objectiveDirection, screenRelativeStreetDirection } from './controls'
 import { ATLAS_JOURNEY_PORTION, createRailJourney, RAIL_JOURNEY_SECONDS, REDUCED_MOTION_RAIL_JOURNEY_SECONDS } from './journey'
 import { gentleStreetHeight, isOutsideSphericalBlockers, isOutsideStreetBlockers, isWithinWalkableCap, tangentForward } from './math'
@@ -3008,7 +3008,6 @@ export class GameWorld implements PlayerController {
   private addHarbourOuterPier(): void {
     const wood = new MeshLambertMaterial({ color: '#896247', flatShading: true })
     const iron = new MeshLambertMaterial({ color: '#36545a', flatShading: true })
-    const paint = new MeshLambertMaterial({ color: '#e2c45e', flatShading: true })
     const pier = this.createHarbourStreetSurface(5.4, 2.45, 5.15, -8.55, '#9e7955', 0.17)
     this.harbourStreet.add(pier)
     for (let x = 2.8; x <= 7.5; x += 0.52) {
@@ -3027,19 +3026,7 @@ export class GameWorld implements PlayerController {
       rail.position.set(4.75, harbourStreetHeight(4.75, z) + 0.71, z)
       this.harbourStreet.add(rail)
     }
-    const beacon = new Group()
-    const tower = new Mesh(new CylinderGeometry(0.34, 0.48, 2.15, 7), new MeshLambertMaterial({ color: '#e0d6bd', flatShading: true }))
-    tower.position.y = 1.08
-    beacon.add(tower)
-    const band = new Mesh(new CylinderGeometry(0.5, 0.5, 0.24, 7), paint)
-    band.position.y = 1.1
-    beacon.add(band)
-    const roof = new Mesh(new ConeGeometry(0.52, 0.48, 6), iron)
-    roof.position.y = 2.36
-    beacon.add(roof)
-    const lamp = new Mesh(new SphereGeometry(0.16, 7, 5), new MeshLambertMaterial({ color: '#fff0a3', emissive: new Color('#d48d3f'), emissiveIntensity: 0.85, flatShading: true }))
-    lamp.position.y = 2.09
-    beacon.add(lamp)
+    const beacon = kitLoader.create('harbour-pier-beacon')
     beacon.position.set(7.55, harbourStreetHeight(7.55, -8.55), -8.55)
     this.harbourStreet.add(beacon)
     this.addHarbourStreetBlocker(7.55, -8.55, 0.86)
@@ -3227,8 +3214,6 @@ export class GameWorld implements PlayerController {
     const paleBallast = new MeshLambertMaterial({ color: '#c4b996', flatShading: true })
     const timber = new MeshLambertMaterial({ color: '#694b3b', flatShading: true })
     const iron = new MeshLambertMaterial({ color: '#344f56', flatShading: true })
-    const brick = new MeshLambertMaterial({ color: '#a15b48', flatShading: true })
-    const slate = new MeshLambertMaterial({ color: '#334e55', flatShading: true })
 
     this.harbourStreet.add(this.createHarbourStreetSurface(6.9, 3.9, 5.45, 6.3, '#a99879', 0.11))
     this.harbourStreet.add(this.createHarbourStreetSurface(3.85, 1.75, 2.7, 7.78, '#b6a682', 0.12))
@@ -3248,20 +3233,7 @@ export class GameWorld implements PlayerController {
       this.harbourStreet.add(rail)
     }
 
-    const shed = new Group()
-    const body = new Mesh(new BoxGeometry(2.24, 1.62, 1.72), brick)
-    body.position.y = 0.81
-    shed.add(body)
-    const roof = new Mesh(new ConeGeometry(1.52, 0.72, 4), slate)
-    roof.rotation.y = Math.PI / 4
-    roof.position.y = 1.98
-    shed.add(roof)
-    const door = new Mesh(new PlaneGeometry(0.94, 1.0), new MeshLambertMaterial({ color: '#294c52', side: DoubleSide }))
-    door.position.set(-0.28, 0.53, 0.865)
-    shed.add(door)
-    const window = new Mesh(new PlaneGeometry(0.42, 0.46), new MeshLambertMaterial({ color: '#dce7dc', side: DoubleSide }))
-    window.position.set(0.7, 1.06, 0.87)
-    shed.add(window)
+    const shed = kitLoader.create('harbour-rail-shed')
     const shedSign = this.createSign('RAIL SHED', '#f3e9d0', 180, 46)
     shedSign.scale.set(1.0, 0.28, 1)
     shedSign.position.set(0, 1.92, 0.88)
@@ -3270,23 +3242,7 @@ export class GameWorld implements PlayerController {
     this.harbourStreet.add(shed)
     this.addHarbourStreetBlocker(7.82, 7.32, 1.28)
 
-    const cart = new Group()
-    const cartBody = new Mesh(new BoxGeometry(1.08, 0.34, 0.64), timber)
-    cartBody.position.y = 0.42
-    cart.add(cartBody)
-    const handle = new Mesh(new BoxGeometry(0.1, 0.1, 0.94), timber)
-    handle.position.set(0, 0.62, 0.66)
-    handle.rotation.x = -0.3
-    cart.add(handle)
-    for (const xOffset of [-0.37, 0.37]) {
-      const wheel = new Mesh(new CylinderGeometry(0.17, 0.17, 0.09, 7), iron)
-      wheel.rotation.z = Math.PI / 2
-      wheel.position.set(xOffset, 0.18, -0.22)
-      cart.add(wheel)
-    }
-    const parcel = new Mesh(new BoxGeometry(0.44, 0.38, 0.38), new MeshLambertMaterial({ color: '#c58a48', flatShading: true }))
-    parcel.position.set(-0.16, 0.77, -0.03)
-    cart.add(parcel)
+    const cart = kitLoader.create('harbour-freight-cart')
     cart.position.set(4.1, harbourStreetHeight(4.1, 7.15), 7.15)
     cart.rotation.y = -0.22
     this.harbourStreet.add(cart)
@@ -3490,9 +3446,6 @@ export class GameWorld implements PlayerController {
 
     const paleStone = new MeshLambertMaterial({ color: '#d8c9a5', flatShading: true })
     const warmStone = new MeshLambertMaterial({ color: '#a48b68', flatShading: true })
-    const timber = new MeshLambertMaterial({ color: '#6b4c3b', flatShading: true })
-    const brick = new MeshLambertMaterial({ color: '#a85d49', flatShading: true })
-    const slate = new MeshLambertMaterial({ color: '#334f55', flatShading: true })
     const iron = new MeshLambertMaterial({ color: '#34565d', flatShading: true })
 
     for (let x = 9.0; x <= 15.05; x += 0.52) {
@@ -3512,60 +3465,21 @@ export class GameWorld implements PlayerController {
 
     const shopX = 15.0
     const shopZ = 9.38
-    const shop = new Group()
-    const shopBody = new Mesh(new BoxGeometry(2.32, 1.7, 1.72), brick)
-    shopBody.position.y = 0.85
-    shop.add(shopBody)
-    const shopRoof = new Mesh(new ConeGeometry(1.6, 0.74, 4), slate)
-    shopRoof.rotation.y = Math.PI / 4
-    shopRoof.position.y = 2.04
-    shop.add(shopRoof)
-    const shopDoor = new Mesh(new PlaneGeometry(0.62, 0.96), new MeshLambertMaterial({ color: '#294d53', side: DoubleSide }))
-    shopDoor.position.set(-0.43, 0.5, 0.87)
-    shop.add(shopDoor)
-    const shopWindow = new Mesh(new PlaneGeometry(0.52, 0.52), new MeshLambertMaterial({ color: '#dbe8dc', side: DoubleSide }))
-    shopWindow.position.set(0.48, 1.01, 0.875)
-    shop.add(shopWindow)
+    const shop = kitLoader.create('harbour-chandlery')
     const shopSign = this.createSign('CHANDLERY', '#f4ebd1', 190, 46)
     shopSign.scale.set(1.05, 0.27, 1)
     shopSign.position.set(0, 1.95, 0.88)
     shop.add(shopSign)
-    const chimney = new Mesh(new BoxGeometry(0.25, 0.92, 0.25), new MeshLambertMaterial({ color: '#744138', flatShading: true }))
-    chimney.position.set(0.64, 2.12, -0.32)
-    shop.add(chimney)
     shop.position.set(shopX, harbourStreetHeight(shopX, shopZ), shopZ)
     this.harbourStreet.add(shop)
     this.addHarbourStreetBlocker(shopX, shopZ, 1.32)
 
-    const sailRack = new Group()
-    for (const xOffset of [-0.78, 0.78]) {
-      const post = new Mesh(new BoxGeometry(0.11, 1.68, 0.11), timber)
-      post.position.set(xOffset, 0.84, 0)
-      sailRack.add(post)
-    }
-    const crossbar = new Mesh(new BoxGeometry(1.82, 0.1, 0.1), timber)
-    crossbar.position.y = 1.47
-    sailRack.add(crossbar)
-    for (const [xOffset, color] of [[-0.42, '#d4c56f'], [0.08, '#6f9c9a'], [0.47, '#d07b55']] as Array<[number, string]>) {
-      const sail = new Mesh(new PlaneGeometry(0.36, 0.82), new MeshLambertMaterial({ color, side: DoubleSide }))
-      sail.position.set(xOffset, 0.98, 0.06)
-      sailRack.add(sail)
-    }
+    const sailRack = kitLoader.create('harbour-sail-rack')
     sailRack.position.set(11.62, harbourStreetHeight(11.62, 9.42), 9.42)
     this.harbourStreet.add(sailRack)
     this.addHarbourStreetBlocker(11.62, 9.42, 0.94)
 
-    const capstan = new Group()
-    const base = new Mesh(new CylinderGeometry(0.34, 0.42, 0.38, 7), warmStone)
-    base.position.y = 0.19
-    capstan.add(base)
-    const post = new Mesh(new CylinderGeometry(0.12, 0.16, 0.8, 6), iron)
-    post.position.y = 0.58
-    capstan.add(post)
-    const arm = new Mesh(new BoxGeometry(1.05, 0.08, 0.09), timber)
-    arm.position.set(0, 0.84, 0)
-    arm.rotation.y = 0.24
-    capstan.add(arm)
+    const capstan = kitLoader.create('harbour-capstan')
     capstan.position.set(13.15, harbourStreetHeight(13.15, 7.72), 7.72)
     this.harbourStreet.add(capstan)
     this.addHarbourStreetBlocker(13.15, 7.72, 0.48)
@@ -3858,36 +3772,14 @@ export class GameWorld implements PlayerController {
   /** A second, quiet route off the telescope path: Moonhill's wind lookout. */
   private addMoonhillLookout(): void {
     const stone = new MeshLambertMaterial({ color: '#aaa592', flatShading: true })
-    const timber = new MeshLambertMaterial({ color: '#654d42', flatShading: true })
     const moss = new MeshLambertMaterial({ color: '#466c61', flatShading: true })
     this.observatoryStreet.add(this.createObservatoryStreetSurface(6.2, 3.6, -5.25, -7.7, '#a99f8a', 0.15))
-    const shelter = new Group()
-    const frame = new Mesh(new BoxGeometry(1.85, 1.15, 1.25), timber)
-    frame.position.y = 0.58
-    shelter.add(frame)
-    const openFront = new Mesh(new PlaneGeometry(1.05, 0.72), new MeshLambertMaterial({ color: '#304f54', side: DoubleSide }))
-    openFront.position.set(0, 0.58, 0.631)
-    shelter.add(openFront)
-    const roof = new Mesh(new ConeGeometry(1.35, 0.7, 4), new MeshLambertMaterial({ color: '#364e5a', flatShading: true }))
-    roof.rotation.y = Math.PI / 4
-    roof.position.y = 1.48
-    shelter.add(roof)
+    const shelter = kitLoader.create('moonhill-wind-shelter')
     shelter.position.set(-7.05, observatoryStreetHeight(-7.05, -7.55), -7.55)
     this.observatoryStreet.add(shelter)
     this.addObservatoryStreetBlocker(-7.05, -7.55, 1.14)
 
-    const chartTable = new Group()
-    const leg = new Mesh(new CylinderGeometry(0.08, 0.11, 0.68, 5), timber)
-    leg.position.y = 0.34
-    chartTable.add(leg)
-    const chart = new Mesh(new CylinderGeometry(0.58, 0.58, 0.08, 7), new MeshLambertMaterial({ color: '#d8d3be', flatShading: true }))
-    chart.position.y = 0.7
-    chartTable.add(chart)
-    for (const angle of [0.2, 2.1, 4.3]) {
-      const star = new Mesh(new SphereGeometry(0.045, 5, 4), new MeshLambertMaterial({ color: '#d4b669', emissive: new Color('#8f7138'), emissiveIntensity: 0.4, flatShading: true }))
-      star.position.set(Math.cos(angle) * 0.3, 0.76, Math.sin(angle) * 0.3)
-      chartTable.add(star)
-    }
+    const chartTable = kitLoader.create('moonhill-star-chart-table')
     chartTable.position.set(-3.8, observatoryStreetHeight(-3.8, -7.6), -7.6)
     this.observatoryStreet.add(chartTable)
     this.addObservatoryStreetBlocker(-3.8, -7.6, 0.64)
@@ -4047,7 +3939,6 @@ export class GameWorld implements PlayerController {
     const paleStone = new MeshLambertMaterial({ color: '#d8d3c0', flatShading: true })
     const timber = new MeshLambertMaterial({ color: '#665047', flatShading: true })
     const iron = new MeshLambertMaterial({ color: '#454f68', flatShading: true })
-    const violet = new MeshLambertMaterial({ color: '#75659a', flatShading: true })
 
     this.observatoryStreet.add(this.createObservatoryStreetSurface(6.8, 3.65, -5.22, 6.08, '#aaa4a0', 0.13))
     this.observatoryStreet.add(this.createObservatoryStreetSurface(3.35, 1.7, -2.5, 7.12, '#aaa4a0', 0.13))
@@ -4067,19 +3958,7 @@ export class GameWorld implements PlayerController {
       this.observatoryStreet.add(rail)
     }
 
-    const shelter = new Group()
-    for (const xOffset of [-0.72, 0.72]) {
-      const post = new Mesh(new BoxGeometry(0.11, 1.4, 0.11), timber)
-      post.position.set(xOffset, 0.7, 0)
-      shelter.add(post)
-    }
-    const canopy = new Mesh(new ConeGeometry(1.18, 0.54, 4), new MeshLambertMaterial({ color: '#3d4867', flatShading: true }))
-    canopy.rotation.y = Math.PI / 4
-    canopy.position.y = 1.56
-    shelter.add(canopy)
-    const bench = new Mesh(new BoxGeometry(1.22, 0.14, 0.36), timber)
-    bench.position.set(0, 0.47, -0.14)
-    shelter.add(bench)
+    const shelter = kitLoader.create('moonhill-skyrail-shelter')
     const shelterSign = this.createSign('SKYRAIL', '#eee9da', 155, 42)
     shelterSign.scale.set(0.86, 0.24, 1)
     shelterSign.position.set(0, 1.44, 0.2)
@@ -4103,22 +3982,7 @@ export class GameWorld implements PlayerController {
     this.observatoryStreet.add(signal)
     this.addObservatoryStreetBlocker(-3.0, 4.8, 0.24)
 
-    const baggage = new Group()
-    const trolley = new Mesh(new BoxGeometry(0.98, 0.17, 0.58), iron)
-    trolley.position.y = 0.34
-    baggage.add(trolley)
-    for (const xOffset of [-0.34, 0.34]) {
-      const wheel = new Mesh(new TorusGeometry(0.12, 0.035, 5, 8), iron)
-      wheel.rotation.y = Math.PI / 2
-      wheel.position.set(xOffset, 0.18, -0.23)
-      baggage.add(wheel)
-    }
-    const caseOne = new Mesh(new BoxGeometry(0.4, 0.34, 0.36), violet)
-    caseOne.position.set(-0.16, 0.61, 0)
-    baggage.add(caseOne)
-    const caseTwo = new Mesh(new BoxGeometry(0.31, 0.28, 0.31), new MeshLambertMaterial({ color: '#c19059', flatShading: true }))
-    caseTwo.position.set(0.2, 0.54, 0.04)
-    baggage.add(caseTwo)
+    const baggage = kitLoader.create('moonhill-baggage-trolley')
     baggage.position.set(-5.05, observatoryStreetHeight(-5.05, 7.05), 7.05)
     this.observatoryStreet.add(baggage)
     this.addObservatoryStreetBlocker(-5.05, 7.05, 0.72)
@@ -4283,18 +4147,7 @@ export class GameWorld implements PlayerController {
 
     const meteorX = 9.78
     const meteorZ = -2.88
-    const meteor = new Group()
-    const plinth = new Mesh(new CylinderGeometry(0.42, 0.54, 0.52, 7), warmStone)
-    plinth.position.y = 0.26
-    meteor.add(plinth)
-    const stone = new Mesh(new ConeGeometry(0.34, 0.65, 6), new MeshLambertMaterial({ color: '#6b7085', flatShading: true }))
-    stone.rotation.x = Math.PI
-    stone.rotation.z = 0.3
-    stone.position.y = 0.76
-    meteor.add(stone)
-    const fleck = new Mesh(new SphereGeometry(0.08, 6, 5), brass)
-    fleck.position.set(0.18, 0.91, 0.06)
-    meteor.add(fleck)
+    const meteor = kitLoader.create('moonhill-meteor-marker')
     meteor.position.set(meteorX, observatoryStreetHeight(meteorX, meteorZ), meteorZ)
     this.observatoryStreet.add(meteor)
     this.addObservatoryStreetBlocker(meteorX, meteorZ, 0.58)
@@ -4392,20 +4245,7 @@ export class GameWorld implements PlayerController {
       }
     }
 
-    const chartmaker = new Group()
-    const body = new Mesh(new BoxGeometry(2.22, 1.58, 1.66), new MeshLambertMaterial({ color: '#69787b', flatShading: true }))
-    body.position.y = 0.79
-    chartmaker.add(body)
-    const roof = new Mesh(new ConeGeometry(1.55, 0.7, 4), slate)
-    roof.rotation.y = Math.PI / 4
-    roof.position.y = 1.9
-    chartmaker.add(roof)
-    const door = new Mesh(new PlaneGeometry(0.56, 0.92), new MeshLambertMaterial({ color: '#315663', side: DoubleSide }))
-    door.position.set(-0.4, 0.49, 0.836)
-    chartmaker.add(door)
-    const window = new Mesh(new PlaneGeometry(0.52, 0.5), new MeshLambertMaterial({ color: '#dce8dc', side: DoubleSide }))
-    window.position.set(0.48, 1.0, 0.84)
-    chartmaker.add(window)
+    const chartmaker = kitLoader.create('moonhill-chartmaker')
     const chartSign = this.createSign('CHARTMAKER', '#eee9d8', 184, 44)
     chartSign.scale.set(1.0, 0.25, 1)
     chartSign.position.set(0, 1.82, 0.845)
@@ -4414,22 +4254,7 @@ export class GameWorld implements PlayerController {
     this.observatoryStreet.add(chartmaker)
     this.addObservatoryStreetBlocker(-4.75, 3.72, 1.28)
 
-    const teaKiosk = new Group()
-    const counter = new Mesh(new BoxGeometry(1.42, 0.78, 0.74), new MeshLambertMaterial({ color: '#876c8c', flatShading: true }))
-    counter.position.y = 0.39
-    teaKiosk.add(counter)
-    for (const xOffset of [-0.55, 0.55]) {
-      const post = new Mesh(new BoxGeometry(0.09, 1.5, 0.09), timber)
-      post.position.set(xOffset, 0.75, 0)
-      teaKiosk.add(post)
-    }
-    const canopy = new Mesh(new ConeGeometry(1.08, 0.48, 4), new MeshLambertMaterial({ color: '#d5c478', flatShading: true }))
-    canopy.rotation.y = Math.PI / 4
-    canopy.position.y = 1.55
-    teaKiosk.add(canopy)
-    const pot = new Mesh(new SphereGeometry(0.16, 7, 5), brass)
-    pot.position.set(0.18, 0.88, 0)
-    teaKiosk.add(pot)
+    const teaKiosk = kitLoader.create('moonhill-star-tea-kiosk')
     const kioskSign = this.createSign('STAR TEA', '#eee9d8', 146, 42)
     kioskSign.scale.set(0.82, 0.23, 1)
     kioskSign.position.set(0, 1.42, 0.42)
@@ -5177,7 +5002,7 @@ export class GameWorld implements PlayerController {
     this.soundscape.setProfile(soundscapeProfile(this.save.quest))
     this.snapToStreetCamera(
       this.streetPosition.clone().setY(harbourStreetHeight(this.streetPosition.x, this.streetPosition.z) + 0.04),
-      { height: 3.1, followDistance: 5.2, lookAhead: 2.7, lookHeight: 0.84 },
+      streetCameraProfiles.harbour,
     )
   }
 
@@ -5214,7 +5039,7 @@ export class GameWorld implements PlayerController {
     this.soundscape.setProfile(soundscapeProfile(this.save.quest))
     this.snapToStreetCamera(
       this.streetPosition.clone().setY(observatoryStreetHeight(this.streetPosition.x, this.streetPosition.z) + 0.04),
-      { height: 3.2, followDistance: 5.4, lookAhead: 2.8, lookHeight: 0.88 },
+      streetCameraProfiles.observatory,
     )
   }
 
@@ -5384,7 +5209,7 @@ export class GameWorld implements PlayerController {
     this.updateSideQuestMarkers()
     this.snapToStreetCamera(
       this.streetPosition.clone().setY(gentleStreetHeight(this.streetPosition.x, this.streetPosition.z) + 0.04),
-      { height: 3.25, followDistance: 5.55, lookAhead: 2.75, lookHeight: 0.85 },
+      streetCameraProfiles.hillside,
     )
   }
 
@@ -5425,7 +5250,7 @@ export class GameWorld implements PlayerController {
     this.player.quaternion.identity()
     this.player.rotation.y = Math.atan2(this.streetForward.x, this.streetForward.z)
 
-    const profile = this.nextStreetArrivalProfile(delta, { height: 3.25, followDistance: 5.55, lookAhead: 2.75, lookHeight: 0.85 })
+    const profile = this.nextStreetArrivalProfile(delta, streetCameraProfiles.hillside)
     this.updateStreetCamera(delta, playerPosition, profile)
     this.findNearby(playerPosition)
   }
@@ -5439,7 +5264,7 @@ export class GameWorld implements PlayerController {
     this.player.position.copy(playerPosition)
     this.player.quaternion.identity()
     this.player.rotation.y = Math.atan2(this.streetForward.x, this.streetForward.z)
-    const profile = this.nextStreetArrivalProfile(delta, { height: 3.1, followDistance: 5.2, lookAhead: 2.7, lookHeight: 0.84 })
+    const profile = this.nextStreetArrivalProfile(delta, streetCameraProfiles.harbour)
     this.updateStreetCamera(delta, playerPosition, profile)
     this.findNearby(playerPosition)
   }
@@ -5453,7 +5278,7 @@ export class GameWorld implements PlayerController {
     this.player.position.copy(playerPosition)
     this.player.quaternion.identity()
     this.player.rotation.y = Math.atan2(this.streetForward.x, this.streetForward.z)
-    const profile = this.nextStreetArrivalProfile(delta, { height: 3.2, followDistance: 5.4, lookAhead: 2.8, lookHeight: 0.88 })
+    const profile = this.nextStreetArrivalProfile(delta, streetCameraProfiles.observatory)
     this.updateStreetCamera(delta, playerPosition, profile)
     this.findNearby(playerPosition)
   }

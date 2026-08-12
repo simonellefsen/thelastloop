@@ -29,4 +29,7 @@ The required production domain is `https://thelastloop.vercel.app/`. Do not subs
 
 See [the design brief](docs/DESIGN.md), [art direction](docs/ART_DIRECTION.md), [art pipeline](docs/ART_PIPELINE.md) (how to leave Lego-land / glTF kits), [complete planet masterplan](docs/WORLD_MASTERPLAN.md), [roadmap](docs/ROADMAP.md), and [shared-loop protocol boundary](docs/SHARED_LOOP.md) for the story, visual language, world-continuity rules and future multiplayer boundary.
 
+The current visual priority is the [Messenger parity roadmap](docs/MESSENGER_ROADMAP.md) — a measured
+gap analysis and the phase order for closing it.
+
 The [world detail plan](docs/WORLD_DETAIL_PLAN.md) describes the planned zoom from mini-globe to locally flat, street-scale terrain.

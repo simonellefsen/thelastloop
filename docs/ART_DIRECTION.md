@@ -71,6 +71,12 @@ Player and NPCs share one low-poly language:
 - Expensive multi-pass post (SSAO, heavy bloom) on iPhone.
 - Copying Messenger assets, glyphs, or characters.
 
+> **Pending amendment.** [MESSENGER_ROADMAP.md](./MESSENGER_ROADMAP.md) M1.3/M1.5 propose a bounded
+> two-pass post stack — a depth+normal edge pass and a colour grade — with no blur chain and no
+> sampling loops, paid for by deleting the per-mesh inverted-hull draw call it replaces. That is
+> cheaper on iPhone than what ships today, but it does conflict with the line above as written.
+> Resolve this rule before implementing M1, and keep the SSAO/bloom ban either way.
+
 **In scope for quality leap:** optional Blender `.glb` modules registered in `kit/registry.ts` (see pipeline doc).
 
 ## Reference folders

@@ -30,6 +30,12 @@ assets/
     harbour-tidehouse-01.glb
     harbour-net-rack-01.glb
     harbour-tide-shed-01.glb
+    harbour-rail-shed-01.glb
+    harbour-freight-cart-01.glb
+    harbour-pier-beacon-01.glb
+    harbour-chandlery-01.glb
+    harbour-sail-rack-01.glb
+    harbour-capstan-01.glb
     moonhill-observatory-01.glb
     moonhill-telescope-01.glb
     moonhill-skyhouse-01.glb
@@ -37,6 +43,13 @@ assets/
     moonhill-almanac-pavilion-01.glb
     moonhill-star-archive-01.glb
     moonhill-orrery-01.glb
+    moonhill-skyrail-shelter-01.glb
+    moonhill-baggage-trolley-01.glb
+    moonhill-wind-shelter-01.glb
+    moonhill-star-chart-table-01.glb
+    moonhill-meteor-marker-01.glb
+    moonhill-chartmaker-01.glb
+    moonhill-star-tea-kiosk-01.glb
     char-player.glb
     char-npc.glb
   textures/   # optional painted atlases later

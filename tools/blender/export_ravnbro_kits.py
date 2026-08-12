@@ -44,6 +44,16 @@ HAT = (0.192, 0.286, 0.333, 1.0)
 SOCK = (0.765, 0.690, 0.584, 1.0)
 SHOE = (0.129, 0.157, 0.169, 1.0)
 
+# --- World scale contract -------------------------------------------------
+# Mirrors src/lib/game/kit/scale.ts. Keep the two in sync by hand; kit.test.ts
+# asserts the runtime side and this file is the source for the exported .glb.
+# Street frontages must stay tall enough that the camera passes under the eaves
+# instead of through the roof — see docs/MESSENGER_ROADMAP.md M0.
+PLINTH_HEIGHT = 0.18
+STOREY_HEIGHT = 2.2
+DEFAULT_STOREYS = 2
+ROOF_RISE = 0.82
+
 
 def log(msg: str) -> None:
     print(f"[ravnbro-kits] {msg}", flush=True)
@@ -163,24 +173,46 @@ def plane(root, name, size_xy, loc, material):
     return parent(obj, root)
 
 
-def gable_roof(root, name, width, depth, height, base_z, material, cx=0.0, cy=0.0):
+def gable_roof(root, name, width, depth, height, base_z, material, cx=0.0, cy=0.0, along_x=False):
+    """Gable prism. The ridge runs along Y by default; `along_x` runs it along X instead.
+
+    Long buildings need `along_x`: sloping a wide span down to a short ridge reads as a
+    flat slab from the low street camera rather than as a roof.
+    """
     hw, hd, h = width * 0.5, depth * 0.5, height
     z0, z1 = base_z, base_z + h
-    verts = [
-        (cx - hw, cy - hd, z0),
-        (cx + hw, cy - hd, z0),
-        (cx + hw, cy + hd, z0),
-        (cx - hw, cy + hd, z0),
-        (cx, cy - hd, z1),
-        (cx, cy + hd, z1),
-    ]
-    faces = [
-        (0, 1, 4),
-        (3, 5, 2),
-        (0, 4, 5, 3),
-        (1, 2, 5, 4),
-        (0, 3, 2, 1),
-    ]
+    if along_x:
+        verts = [
+            (cx - hw, cy - hd, z0),
+            (cx + hw, cy - hd, z0),
+            (cx + hw, cy + hd, z0),
+            (cx - hw, cy + hd, z0),
+            (cx - hw, cy, z1),
+            (cx + hw, cy, z1),
+        ]
+        faces = [
+            (0, 4, 3),
+            (1, 2, 5),
+            (0, 1, 5, 4),
+            (3, 4, 5, 2),
+            (0, 3, 2, 1),
+        ]
+    else:
+        verts = [
+            (cx - hw, cy - hd, z0),
+            (cx + hw, cy - hd, z0),
+            (cx + hw, cy + hd, z0),
+            (cx - hw, cy + hd, z0),
+            (cx, cy - hd, z1),
+            (cx, cy + hd, z1),
+        ]
+        faces = [
+            (0, 1, 4),
+            (3, 5, 2),
+            (0, 4, 5, 3),
+            (1, 2, 5, 4),
+            (0, 3, 2, 1),
+        ]
     mesh = bpy.data.meshes.new(name + "Mesh")
     mesh.from_pydata(verts, [], faces)
     mesh.validate(verbose=False)
@@ -244,7 +276,9 @@ def export_root(root: bpy.types.Object, filename: str) -> None:
     log(f"wrote {path.relative_to(ROOT)} ({path.stat().st_size} bytes)")
 
 
-def build_house(wall, roof, width=2.85, body_h=1.72, depth=2.15, bakery=False, filename="house.glb"):
+def build_house(wall, roof, width=2.85, body_h=STOREY_HEIGHT, storeys=DEFAULT_STOREYS,
+                depth=2.15, bakery=False, filename="house.glb"):
+    """Multi-storey street frontage. `body_h` is one floor; total wall is body_h * storeys."""
     clear_scene()
     root = new_root("House")
     m_wall = mat("Wall", wall)
@@ -258,24 +292,41 @@ def build_house(wall, roof, width=2.85, body_h=1.72, depth=2.15, bakery=False, f
     m_soft = mat("SoftWood", TIMBER_SOFT)
     m_awning = mat("Awning", OCHRE)
 
-    box(root, "plinth", (width + 0.12, depth + 0.12, 0.18), (0, 0, 0.09), m_cobble)
-    box(root, "body", (width, depth, body_h), (0, 0, 0.18 + body_h * 0.5), m_wall)
-    box(root, "wing", (width * 0.55, depth * 0.45, body_h * 0.72), (width * 0.1, -depth * 0.25, 0.18 + body_h * 0.36), m_wall)
-    eaves = 0.18 + body_h
-    gable_roof(root, "roof", width + 0.28, depth + 0.28, 0.82, eaves, m_roof)
-    gable_roof(root, "wing_roof", width * 0.62, depth * 0.55, 0.48, 0.18 + body_h * 0.72, m_roof, cx=width * 0.1, cy=-depth * 0.25)
+    storeys = max(1, int(round(storeys)))
+    wall_h = body_h * storeys
+    eaves = PLINTH_HEIGHT + wall_h
+    ground_top = PLINTH_HEIGHT + body_h
+    # Rear wing stops short of the top floor so the roofline steps.
+    wing_h = max(body_h, wall_h - body_h * 0.55)
+
+    box(root, "plinth", (width + 0.12, depth + 0.12, PLINTH_HEIGHT), (0, 0, PLINTH_HEIGHT * 0.5), m_cobble)
+    box(root, "body", (width, depth, wall_h), (0, 0, PLINTH_HEIGHT + wall_h * 0.5), m_wall)
+    box(root, "wing", (width * 0.55, depth * 0.45, wing_h), (width * 0.1, -depth * 0.25, PLINTH_HEIGHT + wing_h * 0.5), m_wall)
+    gable_roof(root, "roof", width + 0.28, depth + 0.28, ROOF_RISE, eaves, m_roof)
+    gable_roof(root, "wing_roof", width * 0.62, depth * 0.55, 0.48, PLINTH_HEIGHT + wing_h, m_roof, cx=width * 0.1, cy=-depth * 0.25)
 
     front = depth * 0.5 + 0.03
+    # Timber grid on the ground floor only; upper floors read as plaster.
     for x in (-width * 0.38, 0.0, width * 0.38):
-        box(root, f"up_{x:.2f}", (0.1, 0.08, body_h + 0.06), (x, front, 0.18 + body_h * 0.5), m_timber)
-    for z in (0.55, eaves - 0.28):
-        box(root, f"beam_{z:.2f}", (width + 0.06, 0.08, 0.09), (0, front, z), m_timber)
+        box(root, f"up_{x:.2f}", (0.1, 0.08, body_h + 0.06), (x, front, PLINTH_HEIGHT + body_h * 0.5), m_timber)
+    # A band at every storey line gives the frontage its vertical rhythm.
+    for floor in range(1, storeys + 1):
+        z = PLINTH_HEIGHT + body_h * floor - 0.14
+        box(root, f"beam_{floor}", (width + 0.06, 0.08, 0.09), (0, front, z), m_timber)
+    # Ground-floor shopfront at eye level for a 1.5 m character.
     for x in (-width * 0.28, width * 0.28):
-        box(root, f"wf_{x:.2f}", (0.5, 0.07, 0.58), (x, front + 0.02, 0.18 + body_h * 0.58), m_timber)
-        plane(root, f"glass_{x:.2f}", (0.36, 0.44), (x, front + 0.06, 0.18 + body_h * 0.58), m_glass)
-        box(root, f"sill_{x:.2f}", (0.52, 0.12, 0.05), (x, front + 0.05, 0.18 + body_h * 0.42), m_timber)
-    box(root, "door_frame", (0.68, 0.08, 1.05), (0, front + 0.02, 0.7), m_timber)
-    plane(root, "door", (0.52, 0.92), (0, front + 0.07, 0.66), m_door)
+        box(root, f"wf_{x:.2f}", (0.5, 0.07, 0.58), (x, front + 0.02, PLINTH_HEIGHT + 1.02), m_timber)
+        plane(root, f"glass_{x:.2f}", (0.36, 0.44), (x, front + 0.06, PLINTH_HEIGHT + 1.02), m_glass)
+        box(root, f"sill_{x:.2f}", (0.52, 0.12, 0.05), (x, front + 0.05, PLINTH_HEIGHT + 0.7), m_timber)
+    # Repeated window row per upper storey.
+    for floor in range(1, storeys):
+        sill_z = ground_top + body_h * (floor - 1) + 0.62
+        for x in (-width * 0.3, 0.0, width * 0.3):
+            box(root, f"uwf_{floor}_{x:.2f}", (0.46, 0.07, 0.7), (x, front + 0.02, sill_z + 0.35), m_timber)
+            plane(root, f"uglass_{floor}_{x:.2f}", (0.32, 0.54), (x, front + 0.06, sill_z + 0.35), m_glass)
+            box(root, f"usill_{floor}_{x:.2f}", (0.5, 0.13, 0.05), (x, front + 0.05, sill_z), m_timber)
+    box(root, "door_frame", (0.68, 0.08, 1.24), (0, front + 0.02, PLINTH_HEIGHT + 0.62), m_timber)
+    plane(root, "door", (0.52, 1.1), (0, front + 0.07, PLINTH_HEIGHT + 0.57), m_door)
     box(root, "step", (0.9, 0.32, 0.1), (0, front + 0.22, 0.05), m_cobble)
     box(root, "chimney", (0.24, 0.26, 0.62), (width * 0.28, -depth * 0.08, eaves + 0.55), m_brick)
     box(root, "flower_box", (0.44, 0.2, 0.16), (width * 0.32, front + 0.12, 0.7), m_soft)
@@ -299,26 +350,43 @@ def build_station():
     m_pale = mat("Pale", COBBLE_PALE)
     m_clock = mat("Clock", CLOCK)
 
-    box(root, "plinth", (7.2, 2.4, 0.16), (0, 0, 0.08), m_cobble)
-    box(root, "wing", (6.9, 2.0, 1.52), (0, 0, 0.16 + 0.76), m_brick)
-    box(root, "hall", (2.65, 2.25, 2.25), (0, 0, 0.16 + 1.12), m_brick)
+    # Civic anchor: the hall stands a storey above the frontage houses so it still
+    # reads as the tallest thing on the street after M0 raised the town.
+    base = 0.16
+    # Two storeys puts the station eaves on the same cornice line as the frontage
+    # houses (4.56 vs 4.58); the hall then rises above as the civic accent.
+    wing_h = STOREY_HEIGHT * 2
+    hall_h = STOREY_HEIGHT * 2.5
+    wing_top = base + wing_h
+    hall_top = base + hall_h
+    upper_z = base + STOREY_HEIGHT + 1.05
+
+    box(root, "plinth", (7.2, 2.4, base), (0, 0, base * 0.5), m_cobble)
+    box(root, "wing", (6.9, 2.0, wing_h), (0, 0, base + wing_h * 0.5), m_brick)
+    box(root, "hall", (2.65, 2.25, hall_h), (0, 0, base + hall_h * 0.5), m_brick)
     for x in (-2.55, 2.55):
-        box(root, f"bay_{x}", (1.55, 1.35, 1.35), (x, -0.35, 0.16 + 0.68), m_brick)
-    gable_roof(root, "wing_roof", 7.25, 2.25, 0.78, 0.16 + 1.52, m_roof)
-    gable_roof(root, "hall_roof", 2.9, 2.45, 1.0, 0.16 + 2.25, m_roof)
+        box(root, f"bay_{x}", (1.55, 1.35, 2.6), (x, -0.35, base + 1.3), m_brick)
+    gable_roof(root, "wing_roof", 7.25, 2.45, 0.92, wing_top, m_roof, along_x=True)
+    gable_roof(root, "hall_roof", 2.9, 2.45, 1.15, hall_top, m_roof)
     front = 1.05
+    # Ground floor stays at human scale for a 1.76 m character.
     for x in (-2.85, -1.9, -0.85, 0.85, 1.9, 2.85):
-        box(root, f"wf_{x}", (0.5, 0.07, 0.58), (x, front, 0.95), m_timber)
-        plane(root, f"wg_{x}", (0.38, 0.46), (x, front + 0.05, 0.95), m_glass)
+        box(root, f"wf_{x}", (0.5, 0.07, 0.58), (x, front, 1.15), m_timber)
+        plane(root, f"wg_{x}", (0.38, 0.46), (x, front + 0.05, 1.15), m_glass)
+    # Upper row on the wing, matching the frontage window rhythm.
+    for x in (-2.85, -1.9, 1.9, 2.85):
+        box(root, f"uwf_{x}", (0.46, 0.07, 0.66), (x, front, upper_z), m_timber)
+        plane(root, f"uwg_{x}", (0.32, 0.5), (x, front + 0.05, upper_z), m_glass)
     for x in (-0.55, 0.55):
-        box(root, f"uwf_{x}", (0.42, 0.07, 0.55), (x, 1.16, 1.85), m_timber)
-        plane(root, f"uwg_{x}", (0.32, 0.42), (x, 1.2, 1.85), m_glass)
+        box(root, f"hwf_{x}", (0.42, 0.07, 0.62), (x, 1.16, upper_z + 1.75), m_timber)
+        plane(root, f"hwg_{x}", (0.32, 0.46), (x, 1.2, upper_z + 1.75), m_glass)
     for x in (-0.4, 0.4):
-        plane(root, f"door_{x}", (0.48, 0.95), (x, 1.14, 0.62), m_door)
-    box(root, "canopy", (2.4, 0.7, 0.12), (0, 1.4, 1.2), m_pale)
+        plane(root, f"door_{x}", (0.48, 1.15), (x, 1.14, 0.74), m_door)
+    # Entrance canopy clears the character's head instead of grazing it.
+    box(root, "canopy", (2.4, 0.7, 0.12), (0, 1.4, 2.35), m_pale)
     for x in (-2.6, -1.0, 1.0, 2.6):
-        box(root, f"chim_{x}", (0.22, 0.24, 0.72), (x, 0, 2.55), m_dark)
-    cylinder(root, "clock", 0.28, 0.07, (0, 1.18, 2.35), m_clock, verts=16, rot_x=math.pi / 2)
+        box(root, f"chim_{x}", (0.22, 0.24, 0.78), (x, 0, wing_top + 0.62), m_dark)
+    cylinder(root, "clock", 0.34, 0.07, (0, 1.18, hall_top - 0.72), m_clock, verts=16, rot_x=math.pi / 2)
     cylinder(root, "forecourt", 2.7, 0.08, (0, 1.85, 0.04), m_cobble, verts=16)
     export_root(root, "ravnbro-station.glb")
 
@@ -534,6 +602,104 @@ def build_harbour_tide_shed():
     export_root(root, "harbour-tide-shed-01.glb")
 
 
+def build_harbour_rail_shed():
+    clear_scene()
+    root = new_root("HarbourRailShed")
+    m_brick = mat("Brick", (0.631, 0.357, 0.282, 1.0))
+    m_slate = mat("Slate", (0.200, 0.306, 0.333, 1.0))
+    m_timber = mat("Timber", (0.412, 0.294, 0.231, 1.0))
+    m_door = mat("Door", (0.161, 0.298, 0.322, 1.0))
+    m_glass = mat("Glass", (0.863, 0.906, 0.863, 1.0))
+    m_lamp = mat("Lamp", (0.961, 0.847, 0.451, 1.0))
+    body_h, depth = 1.62, 1.72
+    box(root, "RailShedBody", (2.24, depth, body_h), (0, 0, body_h * 0.5), m_brick)
+    gable_roof(root, "RailShedRoof", 2.52, 2.02, 0.72, body_h, m_slate)
+    front = depth * 0.5 + 0.03
+    plane(root, "LoadingDoor", (0.94, 1.0), (-0.28, front, 0.53), m_door)
+    box(root, "WindowFrame", (0.5, 0.07, 0.54), (0.7, front, 1.06), m_timber)
+    plane(root, "Window", (0.38, 0.42), (0.7, front + 0.05, 1.06), m_glass)
+    box(root, "LampBracket", (0.42, 0.06, 0.06), (-0.28, front + 0.10, 1.37), m_timber)
+    sphere(root, "Lamp", 0.1, (-0.28, front + 0.12, 1.23), m_lamp, scale=(1, 0.45, 1))
+    export_root(root, "harbour-rail-shed-01.glb")
+
+
+def build_harbour_freight_cart():
+    clear_scene()
+    root = new_root("HarbourFreightCart")
+    m_timber = mat("Timber", (0.412, 0.294, 0.231, 1.0))
+    m_iron = mat("Iron", (0.204, 0.310, 0.337, 1.0))
+    m_parcel = mat("Parcel", (0.773, 0.541, 0.282, 1.0))
+    box(root, "CartBed", (1.08, 0.64, 0.34), (0, 0, 0.42), m_timber)
+    handle = box(root, "CartHandle", (0.1, 0.94, 0.1), (0, 0.66, 0.62), m_timber)
+    handle.rotation_euler[0] = -0.3
+    for i, x in enumerate((-0.37, 0.37)):
+        cylinder(root, f"Wheel_{i}", 0.17, 0.09, (x, -0.22, 0.18), m_iron, verts=7, rot_x=math.pi / 2)
+    box(root, "Parcel", (0.44, 0.38, 0.38), (-0.16, -0.03, 0.77), m_parcel)
+    export_root(root, "harbour-freight-cart-01.glb")
+
+
+def build_harbour_pier_beacon():
+    clear_scene()
+    root = new_root("PierBeacon")
+    m_stone = mat("TowerStone", (0.878, 0.839, 0.741, 1.0))
+    m_paint = mat("SafetyYellow", (0.886, 0.769, 0.369, 1.0))
+    m_iron = mat("Iron", (0.212, 0.329, 0.353, 1.0))
+    m_lamp = mat("Lamp", (1.0, 0.941, 0.639, 1.0))
+    cylinder(root, "Tower", 0.34, 2.15, (0, 0, 1.08), m_stone, verts=7)
+    cylinder(root, "SafetyBand", 0.5, 0.24, (0, 0, 1.1), m_paint, verts=7)
+    bpy.ops.mesh.primitive_cone_add(vertices=6, radius1=0.52, radius2=0.0, depth=0.48, location=(0, 0, 2.36))
+    roof = bpy.context.active_object
+    roof.name = "BeaconRoof"
+    roof.data.materials.append(m_iron)
+    parent(roof, root)
+    sphere(root, "BeaconLamp", 0.16, (0, 0, 2.09), m_lamp, scale=(1, 1, 0.9))
+    export_root(root, "harbour-pier-beacon-01.glb")
+
+
+def build_harbour_chandlery():
+    clear_scene()
+    root = new_root("Chandlery")
+    m_brick = mat("Brick", (0.659, 0.365, 0.286, 1.0))
+    m_slate = mat("Slate", (0.200, 0.310, 0.333, 1.0))
+    m_timber = mat("Timber", (0.420, 0.298, 0.231, 1.0))
+    m_door = mat("Door", (0.161, 0.302, 0.325, 1.0))
+    m_glass = mat("Glass", (0.859, 0.910, 0.863, 1.0))
+    body_h, depth = 1.7, 1.72
+    box(root, "ChandleryBody", (2.32, depth, body_h), (0, 0, body_h * 0.5), m_brick)
+    gable_roof(root, "ChandleryRoof", 2.58, 2.0, 0.74, body_h, m_slate)
+    front = depth * 0.5 + 0.03
+    plane(root, "Door", (0.62, 0.96), (-0.43, front, 0.5), m_door)
+    box(root, "ServiceWindowFrame", (0.62, 0.07, 0.62), (0.48, front, 1.01), m_timber)
+    plane(root, "ServiceWindow", (0.52, 0.52), (0.48, front + 0.05, 1.01), m_glass)
+    box(root, "Chimney", (0.25, 0.25, 0.92), (0.64, -0.32, 2.12), mat("ChimneyBrick", DARK_BRICK))
+    export_root(root, "harbour-chandlery-01.glb")
+
+
+def build_harbour_sail_rack():
+    clear_scene()
+    root = new_root("SailRack")
+    m_timber = mat("Timber", (0.420, 0.298, 0.231, 1.0))
+    for i, x in enumerate((-0.78, 0.78)):
+        box(root, f"Post_{i}", (0.11, 0.11, 1.68), (x, 0, 0.84), m_timber)
+    box(root, "Crossbar", (1.82, 0.1, 0.1), (0, 0, 1.47), m_timber)
+    for i, (x, colour) in enumerate(((-0.42, (0.831, 0.773, 0.435, 1.0)), (0.08, (0.435, 0.612, 0.604, 1.0)), (0.47, (0.816, 0.482, 0.333, 1.0)))):
+        plane(root, f"Sail_{i}", (0.36, 0.82), (x, 0.06, 0.98), mat(f"SailMaterial_{i}", colour))
+    export_root(root, "harbour-sail-rack-01.glb")
+
+
+def build_harbour_capstan():
+    clear_scene()
+    root = new_root("Capstan")
+    m_stone = mat("BaseStone", (0.643, 0.545, 0.408, 1.0))
+    m_iron = mat("Iron", (0.204, 0.337, 0.365, 1.0))
+    m_timber = mat("Timber", (0.420, 0.298, 0.231, 1.0))
+    cylinder(root, "CapstanBase", 0.38, 0.38, (0, 0, 0.19), m_stone, verts=7)
+    cylinder(root, "CapstanPost", 0.14, 0.8, (0, 0, 0.58), m_iron, verts=6)
+    arm = box(root, "CrankArm", (1.05, 0.09, 0.08), (0, 0, 0.84), m_timber)
+    arm.rotation_euler[2] = 0.24
+    export_root(root, "harbour-capstan-01.glb")
+
+
 def build_moonhill_observatory():
     clear_scene()
     root = new_root("MoonhillObservatory")
@@ -672,6 +838,131 @@ def build_moonhill_orrery():
     export_root(root, "moonhill-orrery-01.glb")
 
 
+def build_moonhill_skyrail_shelter():
+    clear_scene()
+    root = new_root("SkyrailShelter")
+    m_timber = mat("Timber", (0.400, 0.314, 0.278, 1.0))
+    m_slate = mat("Slate", (0.239, 0.282, 0.404, 1.0))
+    m_board = mat("Timetable", (0.933, 0.914, 0.855, 1.0))
+    for i, x in enumerate((-0.72, 0.72)):
+        box(root, f"Post_{i}", (0.11, 0.11, 1.4), (x, 0, 0.7), m_timber)
+    gable_roof(root, "ShelterRoof", 1.92, 1.44, 0.54, 1.3, m_slate)
+    box(root, "Bench", (1.22, 0.36, 0.14), (0, -0.14, 0.47), m_timber)
+    box(root, "Timetable", (0.42, 0.06, 0.58), (0, 0.13, 0.98), m_board)
+    export_root(root, "moonhill-skyrail-shelter-01.glb")
+
+
+def build_moonhill_baggage_trolley():
+    clear_scene()
+    root = new_root("MoonhillBaggageTrolley")
+    m_iron = mat("Iron", (0.271, 0.310, 0.408, 1.0))
+    m_violet = mat("VioletCase", (0.459, 0.396, 0.604, 1.0))
+    m_leather = mat("LeatherCase", (0.757, 0.565, 0.349, 1.0))
+    box(root, "TrolleyBed", (0.98, 0.58, 0.17), (0, 0, 0.34), m_iron)
+    for i, x in enumerate((-0.34, 0.34)):
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.12, minor_radius=0.035, major_segments=8, minor_segments=5, location=(x, -0.23, 0.18), rotation=(math.pi / 2, 0, 0))
+        wheel = bpy.context.active_object
+        wheel.name = f"Wheel_{i}"
+        wheel.data.materials.append(m_iron)
+        parent(wheel, root)
+    box(root, "VioletCase", (0.4, 0.36, 0.34), (-0.16, 0, 0.61), m_violet)
+    box(root, "LeatherCase", (0.31, 0.31, 0.28), (0.2, 0.04, 0.54), m_leather)
+    export_root(root, "moonhill-baggage-trolley-01.glb")
+
+
+def build_moonhill_wind_shelter():
+    clear_scene()
+    root = new_root("WindShelter")
+    m_timber = mat("Timber", (0.396, 0.302, 0.259, 1.0))
+    m_slate = mat("Slate", (0.212, 0.306, 0.353, 1.0))
+    m_inset = mat("OpenFront", (0.188, 0.310, 0.329, 1.0))
+    box(root, "ShelterBody", (1.85, 1.25, 1.15), (0, 0, 0.58), m_timber)
+    plane(root, "OpenFront", (1.05, 0.72), (0, 0.631, 0.58), m_inset)
+    gable_roof(root, "ShelterRoof", 2.12, 1.42, 0.7, 1.15, m_slate)
+    box(root, "LookoutBench", (1.05, 0.32, 0.13), (0, -0.18, 0.38), m_timber)
+    export_root(root, "moonhill-wind-shelter-01.glb")
+
+
+def build_moonhill_star_chart_table():
+    clear_scene()
+    root = new_root("StarChartTable")
+    m_timber = mat("Timber", (0.396, 0.302, 0.259, 1.0))
+    m_chart = mat("Chart", (0.847, 0.827, 0.745, 1.0))
+    m_star = mat("Star", (0.831, 0.714, 0.412, 1.0))
+    cylinder(root, "TableLeg", 0.095, 0.68, (0, 0, 0.34), m_timber, verts=5)
+    cylinder(root, "ChartTop", 0.58, 0.08, (0, 0, 0.7), m_chart, verts=7)
+    for i, angle in enumerate((0.2, 2.1, 4.3)):
+        sphere(root, f"Star_{i}", 0.045, (math.cos(angle) * 0.3, math.sin(angle) * 0.3, 0.76), m_star)
+    export_root(root, "moonhill-star-chart-table-01.glb")
+
+
+def build_moonhill_meteor_marker():
+    clear_scene()
+    root = new_root("MeteorMarker")
+    m_stone = mat("PlinthStone", (0.608, 0.584, 0.549, 1.0))
+    m_meteor = mat("MeteorStone", (0.420, 0.439, 0.522, 1.0))
+    m_brass = mat("BrassFleck", (0.788, 0.647, 0.400, 1.0))
+    cylinder(root, "Plinth", 0.48, 0.52, (0, 0, 0.26), m_stone, verts=7)
+    bpy.ops.mesh.primitive_cone_add(vertices=6, radius1=0.34, radius2=0.12, depth=0.65, location=(0, 0, 0.76), rotation=(math.pi, 0.3, 0))
+    meteor = bpy.context.active_object
+    meteor.name = "MeteorStone"
+    meteor.data.materials.append(m_meteor)
+    parent(meteor, root)
+    sphere(root, "BrassFleck", 0.08, (0.18, 0.06, 0.91), m_brass)
+    export_root(root, "moonhill-meteor-marker-01.glb")
+
+
+def build_moonhill_chartmaker():
+    clear_scene()
+    root = new_root("MoonhillChartmaker")
+    m_wall = mat("Wall", (0.408, 0.475, 0.467, 1.0))
+    m_slate = mat("Slate", (0.239, 0.286, 0.427, 1.0))
+    m_timber = mat("Timber", (0.400, 0.314, 0.278, 1.0))
+    m_door = mat("Door", (0.192, 0.337, 0.388, 1.0))
+    m_glass = mat("Glass", GLASS)
+    m_chart = mat("Map", (0.910, 0.871, 0.753, 1.0))
+    m_awning = mat("VioletAwning", (0.541, 0.490, 0.694, 1.0))
+    m_lantern = mat("Lantern", (0.831, 0.714, 0.412, 1.0))
+    body_h, depth = 1.58, 1.66
+    box(root, "ChartmakerBody", (2.22, depth, body_h), (0, 0, body_h * 0.5), m_wall)
+    gable_roof(root, "ChartmakerRoof", 2.5, 1.92, 0.72, body_h, m_slate)
+    front = depth * 0.5 + 0.03
+    plane(root, "Door", (0.56, 0.92), (-0.48, front, 0.49), m_door)
+    box(root, "MapBayFrame", (0.68, 0.08, 0.66), (0.44, front, 1.03), m_timber)
+    plane(root, "MapBayGlass", (0.55, 0.50), (0.44, front + 0.05, 1.03), m_glass)
+    plane(root, "Map", (0.32, 0.27), (0.44, front + 0.08, 1.03), m_chart)
+    box(root, "VioletAwning", (1.22, 0.44, 0.10), (0.26, front + 0.18, 1.38), m_awning)
+    sphere(root, "RoofLantern", 0.095, (0, 0, 2.54), m_lantern)
+    export_root(root, "moonhill-chartmaker-01.glb")
+
+
+def build_moonhill_star_tea_kiosk():
+    clear_scene()
+    root = new_root("MoonhillStarTeaKiosk")
+    m_violet = mat("VioletCounter", (0.529, 0.424, 0.549, 1.0))
+    m_timber = mat("Timber", (0.400, 0.314, 0.278, 1.0))
+    m_cream = mat("Canopy", (0.898, 0.843, 0.643, 1.0))
+    m_brass = mat("Brass", (0.788, 0.647, 0.404, 1.0))
+    box(root, "Counter", (1.42, 0.74, 0.78), (0, 0, 0.39), m_violet)
+    for i, x in enumerate((-0.55, 0.55)):
+        box(root, f"Post_{i}", (0.09, 0.09, 1.5), (x, 0, 0.75), m_timber)
+    bpy.ops.mesh.primitive_cone_add(vertices=4, radius1=1.08, radius2=0.0, depth=0.48, location=(0, 0, 1.55), rotation=(0, 0, math.pi / 4))
+    canopy = bpy.context.active_object
+    canopy.name = "StarCanopy"
+    canopy.data.materials.append(m_cream)
+    parent(canopy, root)
+    sphere(root, "Kettle", 0.16, (0.18, 0, 0.88), m_brass)
+    bpy.ops.mesh.primitive_cone_add(vertices=5, radius1=0.06, radius2=0.035, depth=0.30, location=(0.35, 0, 0.90), rotation=(0, math.pi / 2.8, 0))
+    spout = bpy.context.active_object
+    spout.name = "KettleSpout"
+    spout.data.materials.append(m_brass)
+    parent(spout, root)
+    for i, x in enumerate((-0.30, -0.06)):
+        cylinder(root, f"Cup_{i}", 0.075, 0.12, (x, 0.16, 0.86), m_cream, verts=6)
+    sphere(root, "CanopyStar", 0.07, (0, 0.05, 1.63), m_brass)
+    export_root(root, "moonhill-star-tea-kiosk-01.glb")
+
+
 def build_character(filename: str, player: bool):
     """Original low-poly walker with named parts for runtime coat/hat styling."""
     clear_scene()
@@ -718,6 +1009,12 @@ def build_character(filename: str, player: bool):
         cylinder(root, "HatCrown", 0.21, 0.20, (0, 0, 1.66), m_hat, verts=12)
     box(root, "BagBody", (0.26, 0.14, 0.36), (0.30, 0.10, 0.88), m_bag)
     strap = box(root, "BagStrap", (0.05, 0.04, 0.58), (0.14, 0.04, 1.12), m_bag, rot_z=-0.55)
+    # The figure is modelled facing +Y (toes, fringe and hands lead; coat tails trail).
+    # Blender +Y exports to glTF -Z, which left every character facing backwards along
+    # its own travel direction, because the runtime aims +Z with atan2(dx, dz) — the
+    # same convention the procedural fallback already uses. Turn the root so the
+    # exported kit faces +Z, per the glTF contract in docs/ART_PIPELINE.md.
+    root.rotation_euler[2] = math.pi
     export_root(root, filename)
 
 
@@ -743,6 +1040,12 @@ def main() -> int:
         ("harbour-tidehouse", build_harbour_tidehouse),
         ("harbour-net-rack", build_harbour_net_rack),
         ("harbour-tide-shed", build_harbour_tide_shed),
+        ("harbour-rail-shed", build_harbour_rail_shed),
+        ("harbour-freight-cart", build_harbour_freight_cart),
+        ("harbour-pier-beacon", build_harbour_pier_beacon),
+        ("harbour-chandlery", build_harbour_chandlery),
+        ("harbour-sail-rack", build_harbour_sail_rack),
+        ("harbour-capstan", build_harbour_capstan),
         ("moonhill-observatory", build_moonhill_observatory),
         ("moonhill-telescope", build_moonhill_telescope),
         ("moonhill-skyhouse", build_moonhill_skyhouse),
@@ -750,6 +1053,13 @@ def main() -> int:
         ("moonhill-almanac-pavilion", build_moonhill_almanac_pavilion),
         ("moonhill-star-archive", build_moonhill_star_archive),
         ("moonhill-orrery", build_moonhill_orrery),
+        ("moonhill-skyrail-shelter", build_moonhill_skyrail_shelter),
+        ("moonhill-baggage-trolley", build_moonhill_baggage_trolley),
+        ("moonhill-wind-shelter", build_moonhill_wind_shelter),
+        ("moonhill-star-chart-table", build_moonhill_star_chart_table),
+        ("moonhill-meteor-marker", build_moonhill_meteor_marker),
+        ("moonhill-chartmaker", build_moonhill_chartmaker),
+        ("moonhill-star-tea-kiosk", build_moonhill_star_tea_kiosk),
         ("player", lambda: build_character("char-player.glb", player=True)),
         ("npc", lambda: build_character("char-npc.glb", player=False)),
     ]

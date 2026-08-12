@@ -83,6 +83,12 @@ src/lib/game/
 - Format: **glTF 2.0** (`.glb` preferred for one-file drops)
 - Units: **1 unit ≈ 1 metre**; buildings roughly 2.5–4 m tall
 - Origin: **bottom centre** of footprint (Y-up), facing **+Z** as the street façade
+- **Characters face +Z too** — the runtime aims a figure with `atan2(dx, dz)`, which points its
+  local **+Z** along travel. Blender models drawn facing +Y export to glTF **−Z**, which walks every
+  character backwards; `build_character` turns its root 180° before export to correct this. Check
+  facing whenever a character kit is re-authored.
+- Street frontages must clear the camera: see `src/lib/game/kit/scale.ts` for the eave/camera
+  contract, and mirror any change into the exporter's constants.
 - Materials: prefer unlit / simple; runtime will re-skin to cel/toon when needed
 - Naming: `ravnbro-house-cream-01.glb`, `char-player.glb`, `prop-bike-01.glb`
 - License: **original only** (no Marketplace packs, no Messenger rips, no Ribe photo textures)
@@ -109,6 +115,12 @@ If a file is missing, `registry.ts` **must** fall back to procedural so the game
 | `harbour-tidehouse` | Tidehouse Row home | `buildHarbourTidehouse` | `harbour-tidehouse-01.glb` |
 | `harbour-net-rack` | Net-drying canopy | `buildHarbourNetRack` | `harbour-net-rack-01.glb` |
 | `harbour-tide-shed` | Tide Yard net shed | `buildHarbourTideShed` | `harbour-tide-shed-01.glb` |
+| `harbour-rail-shed` | Rail Shed freight shelter | `buildHarbourRailShed` | `harbour-rail-shed-01.glb` |
+| `harbour-freight-cart` | Rail Shed cargo cart | `buildHarbourFreightCart` | `harbour-freight-cart-01.glb` |
+| `harbour-pier-beacon` | Outer Pier navigational beacon | `buildHarbourPierBeacon` | `harbour-pier-beacon-01.glb` |
+| `harbour-chandlery` | Chandlery Yard shop | `buildHarbourChandlery` | `harbour-chandlery-01.glb` |
+| `harbour-sail-rack` | Chandlery Yard sail rack | `buildHarbourSailRack` | `harbour-sail-rack-01.glb` |
+| `harbour-capstan` | Chandlery Yard capstan | `buildHarbourCapstan` | `harbour-capstan-01.glb` |
 | `moonhill-observatory` | Moonhill dome + study wing | `buildMoonhillObservatory` | `moonhill-observatory-01.glb` |
 | `moonhill-telescope` | Quest telescope (runtime lens tint) | `buildMoonhillTelescope` | `moonhill-telescope-01.glb` |
 | `moonhill-skyhouse` | Comet Walk lookout | `buildMoonhillSkyhouse` | `moonhill-skyhouse-01.glb` |
@@ -116,6 +128,13 @@ If a file is missing, `registry.ts` **must** fall back to procedural so the game
 | `moonhill-almanac-pavilion` | Almanac Garden shelter | `buildMoonhillAlmanacPavilion` | `moonhill-almanac-pavilion-01.glb` |
 | `moonhill-star-archive` | Archive Terrace record house | `buildMoonhillStarArchive` | `moonhill-star-archive-01.glb` |
 | `moonhill-orrery` | Archive Terrace landmark | `buildMoonhillOrrery` | `moonhill-orrery-01.glb` |
+| `moonhill-skyrail-shelter` | Signal Terrace shelter | `buildMoonhillSkyrailShelter` | `moonhill-skyrail-shelter-01.glb` |
+| `moonhill-baggage-trolley` | Signal Terrace luggage | `buildMoonhillBaggageTrolley` | `moonhill-baggage-trolley-01.glb` |
+| `moonhill-wind-shelter` | Wind Lookout shelter | `buildMoonhillWindShelter` | `moonhill-wind-shelter-01.glb` |
+| `moonhill-star-chart-table` | Wind Lookout chart table | `buildMoonhillStarChartTable` | `moonhill-star-chart-table-01.glb` |
+| `moonhill-meteor-marker` | Comet Walk landmark | `buildMoonhillMeteorMarker` | `moonhill-meteor-marker-01.glb` |
+| `moonhill-chartmaker` | Moonhill high-street map shop | `buildMoonhillChartmaker` | `moonhill-chartmaker-01.glb` |
+| `moonhill-star-tea-kiosk` | Moonhill high-street tea kiosk | `buildMoonhillStarTeaKiosk` | `moonhill-star-tea-kiosk-01.glb` |
 | `char-player` | Player body | `buildCharacterFigure` | `char-player.glb` |
 | `char-npc` | Townsfolk base | `buildCharacterFigure` | `char-npc.glb` |
 
@@ -215,6 +234,15 @@ Manual:
 4. Player from behind — hair/coat/bag/legs readable
 5. Frame rate acceptable on iPhone Safari (adaptive resolution still active)
 
+### Verifying from an agent browser pane
+
+An embedded browser pane reports the page as hidden, so `requestAnimationFrame` never
+fires: the game cannot be walked, and a screenshot yields roughly one frame per capture.
+`tools/browser-driver.js` works around this — paste it into the pane console, take one
+screenshot to bootstrap, then drive the loop with `__walk('ArrowUp', 90)` and `__step()`.
+It virtualises `performance.now()` because `tick` derives delta from it. Verification aid
+only; the app never loads it.
+
 ---
 
 ## Status
@@ -230,6 +258,6 @@ Manual:
 | Blender-exported hero meshes | Done via `pnpm assets:export` (scripted originals; open for hand polish) |
 | Authored Blender character silhouettes | Done (`char-player.glb`, `char-npc.glb`; runtime-tintable) |
 | Hand-sculpted Messenger-level art | Next (optional artist pass on the same .glb paths) |
-| Harbour / Moonhill kit parity | Arrival anchors plus Tide Yard, Repair Quay, Archive Terrace, Comet Walk, Tidehouse Row and Almanac Garden done; remaining street furniture is partial |
+| Harbour / Moonhill kit parity | Arrival anchors plus Outer Pier, Tide Yard, Rail Shed, Repair Quay, Chandlery Yard, Wind Lookout, Archive Terrace, Signal Terrace, Comet Walk, Tidehouse Row, Almanac Garden and Moonhill High Street done; remaining street furniture is partial |
 
 When taking over: read this file, then `kit/registry.ts` and `kit/procedural.ts`, then only touch `GameWorld` for placement calls.
