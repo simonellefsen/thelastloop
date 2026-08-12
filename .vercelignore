@@ -1,3 +1,11 @@
 # Private reference media is useful during development but must never be
-# uploaded with the public game deployment.
-MessengerVideoPhone.MP4
+# uploaded with the public game deployment. `vercel` deploys from the local
+# checkout, not from git, so .gitignore does not protect these — they must
+# be listed here too or the CLI uploads the whole folder every deploy.
+Messenger
+CityImages
+
+# Local tooling / build output that has no place in the deploy upload.
+tools
+docs
+.git
