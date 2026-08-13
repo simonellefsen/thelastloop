@@ -263,7 +263,10 @@ export class GameWorld implements PlayerController {
     this.createAmbientLife()
     // Every district is built by now, so one pass sets cast/receive across the
     // whole world rather than threading the flags through ~700 mesh call sites.
-    applyCelShadows(this.scene)
+    // Characters reuse the camera pass-through tag as their "always cast" marker:
+    // they are assembled from small parts that the size budget would otherwise
+    // drop, and the shadow under a person is the one that matters most.
+    applyCelShadows(this.scene, { alwaysCast: isCameraPassThrough })
     this.resize()
     this.resizeObserver = new ResizeObserver(this.onResize)
     this.resizeObserver.observe(container)

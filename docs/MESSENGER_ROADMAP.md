@@ -218,10 +218,9 @@ prototype. Both are single-file fixes.
       | Shadows on | **509** | 29,676 | **16.52** |
 
       The shadow pass nearly doubles draw calls, because the shadow camera sees the whole district
-      while the player camera sees a slice of it. 16.5 ms on a desktop is already at the 60 fps
-      budget, so **this makes M1.4 and M6.1 load-bearing rather than optional** — retiring the
-      inverted hulls removes ~732 shells from the scene and instancing removes the repeats. Verify
-      on a real phone before assuming the 512² map is enough.
+      while the player camera sees a slice of it. That cost was then largely bought back by the
+      caster size budget in **M6.2** — see there for the numbers. Verify on a real phone before
+      assuming the 512² map is enough.
 - [ ] **M1.3 Depth + normal edge pass.** One fullscreen shader that reads depth and normals and
       draws both silhouette and crease lines at a constant screen-space width. This is what gives
       Messenger its printed look — see the window frames and panel seams in
@@ -332,11 +331,27 @@ banner, an EXPLORE button and floating place-name labels.
 
 Runs alongside M1–M5. These are the things that will otherwise block them.
 
-- [ ] **M6.1 Instance the repeats.** No `InstancedMesh` exists today. Trees, lamps, bollards, crates,
-      cobbles and fence posts are the obvious candidates, and they are exactly what M3.5 is about to
-      multiply.
-- [ ] **M6.2 A draw-call budget.** Set a target, measure it on a real iPhone, and hold it. M1.4
-      buys headroom; M3.5 spends it.
+- [ ] **M6.1 Instance the repeats — smaller win than assumed; measure before doing it.**
+      Ravnbro has **1,330 unique geometries across 1,527 meshes**: only 128 groups share geometry at
+      all. Every prop is built with its own `new BoxGeometry(w, h, d)` at bespoke dimensions, so
+      there is very little for `InstancedMesh` to collapse — the total available saving is about
+      **197 draw calls**, for a large restructure of a 5,800-line file. Worth doing only after the
+      kit vocabulary is standardised (M3.4), which is what would create real repeats.
+- [x] **M6.2 A draw-call budget — first cut taken.** The M1.2 shadow pass is a second draw of every
+      caster, and the world is assembled from hundreds of small parts (window frames, sills, beams,
+      bollards, crates) whose shadows are invisible at street scale. `applyCelShadows` now applies a
+      `MIN_SHADOW_CASTER_RADIUS` of 0.6 m, with characters exempt via the `cameraPassThrough` tag —
+      they are built from small parts too, but the shadow under a person is the one that matters.
+
+      | | Casters in scene | Dense frame draw calls | ms/frame |
+      | --- | --- | --- | --- |
+      | All casters | 3,218 | 1,863 | 9.51 |
+      | Size budget | **759** | **704** | **7.57** |
+
+      Visually indistinguishable in a side-by-side from the same position. Note the budget swings
+      hard with viewpoint — the same district measured 542 calls in one spot and 2,081 in another —
+      so any future target has to be quoted against a named vantage point, not an average.
+      **Still to do:** verify on a real iPhone; that is the number that actually governs.
 - [ ] **M6.3 Extract district data from `GameWorld.ts`.** 5,786 lines and growing by a pocket per
       commit. Placement should be declarative data so an art pass does not mean editing a monolith.
       This is the main structural risk to every phase above.
