@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  MIN_FOLLOW_DISTANCE,
   STREET_ARRIVAL_HEIGHT,
   entryCameraProfile,
   occludedFollowDistance,
@@ -84,5 +85,12 @@ describe('camera occlusion follow distance', () => {
 
   it('never collapses closer than the minimum readable distance', () => {
     expect(occludedFollowDistance(5.5, 0.5, 0.4, 1.05)).toBe(1.05)
+  })
+
+  it('defaults to a distance that still frames the character', () => {
+    // 1.05 m let the guard park the rig inside whatever it had backed into.
+    expect(MIN_FOLLOW_DISTANCE).toBeGreaterThan(2)
+    expect(occludedFollowDistance(5.5, 0.5)).toBe(MIN_FOLLOW_DISTANCE)
+    expect(occludedFollowDistance(5.5, 1.2)).toBe(MIN_FOLLOW_DISTANCE)
   })
 })

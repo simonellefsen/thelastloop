@@ -73,6 +73,10 @@
         soundEnabled = game.getSoundEnabled()
         reducedMotion = game.getReducedMotion()
         worldReady = true
+        // Dev-only inspection handle. Pairs with tools/browser-driver.js so the
+        // world can be queried and stepped from a console during verification.
+        // Stripped from production builds by the import.meta.env.DEV guard.
+        if (import.meta.env.DEV) (window as unknown as { __game?: unknown }).__game = game
       } catch {
         error = 'This tiny world needs a browser with WebGL support.'
       }

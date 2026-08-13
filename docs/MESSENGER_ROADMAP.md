@@ -125,15 +125,29 @@ and `occludedFollowDistance` shortens the follow distance on a hit. Three ways t
       **+Z** via `atan2(dx, dz)` — the convention `docs/ART_PIPELINE.md` documents and the procedural
       fallback already used. Fixed at the source by turning the exported root 180°, so the `.glb`
       now matches the contract. This affected the player, the keeper and the street walkers.
-- [ ] **M0.3 Sphere-cast, not ray-cast.** Sweep a sphere roughly the near-plane half-width from pivot
-      to camera so wide flat occluders are caught before they reach the frustum.
-- [ ] **M0.4 Duck and fade instead of pull in.** Prefer lowering or orbiting the camera to a clear
-      line; dither-fade anything that still lands between camera and player. Alpha-fade occluders
-      read well under cel shading and are the standard fix for exactly this.
-- [ ] **M0.5 Hard near-camera cull.** Anything within ~0.6 m of the camera fades out entirely, so no
-      recovery path can produce a full-screen backface again.
-- [ ] **M0.6 Raise `minDistance`** above 1.05 so the guard cannot create the frame it exists to
-      prevent.
+- [x] **M0.3 Sweep, not a single ray.** `firstCameraBlockDistance` now casts a bundle of five
+      parallel rays across `CAMERA_PROBE_RADIUS` (0.42 m) — centre plus four perpendicular offsets —
+      and takes the nearest hit. three.js has no sphere cast; this is the cheap stand-in.
+- [x] **M0.4 Characters no longer block the camera** *(the real cause of the walking failure)*.
+      Driving the game with `tools/browser-driver.js` and inspecting the scene showed the frame was
+      filled by the **station keeper's head at 0.62 m** — not a roof. The keeper is added straight to
+      its district group rather than to a `streetLife` group, so the occlusion guard treated a person
+      standing in the street as a building, hauled the camera in to escape them, and parked it inside
+      their face. Every character kit is now tagged `cameraPassThrough` in `KitLoader.create` (both
+      the glTF and procedural paths), so the tag cannot be missed however an NPC is placed.
+      **Remaining half — see M0.4b.**
+- [ ] **M0.4b An NPC standing between camera and player still hides them.** The camera passes
+      through characters geometrically, but they are still drawn. Two candidate fixes, and it is a
+      product call which: alpha-fade a character that comes between camera and player, or give NPCs
+      a collision blocker so the player stops in front of them instead of walking inside them. The
+      second is closer to Messenger and probably the better answer, but it touches quest reachability
+      so it should not be done blind.
+- [ ] **M0.5 Hard near-camera cull.** Not currently reproducible — after M0.3/M0.4/M0.6 no frame on
+      the walked route put geometry in the camera's face. Keep as a backstop if one shows up; do not
+      add the complexity speculatively.
+- [x] **M0.6 Raise `minDistance`** — 1.05 m → `MIN_FOLLOW_DISTANCE` 2.2 m. At a metre from a 1.76 m
+      character the avatar fills the screen and the 0.1 m near plane sits inside whatever the camera
+      backed into, so the guard was creating the frame it exists to prevent.
 - [ ] **M0.7 Camera-corridor rule for layout.** Streets need clear width for the rig to sit in.
       Record the minimum in [ART_PIPELINE.md](./ART_PIPELINE.md) so new pockets do not reintroduce
       this.
@@ -158,12 +172,20 @@ is continuously visible; no frame contains a full-screen roof plane or an outlin
 player is continuously visible at the station forecourt, and the station reads as a civic anchor
 rather than a roof slab across the frame.
 
-**It does not yet pass while walking.** Driving the game with `tools/browser-driver.js` and walking
-north from the start put the camera inside the station forecourt geometry within ~1.5 s: the frame
-filled with a single pale surface. Raising the buildings removed the *cause* of the reported bug
-(a rig flying at roof altitude) but the recovery is still the original single ray, so a wide
-occluder that misses the centre ray is not detected at all. **M0.3–M0.6 are now the blocking work,
-not optional hardening.**
+**It now passes while walking too.** Walking the same route that previously jammed the camera into
+scenery, camera-to-player distance holds between **4.6 m and 5.1 m** across the whole corridor
+(it was collapsing to **1.74 m**). Measured with `tools/browser-driver.js` plus the dev-only
+`window.__game` handle:
+
+| | Before M0.3–M0.6 | After |
+| --- | --- | --- |
+| Camera→player at the failure spot | 1.74 m | **4.85 m** |
+| Nearest mesh to camera | 0.62 m (keeper's head) | 1.8 m |
+| Range over the walked route | collapsed | **4.6–5.1 m** |
+
+Left to close M0: **M0.4b** (an NPC between camera and player still hides them), **M0.7** (corridor
+width rule), **M0.8** (Harbour/Moonhill frontages), **M0.10** (roof pitch audit). None of these
+reproduce as the reported bug any more; they are the remaining polish and parity work.
 
 ---
 

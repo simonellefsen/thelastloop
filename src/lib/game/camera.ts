@@ -58,6 +58,16 @@ export function streetArrivalProfile(progress: number, settled: StreetCameraProf
 }
 
 /**
+ * Closest the occlusion guard may pull the rig toward the player.
+ *
+ * This was 1.05 m, which let the recovery create the very frame it exists to
+ * prevent: at a metre from a 1.76 m character the avatar fills the screen, and
+ * the 0.1 m near plane sits inside whatever the camera has backed into. Keeping
+ * a couple of metres means a blocked camera still frames a person.
+ */
+export const MIN_FOLLOW_DISTANCE = 2.2
+
+/**
  * When scenery sits between the player and the ideal third-person rig, pull the
  * follow distance in so the avatar stays on screen instead of vanishing behind roofs.
  */
@@ -65,7 +75,7 @@ export function occludedFollowDistance(
   idealDistance: number,
   hitDistance: number | undefined,
   clearance = 0.4,
-  minDistance = 1.05,
+  minDistance = MIN_FOLLOW_DISTANCE,
 ): number {
   if (hitDistance === undefined || !Number.isFinite(hitDistance)) return idealDistance
   return Math.max(minDistance, Math.min(idealDistance, hitDistance - clearance))

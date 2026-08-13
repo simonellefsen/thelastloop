@@ -52,7 +52,7 @@ import {
   paintedMaterial,
   type PaintKind,
 } from './style'
-import { kitLoader } from './kit'
+import { isCameraPassThrough, kitLoader } from './kit'
 import { Soundscape, soundscapeProfile } from './soundscape'
 import { freshStorySave, readSave, writeSave } from './storage'
 import type { SphericalBlocker, StreetBlocker } from './math'
@@ -116,6 +116,8 @@ export class GameWorld implements PlayerController {
   private observatoryGround: Mesh | undefined
   private readonly raycaster = new Raycaster()
   /** Layer 0 = solid world (camera collision). Layer 1 = floating labels only. */
+  /** Half-width of the camera occlusion sweep — the rig is a frustum, not a line. */
+  private static readonly CAMERA_PROBE_RADIUS = 0.42
   private static readonly SOLID_LAYER = 0
   private static readonly LABEL_LAYER = 1
   private readonly clock = { last: performance.now(), elapsed: 0 }
@@ -5354,13 +5356,43 @@ export class GameWorld implements PlayerController {
   }
 
   /**
-   * Distance along a ray from the player pivot to the first solid street mesh.
-   * Player meshes are excluded so the avatar cannot block its own follow camera.
+   * Nearest blocking distance between the player pivot and the ideal camera seat.
+   *
+   * Swept as a bundle of parallel rays across `CAMERA_PROBE_RADIUS` rather than a
+   * single centre ray: the camera is a frustum, not a line, so a wide eave or wall
+   * can fill half the screen while missing the centre line entirely. Cheap
+   * stand-in for a sphere cast, which three.js does not provide.
+   *
+   * Characters and ambient life are excluded — the camera passes through people.
    */
   private firstCameraBlockDistance(origin: Vector3, direction: Vector3, maxDistance: number): number | undefined {
     const root = this.activeStreetVisualRoot()
     if (!root || maxDistance < 0.2) return undefined
 
+    let nearest: number | undefined
+    for (const probeOrigin of this.cameraProbeOrigins(origin, direction)) {
+      const hit = this.firstProbeHit(root, probeOrigin, direction, maxDistance)
+      if (hit !== undefined && (nearest === undefined || hit < nearest)) nearest = hit
+    }
+    return nearest
+  }
+
+  /** Centre origin plus four offsets spanning the probe radius, perpendicular to travel. */
+  private cameraProbeOrigins(origin: Vector3, direction: Vector3): Vector3[] {
+    const reference = Math.abs(direction.y) > 0.9 ? new Vector3(0, 0, 1) : UP
+    const right = new Vector3().crossVectors(direction, reference).normalize()
+    const up = new Vector3().crossVectors(right, direction).normalize()
+    const r = GameWorld.CAMERA_PROBE_RADIUS
+    return [
+      origin,
+      origin.clone().addScaledVector(right, r),
+      origin.clone().addScaledVector(right, -r),
+      origin.clone().addScaledVector(up, r),
+      origin.clone().addScaledVector(up, -r),
+    ]
+  }
+
+  private firstProbeHit(root: Group, origin: Vector3, direction: Vector3, maxDistance: number): number | undefined {
     this.raycaster.set(origin, direction)
     this.raycaster.near = 0.35
     this.raycaster.far = maxDistance
@@ -5371,6 +5403,7 @@ export class GameWorld implements PlayerController {
     for (const hit of hits) {
       if (!(hit.object as Mesh).isMesh) continue
       if ((hit.object as Sprite).isSprite) continue
+      if (isCameraPassThrough(hit.object)) continue
       let ancestor: Object3D | null = hit.object
       let skip = false
       while (ancestor) {

@@ -29,12 +29,16 @@ export class KitLoader {
   create(id: KitId, options?: KitCharacterOptions): Object3D {
     const definition = kitRegistry[id]
     const url = definition.gltfUrl
+    const isCharacter = id === 'char-player' || id === 'char-npc'
     if (url && this.cache.has(url)) {
       const instance = this.cache.get(url)!.clone(true)
-      if (id === 'char-player' || id === 'char-npc') applyCharacterStyle(instance, options)
+      if (isCharacter) applyCharacterStyle(instance, options)
+      if (isCharacter) markCameraPassThrough(instance)
       return instance
     }
-    return definition.build(options)
+    const built = definition.build(options)
+    if (isCharacter) markCameraPassThrough(built)
+    return built
   }
 
   isLoaded(id: KitId): boolean {
@@ -57,6 +61,29 @@ export class KitLoader {
       this.failed.add(url)
     }
   }
+}
+
+/**
+ * Characters must never block the follow camera.
+ *
+ * The station keeper is added straight to its district group rather than to a
+ * `streetLife` group, so the camera's occlusion ray treated a person standing in
+ * the street as a building: the guard hauled the camera in to escape them and
+ * parked it inside their head. Tag every character kit — however it is placed —
+ * and let the camera pass through it. See docs/MESSENGER_ROADMAP.md M0.4.
+ */
+export function markCameraPassThrough(object: Object3D): void {
+  object.userData.cameraPassThrough = true
+}
+
+/** True when `object` or any ancestor is tagged to let the camera pass through. */
+export function isCameraPassThrough(object: Object3D | null): boolean {
+  let node: Object3D | null = object
+  while (node) {
+    if (node.userData?.cameraPassThrough) return true
+    node = node.parent
+  }
+  return false
 }
 
 /**
