@@ -49,6 +49,7 @@ import {
   coatColors,
   createGableRoofGeometry,
   createSkyGradientTexture,
+  getOutlineMaterial,
   nextCoatColor,
   paintKindForColor,
   paintedMaterial,
@@ -271,6 +272,7 @@ export class GameWorld implements PlayerController {
     // they are assembled from small parts that the size budget would otherwise
     // drop, and the shadow under a person is the one that matters most.
     applyCelShadows(this.scene, { alwaysCast: isCameraPassThrough })
+    this.applyDebugFlags()
     this.resize()
     this.resizeObserver = new ResizeObserver(this.onResize)
     this.resizeObserver.observe(container)
@@ -5404,6 +5406,26 @@ export class GameWorld implements PlayerController {
     }
     this.camera.up.copy(UP)
     this.camera.lookAt(lookTarget.clone().addScaledVector(this.streetCameraForward, profile.lookAhead))
+  }
+
+  /**
+   * `?outlines=0` hides the inverted-hull outline shells.
+   *
+   * Not a feature — a measuring tool. Each outlined mesh is drawn a second time as
+   * a slightly inflated back-face copy, so on a fill-rate-bound device the hulls are
+   * pure overdraw, not merely extra draw calls. Comparing frame time with and
+   * without them prices what M1.4 would give back, which is what decides whether
+   * M1.3's fullscreen ink pass can be afforded: that change trades N inflated hull
+   * rasterisations for one or two fullscreen passes, and may be close to
+   * fill-neutral rather than an addition.
+   */
+  private applyDebugFlags(): void {
+    if (new URLSearchParams(window.location.search).get('outlines') !== '0') return
+    const outlineMaterial = getOutlineMaterial()
+    this.scene.traverse((object) => {
+      const mesh = object as Mesh
+      if (mesh.isMesh && mesh.material === outlineMaterial) mesh.visible = false
+    })
   }
 
   /**

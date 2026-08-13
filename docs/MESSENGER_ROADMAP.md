@@ -369,6 +369,19 @@ Runs alongside M1–M5. These are the things that will otherwise block them.
       - **Headroom before the picture visibly degrades is only ~6–11 ms.** Crossing 34.5 ms drops
         the pixel ratio, and since the recovery threshold is 19.2 ms it would not climb back. Any
         new per-frame cost — M1.3's ink pass above all — has to fit inside that margin.
+
+      **The device is fill-rate bound.** Same iPad at `?dpr=0.8` — 23.5% of the pixels — reports
+      50–60 fps at 16.7 ms. Fill is therefore **at least 11.5 ms of the 25.5 ms frame (≥45%)**, and
+      probably more: 16.7 ms is exactly the 60 Hz vsync interval, so the low-density cost is clamped
+      and the true saving is larger than measured.
+
+      **This flips the assumption behind M1.3.** A fullscreen ink pass looked like pure added cost on
+      a fill-bound device — but the inverted hulls it replaces *are themselves fill cost*. Every
+      outlined mesh is drawn a second time as a slightly inflated back-face copy, which is overdraw
+      across the whole silhouette, not merely an extra draw call. M1.3 + M1.4 trade ~732 hull
+      rasterisations for one or two fullscreen passes and may be close to **fill-neutral or better**,
+      while also removing roughly half the draw calls. `?outlines=0` hides the shells so that trade
+      can be priced on the device before committing to it.
 - [ ] **M6.3 Extract district data from `GameWorld.ts`.** 5,786 lines and growing by a pocket per
       commit. Placement should be declarative data so an art pass does not mean editing a monolith.
       This is the main structural risk to every phase above.

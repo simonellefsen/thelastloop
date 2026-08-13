@@ -268,6 +268,12 @@ changes fill cost and nothing else:
 - **Frame time barely moves** → CPU/draw-call bound. There is fill headroom, and a post pass is
   comparatively cheap.
 
+**Pricing the outlines.** `?outlines=0` hides the inverted-hull shells. They are drawn as inflated
+back-face copies of every outlined mesh, so on a fill-bound device they cost overdraw across the
+whole silhouette rather than just a draw call each. The gap between `?perf=1` and
+`?perf=1&outlines=0` at full density is what M1.4 would hand back — and therefore the budget M1.3's
+fullscreen ink pass has to fit inside.
+
 For a deeper look, Safari Web Inspector profiles the phone over USB — enable Web Inspector on the
 device (Settings → Apps → Safari → Advanced) and web-developer features on the Mac (Safari →
 Settings → Advanced), then Develop → *[device]* → the page. Its **Canvas** tab records WebGL frames
