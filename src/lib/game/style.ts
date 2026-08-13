@@ -14,6 +14,7 @@ import {
   Shape,
   type Material,
   type BufferGeometry,
+  type Object3D,
   type Texture,
 } from 'three'
 import type { CoatColor } from './types'
@@ -72,6 +73,16 @@ export function nextCoatColor(current: CoatColor): CoatColor {
 let toonGradient: DataTexture | undefined
 let sharedOutlineMaterial: MeshBasicMaterial | undefined
 
+/**
+ * Darkest step of the cel ramp.
+ *
+ * Was 72/255 — a 28% grey floor, which on top of the old 2.77 units of
+ * directionless light meant the shaded side of a form was barely darker than the
+ * lit side. Lowered alongside the M1.1 key rebalance; the two have to be tuned
+ * together or one cancels the other.
+ */
+const TOON_SHADE_FLOOR = 44
+
 /** 3-step light ramp for MeshToonMaterial (Messenger-like cel shading). */
 export function getToonGradientMap(): DataTexture {
   if (toonGradient) return toonGradient
@@ -79,7 +90,7 @@ export function getToonGradientMap(): DataTexture {
   const data = new Uint8Array(steps * 4)
   for (let index = 0; index < steps; index += 1) {
     // Keep the darkest step above pure black so forms stay soft.
-    const value = Math.round(72 + (index / (steps - 1)) * 183)
+    const value = Math.round(TOON_SHADE_FLOOR + (index / (steps - 1)) * (255 - TOON_SHADE_FLOOR))
     data[index * 4] = value
     data[index * 4 + 1] = value
     data[index * 4 + 2] = value
@@ -145,6 +156,42 @@ export function outlineCharacter(group: { traverse: (callback: (object: object) 
     if (mesh.material === getOutlineMaterial()) return
     if (mesh.children.some((child) => (child as Mesh).isMesh && (child as Mesh).material === getOutlineMaterial())) return
     addMeshOutline(mesh, scale)
+  })
+}
+
+/**
+ * Largest bounding radius that still casts a shadow.
+ *
+ * The rolling terrain shells and the sea are single huge meshes. They must
+ * receive shadows, but casting from them buys nothing and wastes most of the
+ * shadow frustum.
+ */
+const MAX_SHADOW_CASTER_RADIUS = 40
+
+/**
+ * Mark a subtree for shadow casting/receiving.
+ *
+ * Inverted-hull outlines are deliberately excluded: they are back-face copies
+ * scaled slightly larger than the mesh they wrap, so letting them cast would
+ * draw a second, offset shadow around every object in the world.
+ */
+export function applyCelShadows(root: Object3D): void {
+  root.traverse((object) => {
+    const mesh = object as Mesh
+    if (!mesh.isMesh) return
+    if (mesh.material === getOutlineMaterial()) {
+      mesh.castShadow = false
+      mesh.receiveShadow = false
+      return
+    }
+    const material = mesh.material as Material | undefined
+    // The sky dome is unlit and inside-out; it takes no part in shadowing.
+    if (material && 'fog' in material && material.fog === false) return
+
+    mesh.geometry?.computeBoundingSphere?.()
+    const radius = mesh.geometry?.boundingSphere?.radius ?? 0
+    mesh.castShadow = radius <= MAX_SHADOW_CASTER_RADIUS
+    mesh.receiveShadow = true
   })
 }
 

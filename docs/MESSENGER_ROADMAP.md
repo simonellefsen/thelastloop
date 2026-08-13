@@ -196,14 +196,32 @@ reproduce as the reported bug any more; they are the remaining polish and parity
 The current world looks like plastic because it is lit like a product photo and outlined like a
 prototype. Both are single-file fixes.
 
-- [ ] **M1.1 Rebalance the key.** Move toward roughly hemisphere 0.55 / ambient 0.25 / sun 2.2 and
-      re-tune against `Messenger/Screenshot ... 12.33.07.png`, where the lit/shade split on the grass
-      is close to two flat tones. Retune the `getToonGradientMap` floor down from 72 at the same
-      time — the ramp and the light ratio have to be tuned together or one will fight the other.
-- [ ] **M1.2 One shadow-casting sun.** `PCFSoftShadowMap`, a single tight orthographic frustum that
-      follows the player (roughly ±18 m), 1024² on desktop and 512² on phones. Buildings, props and
-      characters cast; ground and roads receive. This is the single biggest grounding win in the
-      whole document.
+- [x] **M1.1 Rebalance the key.** Hemisphere 1.85 / ambient 0.92 / sun 1.55 → **0.4 / 0.21 / 1.5**.
+      Directionless fill dropped from 2.77 units to 0.61, so the key is now roughly 2.5× the fill
+      instead of being buried under it. `TOON_SHADE_FLOOR` came down 72 → 44 in the same pass; the
+      ramp and the light ratio cancel each other out if only one moves. Tuned live against the
+      running game rather than guessed — 2.4 on the sun bleached every lit surface to near-white.
+- [x] **M1.2 One shadow-casting sun.** `PCFSoftShadowMap`, a single fixed ±20 m orthographic
+      frustum, 1024² on desktop and 512² on coarse-pointer devices. A fixed frustum covers a whole
+      district, so it never chases the player and cannot shimmer. Sun dropped to **~29° elevation**:
+      a high sun casts stubby shadows that read as dirt, while a raking one makes shadow a
+      compositional element the way the reference does. `applyCelShadows` sets cast/receive in one
+      pass over the built scene, skipping inverted-hull outlines — letting those cast would draw a
+      second, offset shadow around every object — and skipping meshes above a 40 m bounding radius,
+      which is the terrain shells and the sea.
+
+      **Cost, measured on an M2 Max desktop** (`renderer.info` via the dev handle):
+
+      | | Draw calls | Triangles | ms/frame |
+      | --- | --- | --- | --- |
+      | Shadows off | 267 | 15,555 | 14.26 |
+      | Shadows on | **509** | 29,676 | **16.52** |
+
+      The shadow pass nearly doubles draw calls, because the shadow camera sees the whole district
+      while the player camera sees a slice of it. 16.5 ms on a desktop is already at the 60 fps
+      budget, so **this makes M1.4 and M6.1 load-bearing rather than optional** — retiring the
+      inverted hulls removes ~732 shells from the scene and instancing removes the repeats. Verify
+      on a real phone before assuming the 512² map is enough.
 - [ ] **M1.3 Depth + normal edge pass.** One fullscreen shader that reads depth and normals and
       draws both silhouette and crease lines at a constant screen-space width. This is what gives
       Messenger its printed look — see the window frames and panel seams in
@@ -216,6 +234,11 @@ prototype. Both are single-file fixes.
 
 **Acceptance:** stand at Station Gate, hide the UI, screenshot. Buildings sit *on* the ground with
 visible cast shadows; window frames and roof seams carry ink; nothing reads as plastic.
+
+**Status (2026-08-13):** M1.1 and M1.2 are in — forms now have a clear lit/shade split and
+everything casts a raking shadow, so the town sits on the ground instead of floating. The ink half
+(M1.3/M1.4) is **blocked on the ART_DIRECTION amendment below** and has not been started, so seams
+and creases still carry no line; only silhouettes do, via the old hulls.
 
 **Note on the doc conflict:** [ART_DIRECTION.md](./ART_DIRECTION.md) currently rules out
 "expensive multi-pass post (SSAO, heavy bloom)". M1.3 and M1.5 are two fullscreen passes with no

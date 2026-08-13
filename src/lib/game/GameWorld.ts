@@ -18,6 +18,7 @@ import {
   MeshStandardMaterial,
   MeshToonMaterial,
   Object3D,
+  PCFSoftShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
   Raycaster,
@@ -42,6 +43,7 @@ import { animationTime, nextRenderResolution, shouldRender } from './runtime'
 import { advanceSideQuest, defaultQuest, isJourneyComplete, resolveClue, unlockHarbour, unlockObservatory } from './quest'
 import {
   addMeshOutline,
+  applyCelShadows,
   artPalette,
   celMaterial,
   coatColors,
@@ -118,6 +120,12 @@ export class GameWorld implements PlayerController {
   /** Layer 0 = solid world (camera collision). Layer 1 = floating labels only. */
   /** Half-width of the camera occlusion sweep — the rig is a frustum, not a line. */
   private static readonly CAMERA_PROBE_RADIUS = 0.42
+  /**
+   * Half-extent of the sun's shadow frustum. Every district fits inside roughly
+   * ±16, so one fixed frustum covers a whole town and never needs to chase the
+   * player — cheaper and free of the shimmer a moving shadow camera causes.
+   */
+  private static readonly SHADOW_EXTENT = 20
   private static readonly SOLID_LAYER = 0
   private static readonly LABEL_LAYER = 1
   private readonly clock = { last: performance.now(), elapsed: 0 }
@@ -200,6 +208,8 @@ export class GameWorld implements PlayerController {
     this.renderPixelRatio = this.maxPixelRatio
     this.renderer.setPixelRatio(this.renderPixelRatio)
     this.renderer.outputColorSpace = 'srgb'
+    this.renderer.shadowMap.enabled = true
+    this.renderer.shadowMap.type = PCFSoftShadowMap
     this.renderer.domElement.setAttribute('aria-hidden', 'true')
     container.appendChild(this.renderer.domElement)
     // Labels sit on layer 1 so camera-occlusion rays (layer 0 only) never hit sprites.
@@ -219,11 +229,24 @@ export class GameWorld implements PlayerController {
     )
     sky.renderOrder = -10
     this.scene.add(sky)
-    this.scene.add(new HemisphereLight(artPalette.hemiSky, artPalette.hemiGround, 1.85))
-    this.scene.add(new AmbientLight(artPalette.ambient, 0.92))
-    const sun = new DirectionalLight(artPalette.sun, 1.55)
-    sun.position.set(8, 14, 6)
+    // M1.1 — one dominant sun instead of a wash.
+    //
+    // This used to be hemisphere 1.85 + ambient 0.92 against a 1.55 sun: 2.77
+    // units of directionless light, under which no form could survive and the
+    // whole town read as flat plastic. The fill is now well below the key, which
+    // is what lets the cel ramp actually bite. Tuned together with
+    // TOON_SHADE_FLOOR in style.ts — changing one without the other undoes it.
+    this.scene.add(new HemisphereLight(artPalette.hemiSky, artPalette.hemiGround, 0.4))
+    this.scene.add(new AmbientLight(artPalette.ambient, 0.21))
+    const sun = new DirectionalLight(artPalette.sun, 1.5)
+    // Low sun (~29° elevation). A high sun casts stubby shadows that read as
+    // dirt; a raking one makes shadow a compositional element, which is how the
+    // reference frames its streets. Placed far out so the ortho shadow frustum
+    // comfortably contains a whole district.
+    sun.position.set(28, 18, 16)
+    this.configureSunShadow(sun)
     this.scene.add(sun)
+    this.scene.add(sun.target)
 
     this.ground = this.createWorld()
     this.createHillsideStreetWorld()
@@ -238,6 +261,9 @@ export class GameWorld implements PlayerController {
     // route segment, but v1 journeys stay on the real globe atlas throughout
     // so they never visually switch to an unrelated piece of rail.
     this.createAmbientLife()
+    // Every district is built by now, so one pass sets cast/receive across the
+    // whole world rather than threading the flags through ~700 mesh call sites.
+    applyCelShadows(this.scene)
     this.resize()
     this.resizeObserver = new ResizeObserver(this.onResize)
     this.resizeObserver.observe(container)
@@ -5344,6 +5370,32 @@ export class GameWorld implements PlayerController {
     }
     this.camera.up.copy(UP)
     this.camera.lookAt(lookTarget.clone().addScaledVector(this.streetCameraForward, profile.lookAhead))
+  }
+
+  /**
+   * M1.2 — a single shadow-casting sun.
+   *
+   * Nothing in the world cast a shadow before this, which is most of why the
+   * town read as plastic: buildings floated instead of sitting on the ground.
+   * The map is halved on touch devices, where fill rate is the constraint.
+   */
+  private configureSunShadow(sun: DirectionalLight): void {
+    const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false
+    sun.castShadow = true
+    sun.shadow.mapSize.set(coarsePointer ? 512 : 1024, coarsePointer ? 512 : 1024)
+    const extent = GameWorld.SHADOW_EXTENT
+    const shadowCamera = sun.shadow.camera
+    shadowCamera.left = -extent
+    shadowCamera.right = extent
+    shadowCamera.top = extent
+    shadowCamera.bottom = -extent
+    shadowCamera.near = 0.5
+    shadowCamera.far = 70
+    shadowCamera.updateProjectionMatrix()
+    // normalBias handles the shallow-angle acne that a plain bias cannot, and
+    // keeps flat cel surfaces from self-striping.
+    sun.shadow.bias = -0.0006
+    sun.shadow.normalBias = 0.035
   }
 
   /** Active walkable district mesh root used for camera collision. */
