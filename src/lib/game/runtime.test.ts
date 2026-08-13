@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { animationTime, nextRenderResolution, shouldRender } from './runtime'
+import { animationTime, nextRenderResolution, resolveShadowMode, shouldRender } from './runtime'
 
 describe('renderer runtime policy', () => {
   it('renders only visible documents', () => {
@@ -21,5 +21,23 @@ describe('renderer runtime policy', () => {
     const next = nextRenderResolution({ pixelRatio: 1.4, slowFrames: 0, fastFrames: 239 }, 1 / 60, 1.65)
     expect(next).toEqual({ pixelRatio: 1.5, slowFrames: 0, fastFrames: 0 })
     expect(nextRenderResolution({ pixelRatio: 1.65, slowFrames: 0, fastFrames: 239 }, 1 / 60, 1.65).pixelRatio).toBe(1.65)
+  })
+})
+
+describe('shadow mode override', () => {
+  it('defaults to soft filtering', () => {
+    expect(resolveShadowMode('')).toBe('soft')
+    expect(resolveShadowMode('?perf=1')).toBe('soft')
+  })
+
+  it('accepts the cheaper filters and a full disable', () => {
+    expect(resolveShadowMode('?shadows=pcf')).toBe('pcf')
+    expect(resolveShadowMode('?shadows=basic')).toBe('basic')
+    expect(resolveShadowMode('?shadows=off')).toBe('off')
+    expect(resolveShadowMode('?shadows=0')).toBe('off')
+  })
+
+  it('falls back to soft for anything unrecognised', () => {
+    expect(resolveShadowMode('?shadows=fancy')).toBe('soft')
   })
 })

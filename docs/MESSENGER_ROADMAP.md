@@ -375,13 +375,23 @@ Runs alongside M1–M5. These are the things that will otherwise block them.
       probably more: 16.7 ms is exactly the 60 Hz vsync interval, so the low-density cost is clamped
       and the true saving is larger than measured.
 
-      **This flips the assumption behind M1.3.** A fullscreen ink pass looked like pure added cost on
-      a fill-bound device — but the inverted hulls it replaces *are themselves fill cost*. Every
-      outlined mesh is drawn a second time as a slightly inflated back-face copy, which is overdraw
-      across the whole silhouette, not merely an extra draw call. M1.3 + M1.4 trade ~732 hull
-      rasterisations for one or two fullscreen passes and may be close to **fill-neutral or better**,
-      while also removing roughly half the draw calls. `?outlines=0` hides the shells so that trade
-      can be priced on the device before committing to it.
+      **The hulls are not the fill cost.** Hypothesis tested and rejected: `?outlines=0` at full
+      density measured **35–45 fps against a 36–43 fps baseline** — no change beyond noise, so the
+      ~732 inverted-hull shells cost effectively nothing. M1.4 therefore hands back almost no budget,
+      and cannot be used to pay for M1.3.
+
+      **The suspect is shadow filtering, added in M1.2.** The two readings only reconcile one way:
+      fill scales hard with resolution, yet the hulls are free. The hulls are `MeshBasicMaterial` —
+      no lighting, no shadow lookup, cheap pixels. Every *lit* pixel is `MeshToonMaterial` running
+      `PCFSoftShadowMap`, which costs several shadow-map taps per fragment. That is a per-screen-pixel
+      cost, which is exactly what scales with `dpr` and exactly what the hull test showed is *not*
+      coming from geometry. `?shadows=soft|pcf|basic|off` swaps the filter so this can be confirmed
+      on the device.
+
+      If it is confirmed, the fix is cheap and does not cost the look: `PCFShadowMap` or
+      `BasicShadowMap` keeps the shadows that M1.2 was for, at a fraction of the per-pixel price.
+      Reducing shadow *map size* would not help — that is a fixed cost per frame, not per screen
+      pixel, so it would not scale with `dpr` the way the measurement does.
 - [ ] **M6.3 Extract district data from `GameWorld.ts`.** 5,786 lines and growing by a pocket per
       commit. Placement should be declarative data so an art pass does not mean editing a monolith.
       This is the main structural risk to every phase above.

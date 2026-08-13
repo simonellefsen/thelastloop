@@ -268,6 +268,11 @@ changes fill cost and nothing else:
 - **Frame time barely moves** → CPU/draw-call bound. There is fill headroom, and a post pass is
   comparatively cheap.
 
+**Shadow filtering.** `?shadows=soft|pcf|basic|off` swaps the filter. Soft (the default) costs
+several shadow-map taps for *every lit screen pixel*, so it scales with resolution rather than with
+scene complexity — the first thing to try on a fill-rate-bound device. Note that shadow *map size*
+is a fixed per-frame cost and will not show up in a `dpr` comparison.
+
 **Pricing the outlines.** `?outlines=0` hides the inverted-hull shells. They are drawn as inflated
 back-face copies of every outlined mesh, so on a fill-bound device they cost overdraw across the
 whole silhouette rather than just a draw call each. The gap between `?perf=1` and

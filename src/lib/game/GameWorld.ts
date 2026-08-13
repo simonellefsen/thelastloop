@@ -18,6 +18,8 @@ import {
   MeshStandardMaterial,
   MeshToonMaterial,
   Object3D,
+  BasicShadowMap,
+  PCFShadowMap,
   PCFSoftShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
@@ -39,7 +41,7 @@ import { gentleStreetHeight, isOutsideSphericalBlockers, isOutsideStreetBlockers
 import { nextPassengerIdentity } from './presence'
 import { globalRailRouteWaypoints, globalRailStops, nextGlobalRailStop } from './railway'
 import { restorationLightProfile, type RestorationDistrict } from './restoration'
-import { animationTime, nextRenderResolution, shouldRender } from './runtime'
+import { animationTime, nextRenderResolution, resolveShadowMode, shouldRender, type ShadowMode } from './runtime'
 import { advanceSideQuest, defaultQuest, isJourneyComplete, resolveClue, unlockHarbour, unlockObservatory } from './quest'
 import {
   addMeshOutline,
@@ -67,6 +69,14 @@ const WALKABLE_ANCHOR = new Vector3(0, 1, 0)
 const WALKABLE_ANGLE = 0.82
 const harbourStreetHeight = (x: number, z: number): number => -0.0016 * (x * x + z * z) + Math.sin(x * 0.35) * Math.cos(z * 0.27) * 0.055
 const observatoryStreetHeight = (x: number, z: number): number => -0.0012 * (x * x + z * z) + Math.cos(x * 0.28 + z * 0.12) * 0.075
+
+/** Renderer filter for each `?shadows=` mode. 'off' is unused but keeps the map total. */
+const SHADOW_FILTERS = {
+  soft: PCFSoftShadowMap,
+  pcf: PCFShadowMap,
+  basic: BasicShadowMap,
+  off: BasicShadowMap,
+} as const
 
 export interface GameWorldEvents {
   onHud(hud: GameHud): void
@@ -156,6 +166,7 @@ export class GameWorld implements PlayerController {
   private readonly onVisibilityChange = () => this.handleVisibilityChange()
   private renderPixelRatio = 1
   private maxPixelRatio = 1
+  private shadowMode: ShadowMode = 'soft'
   private perfFrames = 0
   private perfElapsed = 0
   private slowFrames = 0
@@ -213,8 +224,9 @@ export class GameWorld implements PlayerController {
     this.renderPixelRatio = this.maxPixelRatio
     this.renderer.setPixelRatio(this.renderPixelRatio)
     this.renderer.outputColorSpace = 'srgb'
-    this.renderer.shadowMap.enabled = true
-    this.renderer.shadowMap.type = PCFSoftShadowMap
+    this.shadowMode = resolveShadowMode(window.location.search)
+    this.renderer.shadowMap.enabled = this.shadowMode !== 'off'
+    this.renderer.shadowMap.type = SHADOW_FILTERS[this.shadowMode]
     this.renderer.domElement.setAttribute('aria-hidden', 'true')
     container.appendChild(this.renderer.domElement)
     // Labels sit on layer 1 so camera-occlusion rays (layer 0 only) never hit sprites.
@@ -5454,7 +5466,7 @@ export class GameWorld implements PlayerController {
    */
   private configureSunShadow(sun: DirectionalLight): void {
     const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false
-    sun.castShadow = true
+    sun.castShadow = this.shadowMode !== 'off'
     sun.shadow.mapSize.set(coarsePointer ? 512 : 1024, coarsePointer ? 512 : 1024)
     const extent = GameWorld.SHADOW_EXTENT
     const shadowCamera = sun.shadow.camera

@@ -2,6 +2,24 @@ export function shouldRender(visibilityState: DocumentVisibilityState): boolean 
   return visibilityState === 'visible'
 }
 
+/**
+ * Shadow filtering quality, overridable with `?shadows=`.
+ *
+ * Soft (PCF-soft) filtering costs several texture taps for **every lit screen
+ * pixel**, so its price scales with resolution rather than with scene complexity.
+ * On a fill-rate-bound device that makes it a prime suspect for frame cost, and
+ * the only way to confirm is to swap it out and re-measure on the hardware.
+ */
+export type ShadowMode = 'soft' | 'pcf' | 'basic' | 'off'
+
+export function resolveShadowMode(search: string): ShadowMode {
+  const value = new URLSearchParams(search).get('shadows')
+  if (value === '0' || value === 'off') return 'off'
+  if (value === 'basic') return 'basic'
+  if (value === 'pcf') return 'pcf'
+  return 'soft'
+}
+
 export function animationTime(elapsed: number, reducedMotion: boolean): number {
   return reducedMotion ? 0 : elapsed
 }
