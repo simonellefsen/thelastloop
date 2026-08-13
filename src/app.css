@@ -38,7 +38,12 @@ h1 span { display: inline-block; font-size: .39em; letter-spacing: -.08em; verti
 .sound-button { width: 43px; height: 43px; border-radius: 8px; font-size: 1.3rem; font-weight: 900; }
 .motion-button { width: 43px; height: 43px; border-radius: 8px; font-size: 1.25rem; font-weight: 900; }.motion-button.active { background: #cde8d2; color: #24585c; }
 .reset-button { width: 43px; height: 43px; border-radius: 8px; color: #a65445; font-size: 1.35rem; font-weight: 900; }
-.quest-card { position: absolute; top: max(64px, calc(env(safe-area-inset-top) + 48px)); right: max(16px, env(safe-area-inset-right)); width: min(235px, 29vw); padding: 12px 14px; border: 2px solid #2a4b51; border-radius: 7px; background: rgba(255, 249, 222, .94); box-shadow: 3px 4px 0 rgba(26, 61, 67, .45); transform: rotate(1deg); }
+.quest-dock { position: absolute; top: max(64px, calc(env(safe-area-inset-top) + 48px)); right: max(12px, env(safe-area-inset-right)); display: grid; justify-items: end; gap: 6px; pointer-events: none; z-index: 4; }
+.quest-chip { pointer-events: auto; display: flex; align-items: center; gap: 7px; max-width: min(230px, 64vw); padding: 5px 10px 5px 6px; border: 1.5px solid rgba(42, 75, 81, .5); border-radius: 999px; background: rgba(255, 249, 226, .78); box-shadow: 0 1px 0 rgba(20, 52, 59, .22); color: #24464d; cursor: pointer; }
+.quest-chip.open { background: rgba(255, 249, 226, .94); }
+.quest-chip-count { display: grid; place-items: center; min-width: 28px; height: 22px; padding: 0 5px; border-radius: 999px; background: #2a4b51; color: #fff6d6; font-size: .55rem; font-weight: 900; }
+.quest-chip strong { overflow: hidden; color: #1f444c; font-size: .66rem; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
+.quest-card { pointer-events: auto; width: min(235px, 72vw); padding: 12px 14px; border: 2px solid #2a4b51; border-radius: 7px; background: rgba(255, 249, 222, .94); box-shadow: 3px 4px 0 rgba(26, 61, 67, .45); }
 .station-panel { position: absolute; top: max(56px, calc(env(safe-area-inset-top) + 40px)); right: max(16px, env(safe-area-inset-right)); width: min(290px, 36vw); padding: 13px 14px; border: 2px solid #2a4b51; border-radius: 7px; background: rgba(255, 249, 222, .96); box-shadow: 3px 4px 0 rgba(26, 61, 67, .45); transform: rotate(1deg); pointer-events: auto; }
 .station-panel .eyebrow { color: #b55040; font-size: .57rem; }
 .station-panel h2 { margin: 0; font-size: 1.05rem; }
@@ -77,8 +82,7 @@ h1 span { display: inline-block; font-size: .39em; letter-spacing: -.08em; verti
 .journey-card { position: absolute; z-index: 3; top: max(82px, calc(env(safe-area-inset-top) + 66px)); left: 50%; width: min(330px, 46vw); padding: 11px 15px; border: 2px solid #284950; border-radius: 7px; background: rgba(255, 249, 225, .95); box-shadow: 3px 4px 0 rgba(24, 58, 65, .44); color: #28484f; text-align: center; pointer-events: none; transform: translateX(-50%) rotate(.6deg); }
 .journey-card .eyebrow { margin-bottom: 3px; color: #b75f45; font-size: .57rem; }.journey-card h2 { margin: 0; color: #234a52; font-size: clamp(.95rem, 2vw, 1.2rem); }.journey-card > p { margin: 4px 0 6px; color: #5d6d6d; font-size: .67rem; font-weight: 800; }.journey-card small { display: block; margin-top: 6px; color: #657275; font-size: .56rem; }.journey-progress { height: 8px; overflow: hidden; border: 1px solid #315158; border-radius: 999px; background: #c7e3d5; }.journey-progress span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #dc8147, #f6cf53); transition: width .06s linear; }
 .journey-route-map { display: block; width: 100%; height: 66px; margin: 0 auto 3px; overflow: visible; }.journey-route-line { fill: none; stroke: #658b88; stroke-width: 2.25; stroke-linecap: round; stroke-dasharray: 3 2; }.journey-route-stop { fill: #d9e4cf; stroke: #335b60; stroke-width: 1.5; }.journey-route-stop.active { fill: #f3cb4f; }.journey-route-map text { fill: #567177; font-family: inherit; font-size: 5.3px; font-weight: 900; letter-spacing: .35px; }.journey-train { fill: #d86146; stroke: #284950; stroke-width: 1.5; }.journey-train-mark { fill: #fff7d7; }
-.touch-guide { position: fixed; z-index: 2; display: grid; width: 38px; height: 38px; place-items: center; border: 2px solid rgba(255, 249, 220, .86); border-radius: 50%; background: rgba(33, 77, 84, .48); box-shadow: 0 2px 0 rgba(14, 45, 51, .5); color: #fff5d6; font-size: 1rem; font-weight: 900; pointer-events: none; transform: translate(-50%, -50%); }
-.touch-guide span { display: block; line-height: 1; transform: rotate(var(--guide-turn, 0deg)); transition: transform .06s linear; }
+.touch-guide { position: fixed; z-index: 2; width: 118px; height: 118px; border: 0; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.52) 0%, rgba(255,255,255,.2) 36%, rgba(255,255,255,0) 70%); pointer-events: none; transform: translate(-50%, -50%); }
 .interact-button { position: absolute; right: max(20px, env(safe-area-inset-right)); bottom: max(24px, env(safe-area-inset-bottom)); min-width: 96px; min-height: 72px; padding: 8px 11px; border-radius: 11px; font-size: .66rem; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
 .interact-button span { display: block; color: #c85b46; font-size: 1.3rem; line-height: 1; }
 .interact-button:disabled { opacity: .63; cursor: default; }
@@ -91,7 +95,8 @@ h1 span { display: inline-block; font-size: .39em; letter-spacing: -.08em; verti
 @keyframes pulse { 50% { transform: translateY(-3px) rotate(1deg); } }
 @keyframes arrive { 0% { opacity: 0; transform: translate(-50%, -9px) rotate(-.8deg); } 10%, 77% { opacity: 1; transform: translate(-50%, 0) rotate(-.8deg); } 100% { opacity: 0; transform: translate(-50%, -5px) rotate(-.8deg); } }
 @media (max-width: 650px) {
-  .quest-card { top: 48px; width: 170px; padding: 8px 10px; }
+  .quest-dock { top: 48px; }
+  .quest-card { width: min(200px, 72vw); padding: 8px 10px; }
   .station-panel { top: 48px; width: 210px; padding: 8px 10px; }
   .route-map { height: 82px; }.map-loop { left: 32px; top: 11px; width: 118px; height: 55px; }
   .quest-card h2 { margin-bottom: 5px; }
@@ -105,10 +110,15 @@ h1 span { display: inline-block; font-size: .39em; letter-spacing: -.08em; verti
 @media (orientation: portrait) {
   .title-screen { padding: 18px; }
   .title-screen::after { content: "Hold a finger on the world to guide your walk."; position: absolute; bottom: max(18px, env(safe-area-inset-bottom)); left: max(30px, env(safe-area-inset-left)); right: max(30px, env(safe-area-inset-right)); color: #fff9df; font-size: .72rem; }
-  .quest-card { top: max(54px, env(safe-area-inset-top)); right: 10px; width: min(178px, 47vw); }
+  .wordmark { display: none; }
+  .hud header { justify-content: flex-end; }
+  .sound-button, .motion-button, .reset-button { width: 34px; height: 34px; font-size: 1.05rem; }
+  .quest-dock { top: max(52px, calc(env(safe-area-inset-top) + 38px)); right: 10px; }
+  .quest-card { width: min(210px, 78vw); }
   .arrival-card { top: max(64px, env(safe-area-inset-top)); width: min(290px, 74vw); }
   .journey-card { top: max(66px, env(safe-area-inset-top)); width: min(290px, 74vw); }
   .dialogue { width: 62vw; bottom: 15px; }
+  .interact-button { min-width: 86px; min-height: 58px; padding: 7px 9px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } .arrival-card { animation: none !important; } }
 .reduced-motion *, .reduced-motion *::before, .reduced-motion *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }

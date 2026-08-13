@@ -67,6 +67,31 @@ export function streetArrivalProfile(progress: number, settled: StreetCameraProf
  */
 export const MIN_FOLLOW_DISTANCE = 2.2
 
+/** Below this aspect the phone is portrait and the landscape rig fills the frame with the coat. */
+export const PORTRAIT_ASPECT = 0.82
+/** Pull the third-person rig back so a tall phone shows street, not a wall of coat. */
+export const PORTRAIT_FOLLOW_SCALE = 1.52
+/** Occlusion may not park closer than this on a phone — 2.2 m is a close-up in portrait. */
+export const PORTRAIT_MIN_FOLLOW_DISTANCE = 3.35
+export const PORTRAIT_FOV = 56
+export const LANDSCAPE_FOV = 46
+
+export function isPortraitAspect(aspect: number): boolean {
+  return aspect < PORTRAIT_ASPECT
+}
+
+export function streetFollowScale(aspect: number): number {
+  return isPortraitAspect(aspect) ? PORTRAIT_FOLLOW_SCALE : 1
+}
+
+export function streetMinFollowDistance(aspect: number): number {
+  return isPortraitAspect(aspect) ? PORTRAIT_MIN_FOLLOW_DISTANCE : MIN_FOLLOW_DISTANCE
+}
+
+export function streetFov(aspect: number): number {
+  return isPortraitAspect(aspect) ? PORTRAIT_FOV : LANDSCAPE_FOV
+}
+
 /**
  * When scenery sits between the player and the ideal third-person rig, pull the
  * follow distance in so the avatar stays on screen instead of vanishing behind roofs.

@@ -34,7 +34,15 @@ import {
   Vector3,
   WebGLRenderer,
 } from 'three'
-import { occludedFollowDistance, streetArrivalProfile, streetCameraProfiles, type StreetCameraProfile } from './camera'
+import {
+  occludedFollowDistance,
+  streetArrivalProfile,
+  streetCameraProfiles,
+  streetFollowScale,
+  streetFov,
+  streetMinFollowDistance,
+  type StreetCameraProfile,
+} from './camera'
 import { objectiveDirection, screenRelativeStreetDirection } from './controls'
 import { ATLAS_JOURNEY_PORTION, createRailJourney, RAIL_JOURNEY_SECONDS, REDUCED_MOTION_RAIL_JOURNEY_SECONDS } from './journey'
 import { gentleStreetHeight, isOutsideSphericalBlockers, isOutsideStreetBlockers, isWithinWalkableCap, tangentForward } from './math'
@@ -2764,6 +2772,8 @@ export class GameWorld implements PlayerController {
   private addRavnbroStation(x: number, z: number, _brick: string, _roofColor: string): void {
     const station = kitLoader.create('station-civic')
     const sign = this.createSign(this.save.quest.stationNameRestored ? 'SUNSET LOOP' : '____ ____', this.save.quest.stationNameRestored ? '#f8d34e' : '#efeee2')
+    sign.visible = true
+    sign.userData.placeLabel = false
     sign.position.set(0, 3.05, 1.22)
     station.add(sign)
     this.streetStationSign = sign
@@ -2794,7 +2804,7 @@ export class GameWorld implements PlayerController {
     const glow = new Mesh(new SphereGeometry(0.27, 8, 6), new MeshLambertMaterial({ color: '#f8dc69', emissive: new Color('#f3b34c'), emissiveIntensity: 1, flatShading: true }))
     glow.position.y = 1.28
     marker.add(glow)
-    const labelSprite = this.createSign(label, '#fff5d8', 256, 72)
+    const labelSprite = this.keepSign(this.createSign(label, '#fff5d8', 256, 72))
     labelSprite.scale.set(1.55, 0.43, 1)
     labelSprite.position.y = 1.84
     marker.add(labelSprite)
@@ -2858,7 +2868,7 @@ export class GameWorld implements PlayerController {
     const glow = new Mesh(new SphereGeometry(0.17, 8, 6), new MeshLambertMaterial({ color: '#fff0a7', emissive: new Color(color), emissiveIntensity: 0.9, flatShading: true }))
     glow.position.y = 0.55
     marker.add(glow)
-    const labelSprite = this.createSign(label, '#fff5d8', 228, 64)
+    const labelSprite = this.keepSign(this.createSign(label, '#fff5d8', 228, 64))
     labelSprite.scale.set(1.35, 0.37, 1)
     labelSprite.position.y = 1.02
     marker.add(labelSprite)
@@ -3677,7 +3687,7 @@ export class GameWorld implements PlayerController {
     const glow = new Mesh(new SphereGeometry(0.17, 8, 6), new MeshLambertMaterial({ color: '#d8f2dd', emissive: new Color('#4b9ec2'), emissiveIntensity: 0.9, flatShading: true }))
     glow.position.y = 0.65
     marker.add(glow)
-    const sign = this.createSign(label, '#eff6dc', 190, 52)
+    const sign = this.keepSign(this.createSign(label, '#eff6dc', 190, 52))
     sign.scale.set(1.08, 0.3, 1)
     sign.position.y = 1.12
     marker.add(sign)
@@ -4420,7 +4430,7 @@ export class GameWorld implements PlayerController {
     const glow = new Mesh(new SphereGeometry(0.17, 8, 6), new MeshLambertMaterial({ color: '#ede7ff', emissive: new Color('#8d78bf'), emissiveIntensity: 0.9, flatShading: true }))
     glow.position.y = 0.65
     marker.add(glow)
-    const sign = this.createSign(label, '#f1ebff', 210, 52)
+    const sign = this.keepSign(this.createSign(label, '#f1ebff', 210, 52))
     sign.scale.set(1.18, 0.3, 1)
     sign.position.y = 1.12
     marker.add(sign)
@@ -4893,15 +4903,15 @@ export class GameWorld implements PlayerController {
     // Keep these intentionally short. Canvas labels do not wrap themselves,
     // so long route names used to clip inside their textures and look like an
     // enormous broken sign when the interior camera arrived.
-    const map = this.createSign('SUNSET LOOP  •  ROUTES', '#f8d34e', 620, 125)
+    const map = this.keepSign(this.createSign('SUNSET LOOP  •  ROUTES', '#f8d34e', 620, 125))
     map.position.set(0.7, 3.15, -3.16)
     map.scale.set(3.85, 0.78, 1)
     this.stationInterior.add(map)
-    const harbour = this.createSign('HARBOUR  •  LATER', '#dbe9dd', 350, 70)
+    const harbour = this.keepSign(this.createSign('HARBOUR  •  LATER', '#dbe9dd', 350, 70))
     harbour.position.set(-1.25, 1.86, -3.14)
     harbour.scale.set(2.15, 0.43, 1)
     this.stationInterior.add(harbour)
-    const observatory = this.createSign('MOONHILL  •  LATER', '#dbe9dd', 420, 70)
+    const observatory = this.keepSign(this.createSign('MOONHILL  •  LATER', '#dbe9dd', 420, 70))
     observatory.position.set(1.2, 1.17, -3.14)
     observatory.scale.set(2.35, 0.43, 1)
     this.stationInterior.add(observatory)
@@ -5134,6 +5144,17 @@ export class GameWorld implements PlayerController {
     // test layer 0, so sprites never enter Raycaster and never need camera set.
     sprite.layers.set(GameWorld.LABEL_LAYER)
     sprite.raycast = () => undefined
+    sprite.userData.placeLabel = true
+    // World-space place names read as debug overlay on a phone. Quest markers
+    // and the station board turn visibility back on after they are created.
+    sprite.visible = false
+    return sprite
+  }
+
+  /** Keep a sign visible (station board, quest markers, interior map). */
+  private keepSign(sprite: Sprite): Sprite {
+    sprite.visible = true
+    sprite.userData.placeLabel = false
     return sprite
   }
 
@@ -5144,6 +5165,7 @@ export class GameWorld implements PlayerController {
       sign.material.map?.dispose()
       sign.material.dispose()
       sign.material = replacement.material.clone()
+      sign.visible = true
     }
     replacement.material.dispose()
   }
@@ -5383,12 +5405,27 @@ export class GameWorld implements PlayerController {
       return
     }
     const candidate = this.streetPosition.clone().addScaledVector(this.streetVelocity, delta)
-    if (!isWalkable(candidate)) {
-      this.streetVelocity.set(0, 0, 0)
-      return
+    if (isWalkable(candidate)) {
+      this.streetPosition.copy(candidate)
+    } else {
+      // Slide along walls instead of a hard stop — dead-stop collision is why
+      // the phone capture feels stuck on benches and lamp posts.
+      const alongX = this.streetPosition.clone()
+      alongX.x = candidate.x
+      const alongZ = this.streetPosition.clone()
+      alongZ.z = candidate.z
+      if (isWalkable(alongX)) {
+        this.streetPosition.copy(alongX)
+        this.streetVelocity.z = 0
+      } else if (isWalkable(alongZ)) {
+        this.streetPosition.copy(alongZ)
+        this.streetVelocity.x = 0
+      } else {
+        this.streetVelocity.set(0, 0, 0)
+        return
+      }
     }
-    this.streetPosition.copy(candidate)
-    this.streetForward.lerp(this.streetVelocity.clone().normalize(), Math.min(1, delta * 11)).normalize()
+    this.streetForward.lerp(this.streetVelocity.clone().normalize(), Math.min(1, delta * 14)).normalize()
     if (this.clock.elapsed - this.lastStreetSaveTime >= 0.8) {
       this.lastStreetSaveTime = this.clock.elapsed
       this.persist()
@@ -5401,10 +5438,13 @@ export class GameWorld implements PlayerController {
       this.streetCameraForward.lerp(this.streetForward, Math.min(1, delta * 3.8)).normalize()
     }
     const lookTarget = playerPosition.clone().add(new Vector3(0, profile.lookHeight, 0))
+    // Portrait phones fill the frame with the character at landscape follow
+    // distances. Pull back so the street (not just a coat) is visible.
+    const followDistanceScale = streetFollowScale(this.camera.aspect)
     // Ideal rig sits behind-and-above the player; occlusion may pull it closer.
     const pivot = playerPosition.clone().add(new Vector3(0, Math.max(1.15, profile.lookHeight + 0.25), 0))
     const back = this.streetCameraForward.clone().multiplyScalar(-1)
-    const idealOffset = back.clone().multiplyScalar(profile.followDistance).add(new Vector3(0, profile.height - (pivot.y - playerPosition.y), 0))
+    const idealOffset = back.clone().multiplyScalar(profile.followDistance * followDistanceScale).add(new Vector3(0, profile.height - (pivot.y - playerPosition.y), 0))
     const idealDistance = idealOffset.length()
     const idealDirection = idealDistance > 0.001 ? idealOffset.clone().normalize() : new Vector3(0, 0.35, 1).normalize()
     let blockedDistance: number | undefined
@@ -5413,7 +5453,12 @@ export class GameWorld implements PlayerController {
     } catch {
       blockedDistance = undefined
     }
-    const followDistance = occludedFollowDistance(idealDistance, blockedDistance)
+    const followDistance = occludedFollowDistance(
+      idealDistance,
+      blockedDistance,
+      0.4,
+      streetMinFollowDistance(this.camera.aspect),
+    )
     const cameraPosition = pivot.clone().addScaledVector(idealDirection, followDistance)
     if (snap || this.entryCameraProgress < 0.02) {
       // First frames after Begin: jump off the title orbit onto the street rig.
@@ -5948,6 +5993,7 @@ export class GameWorld implements PlayerController {
     const width = Math.max(this.container.clientWidth, 1)
     const height = Math.max(this.container.clientHeight, 1)
     this.camera.aspect = width / height
+    this.camera.fov = streetFov(this.camera.aspect)
     this.camera.updateProjectionMatrix()
     this.renderer.setSize(width, height, false)
   }

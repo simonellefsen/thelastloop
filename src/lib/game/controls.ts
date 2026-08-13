@@ -22,14 +22,16 @@ export function objectiveDirection(forward: { x: number; z: number }, from: { x:
 }
 
 /** Maps a held screen position into a phone-friendly world direction.
- * The anchor sits where the third-person character is framed, below centre. */
+ * The anchor sits where the third-person character is framed, below centre.
+ * The analog window is wide so a small finger move on a portrait phone still
+ * walks at a usable speed (Messenger-like: hold anywhere, walk that way). */
 export function guideInput(clientX: number, clientY: number, bounds: ScreenBounds): { x: number; y: number } {
   const x = (clientX - bounds.left) / bounds.width - 0.5
   const y = 0.62 - (clientY - bounds.top) / bounds.height
   const distance = Math.hypot(x, y)
-  const deadZone = 0.035
+  const deadZone = 0.028
   if (distance <= deadZone) return { x: 0, y: 0 }
-  const strength = Math.min(1, (distance - deadZone) / 0.28)
+  const strength = Math.min(1, (distance - deadZone) / 0.22)
   return { x: x / distance * strength, y: y / distance * strength }
 }
 

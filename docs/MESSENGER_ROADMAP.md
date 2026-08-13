@@ -314,16 +314,25 @@ pass under honest review.
 
 ## M5 — UI Restraint
 
-Messenger's entire HUD is four icon chips and a speech bubble. Ours is two opaque cards, a route
-banner, an EXPLORE button and floating place-name labels.
+Messenger's entire HUD is four icon chips and a speech bubble. Ours used to be two opaque cards, a
+route banner, a permanently-disabled EXPLORE button and floating place-name labels.
 
-- [ ] **M5.1 Icon chips.** Collapse the quest card into a small chip that opens a sheet on demand.
-- [ ] **M5.2 Kill the floating place-name labels.** `NORTH MARKET WALK` and `LANTERN MAKER` hovering
-      in world space read as debug output. Move names onto drawn signage, shopfronts and platform
-      boards.
+- [x] **M5.1 Icon chips.** The walking HUD is now a single pill (`0/3 Signal box`) that opens the
+      old quest card on tap. Ride/return actions live in that sheet. The empty EXPLORE button is
+      gone — the interact chip only appears when something is in range. Header chips shrink on
+      portrait; the wordmark hides. Touch feedback is a Messenger-like finger halo, not a ring+arrow.
+- [x] **M5.2 Kill the floating place-name labels.** `createSign` now stamps sprites as `placeLabel`
+      and hides them. Station boards, quest markers and interior maps call `keepSign` to stay
+      visible. Shop/lane names (`PARCEL LANE`, `NORTH MARKET WALK`) no longer hover in world space.
+      Drawn signage is still the longer-term home for names.
 - [ ] **M5.3 District title cards.** Chunky display type on entry, as in the `THE FOREST` frame. We
       already have timed arrival cards — this is a restyle, not new plumbing.
-- [ ] **M5.4 Let the world breathe.** Nothing permanently occupying more than ~12% of the frame.
+- [x] **M5.4 Let the world breathe** *(first cut, 2026-08-13 iPhone 17 recordings).* Permanent
+      walking chrome is the three header chips plus the quest pill. The disabled EXPLORE, the
+      "Next: Signal box" cue, the wordmark and the place-name sprites are gone from the walking
+      frame. Portrait follow is now `1.52×` with FOV 56 so the character is no longer a wall of coat.
+      Arrival/journey/station/dialogue cards still take more than 12% when they are on screen —
+      those are moments, not the walking HUD.
 
 ---
 

@@ -2,7 +2,7 @@
   import { onMount } from 'svelte'
   import { GameWorld } from './lib/game/GameWorld'
   import { arrivalCopy } from './lib/game/arrival'
-  import { guidanceRotation, guideInput } from './lib/game/controls'
+  import { guideInput } from './lib/game/controls'
   import { HERO_KIT_IDS, kitLoader } from './lib/game/kit'
   import type { DistrictId, GameHud, PerfSample, QuestState } from './lib/game/types'
   import { isJourneyComplete, sideQuestLabel } from './lib/game/quest'
@@ -21,11 +21,12 @@
   let guideActive = false
   let guideX = 0
   let guideY = 0
-  let guideRotation = 0
   let arrivalDistrict: DistrictId | undefined
   let arrivalNonce = 0
   let arrivalTimer: ReturnType<typeof setTimeout> | undefined
   let titleDistrict: DistrictId = 'hillside'
+  /** Quest sheet stays closed until the player asks — the walking HUD is a chip. */
+  let questOpen = false
   /**
    * `?perf=1` shows the rendering-cost overlay. Gated on the query string rather
    * than on a dev build so it works against a production bundle — which is the
@@ -189,7 +190,6 @@
     game?.setJoystick(input)
     guideX = event.clientX
     guideY = event.clientY
-    guideRotation = guidanceRotation(input)
   }
 
   function beginGuidance(event: PointerEvent) {
@@ -210,12 +210,24 @@
     if (guidingPointer !== event.pointerId) return
     guidingPointer = undefined
     guideActive = false
-    guideRotation = 0
     game?.setJoystick({ x: 0, y: 0 })
   }
 
   function isComplete(quest: QuestState) {
     return quest.stationNameRestored
+  }
+
+  function questChipTitle(state: GameHud): string {
+    if (state.district === 'harbour') return state.quest.harbour === 'complete' ? 'Tide clock restored' : 'Wake the tide clock'
+    if (state.district === 'observatory') return state.quest.observatory === 'complete' ? 'Moon signal restored' : 'Align the moon signal'
+    if (state.quest.stationNameRestored) return 'Sunset Loop restored'
+    return state.objectiveLabel || 'Find the station name'
+  }
+
+  function questChipProgress(state: GameHud): { done: number; total: number } {
+    if (state.district === 'harbour') return { done: state.quest.harbour === 'complete' ? 1 : 0, total: 1 }
+    if (state.district === 'observatory') return { done: state.quest.observatory === 'complete' ? 1 : 0, total: 1 }
+    return { done: state.quest.completedClues.length, total: 3 }
   }
 
   function atlasTrainPoint(progress: number) {
@@ -310,42 +322,57 @@
         <div class="journey-progress" aria-label={`${Math.round(hud.journey.progress * 100)} percent to ${titleWorlds[hud.journey.to].label}`}><span style={`width: ${hud.journey.progress * 100}%`}></span></div>
         <small>The towns are connected by the same little railway.</small>
       </section>
-      {:else if !hud.inStation && hud.district === 'hillside'}
-      <aside class="quest-card">
-        <p class="eyebrow">TONIGHT'S ROUTE</p>
-        <h2>{isComplete(hud.quest) ? 'Sunset Loop restored' : 'Find the station name'}</h2>
-        <ul>
-          {#each ['signal', 'mural', 'bell'] as clue}
-            <li class:done={hud.quest.completedClues.includes(clue as 'signal' | 'mural' | 'bell')}>
-              <span>{hud.quest.completedClues.includes(clue as 'signal' | 'mural' | 'bell') ? '✓' : '○'}</span>
-              {clueLabels[clue]}
-            </li>
-          {/each}
-        </ul>
-        {#if isComplete(hud.quest)}
-          <div class="side-routes">
-            <p class="eyebrow">SIDE ROUTES</p>
-            <p class:done={hud.quest.lantern === 'complete'}><span>{hud.quest.lantern === 'complete' ? '✓' : '○'}</span>{sideQuestLabel('lantern', hud.quest.lantern)}</p>
-            <p class:done={hud.quest.chorus === 'complete'}><span>{hud.quest.chorus === 'complete' ? '✓' : '○'}</span>{sideQuestLabel('chorus', hud.quest.chorus)}</p>
-          </div>
+      {:else if !hud.inStation && !arrivalDistrict}
+      {@const progress = questChipProgress(hud)}
+      <div class="quest-dock">
+        <button
+          class="quest-chip"
+          class:open={questOpen}
+          onclick={() => (questOpen = !questOpen)}
+          aria-expanded={questOpen}
+          aria-label={`${questChipTitle(hud)}${hud.objectiveDirection ? `, ${hud.objectiveDirection}` : ''}`}
+        >
+          <span class="quest-chip-count">{progress.done}/{progress.total}</span>
+          <strong>{questChipTitle(hud)}</strong>
+        </button>
+        {#if questOpen && hud.district === 'hillside'}
+        <aside class="quest-card">
+          <p class="eyebrow">TONIGHT'S ROUTE</p>
+          <h2>{isComplete(hud.quest) ? 'Sunset Loop restored' : 'Find the station name'}</h2>
+          <ul>
+            {#each ['signal', 'mural', 'bell'] as clue}
+              <li class:done={hud.quest.completedClues.includes(clue as 'signal' | 'mural' | 'bell')}>
+                <span>{hud.quest.completedClues.includes(clue as 'signal' | 'mural' | 'bell') ? '✓' : '○'}</span>
+                {clueLabels[clue]}
+              </li>
+            {/each}
+          </ul>
+          {#if isComplete(hud.quest)}
+            <div class="side-routes">
+              <p class="eyebrow">SIDE ROUTES</p>
+              <p class:done={hud.quest.lantern === 'complete'}><span>{hud.quest.lantern === 'complete' ? '✓' : '○'}</span>{sideQuestLabel('lantern', hud.quest.lantern)}</p>
+              <p class:done={hud.quest.chorus === 'complete'}><span>{hud.quest.chorus === 'complete' ? '✓' : '○'}</span>{sideQuestLabel('chorus', hud.quest.chorus)}</p>
+            </div>
+          {/if}
+        </aside>
+        {:else if questOpen && hud.district === 'harbour'}
+        <aside class="quest-card harbour-card">
+          <p class="eyebrow">HARBOUR WORKS</p>
+          <h2>{hud.quest.harbour === 'complete' ? 'Tide clock restored' : 'Wake the tide clock'}</h2>
+          <p class:done={hud.quest.harbour === 'complete'}><span>{hud.quest.harbour === 'complete' ? '✓' : '○'}</span>{sideQuestLabel('harbour', hud.quest.harbour)}</p>
+          <button class="loop-button" onclick={continueRailLoop}>Ride onward · Moonhill</button>
+          <button class="return-button" onclick={returnToStation}>Return to station</button>
+        </aside>
+        {:else if questOpen}
+        <aside class="quest-card observatory-card">
+          <p class="eyebrow">MOONHILL OBSERVATORY</p>
+          <h2>{hud.quest.observatory === 'complete' ? 'Moon signal restored' : 'Align the moon signal'}</h2>
+          <p class:done={hud.quest.observatory === 'complete'}><span>{hud.quest.observatory === 'complete' ? '✓' : '○'}</span>{sideQuestLabel('observatory', hud.quest.observatory)}</p>
+          <button class="loop-button" onclick={continueRailLoop}>Ride onward · Ravnbro</button>
+          <button class="return-button" onclick={returnToStation}>Return to station</button>
+        </aside>
         {/if}
-      </aside>
-      {:else if !hud.inStation && hud.district === 'harbour'}
-      <aside class="quest-card harbour-card">
-        <p class="eyebrow">HARBOUR WORKS</p>
-        <h2>{hud.quest.harbour === 'complete' ? 'Tide clock restored' : 'Wake the tide clock'}</h2>
-        <p class:done={hud.quest.harbour === 'complete'}><span>{hud.quest.harbour === 'complete' ? '✓' : '○'}</span>{sideQuestLabel('harbour', hud.quest.harbour)}</p>
-        <button class="loop-button" onclick={continueRailLoop}>Ride onward · Moonhill</button>
-        <button class="return-button" onclick={returnToStation}>Return to station</button>
-      </aside>
-      {:else if !hud.inStation}
-      <aside class="quest-card observatory-card">
-        <p class="eyebrow">MOONHILL OBSERVATORY</p>
-        <h2>{hud.quest.observatory === 'complete' ? 'Moon signal restored' : 'Align the moon signal'}</h2>
-        <p class:done={hud.quest.observatory === 'complete'}><span>{hud.quest.observatory === 'complete' ? '✓' : '○'}</span>{sideQuestLabel('observatory', hud.quest.observatory)}</p>
-        <button class="loop-button" onclick={continueRailLoop}>Ride onward · Ravnbro</button>
-        <button class="return-button" onclick={returnToStation}>Return to station</button>
-      </aside>
+      </div>
       {:else}
       <aside class="station-panel">
         <p class="eyebrow">SUNSET LOOP STATION</p>
@@ -394,16 +421,17 @@
         {/key}
       {/if}
 
-      {#if !hud.inStation && !hud.journey && guideActive}<div class="touch-guide" style={`left: ${guideX}px; top: ${guideY}px; --guide-turn: ${guideRotation}deg`} aria-hidden="true"><span>↑</span></div>{/if}
+      {#if !hud.inStation && !hud.journey && guideActive}<div class="touch-guide" style={`left: ${guideX}px; top: ${guideY}px`} aria-hidden="true"></div>{/if}
 
-      {#if !hud.inStation && !hud.journey && hud.objectiveLabel}
-        <p class="objective-cue" aria-label={`${hud.objectiveLabel}, ${hud.objectiveDirection}`}>↗ <strong>{hud.objectiveLabel}</strong><span>{hud.objectiveDirection}</span></p>
+      {#if !hud.inStation && !hud.journey && hud.nearbyLabel}
+        <button class="interact-button ready" onclick={interact}>
+          <span>↗</span>
+          {hud.nearbyLabel}
+        </button>
       {/if}
-      {#if !hud.inStation && !hud.journey}<button class="interact-button" class:ready={hud.nearbyLabel !== ''} onclick={interact} disabled={hud.nearbyLabel === ''}>
-        <span>↗</span>
-        {hud.nearbyLabel || 'Explore'}
-      </button>
-      <p class="controls-tip">Hold a finger on the scene to guide your walk. Arrow keys work on desktop.</p>{/if}
+      {#if !hud.inStation && !hud.journey}
+      <p class="controls-tip">Hold a finger on the scene to guide your walk. Arrow keys work on desktop.</p>
+      {/if}
     </section>
   {/if}
 </main>

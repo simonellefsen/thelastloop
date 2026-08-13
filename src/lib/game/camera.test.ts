@@ -1,11 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import {
+  LANDSCAPE_FOV,
   MIN_FOLLOW_DISTANCE,
+  PORTRAIT_FOLLOW_SCALE,
+  PORTRAIT_FOV,
+  PORTRAIT_MIN_FOLLOW_DISTANCE,
   STREET_ARRIVAL_HEIGHT,
   entryCameraProfile,
   occludedFollowDistance,
   streetArrivalProfile,
   streetCameraProfiles,
+  streetFollowScale,
+  streetFov,
+  streetMinFollowDistance,
 } from './camera'
 import { MAX_STREET_CAMERA_HEIGHT, MIN_STREET_EAVES, houseEavesHeight } from './kit/scale'
 
@@ -71,6 +78,25 @@ describe('street camera stays under the frontage eaves', () => {
       expect(profile.height, `${district} rig height`).toBeLessThan(2.4)
       expect(profile.followDistance, `${district} follow`).toBeLessThan(5)
     }
+  })
+})
+
+describe('portrait street framing', () => {
+  it('keeps the landscape follow distance on a wide frame', () => {
+    expect(streetFollowScale(16 / 9)).toBe(1)
+    expect(streetMinFollowDistance(16 / 9)).toBe(MIN_FOLLOW_DISTANCE)
+    expect(streetFov(16 / 9)).toBe(LANDSCAPE_FOV)
+  })
+
+  it('pulls the rig back and widens the lens on a phone', () => {
+    // iPhone 17 portrait is about 9:19.5 (aspect ~0.46). Landscape follow
+    // framed a wall of coat; the phone recording needed more street.
+    expect(streetFollowScale(9 / 19.5)).toBe(PORTRAIT_FOLLOW_SCALE)
+    expect(PORTRAIT_FOLLOW_SCALE).toBeGreaterThan(1.4)
+    expect(streetMinFollowDistance(9 / 19.5)).toBe(PORTRAIT_MIN_FOLLOW_DISTANCE)
+    expect(PORTRAIT_MIN_FOLLOW_DISTANCE).toBeGreaterThan(MIN_FOLLOW_DISTANCE)
+    expect(streetFov(9 / 19.5)).toBe(PORTRAIT_FOV)
+    expect(PORTRAIT_FOV).toBeGreaterThan(LANDSCAPE_FOV)
   })
 })
 
