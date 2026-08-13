@@ -4,7 +4,7 @@
   import { arrivalCopy } from './lib/game/arrival'
   import { guidanceRotation, guideInput } from './lib/game/controls'
   import { HERO_KIT_IDS, kitLoader } from './lib/game/kit'
-  import type { DistrictId, GameHud, QuestState } from './lib/game/types'
+  import type { DistrictId, GameHud, PerfSample, QuestState } from './lib/game/types'
   import { isJourneyComplete, sideQuestLabel } from './lib/game/quest'
 
   let gameHost: HTMLDivElement
@@ -26,6 +26,13 @@
   let arrivalNonce = 0
   let arrivalTimer: ReturnType<typeof setTimeout> | undefined
   let titleDistrict: DistrictId = 'hillside'
+  /**
+   * `?perf=1` shows the rendering-cost overlay. Gated on the query string rather
+   * than on a dev build so it works against a production bundle — which is the
+   * only build whose numbers are worth trusting on a phone.
+   */
+  const showPerf = new URLSearchParams(window.location.search).has('perf')
+  let perf: PerfSample | undefined
   let hud: GameHud = {
     hint: 'Enter the town when you are ready.',
     dialogue: 'A small world remembers every path.',
@@ -69,6 +76,7 @@
           onSound: (enabled) => (soundEnabled = enabled),
           onReducedMotion: (enabled) => (reducedMotion = enabled),
           onError: (message) => (error = message),
+          onPerf: showPerf ? (sample) => (perf = sample) : undefined,
         })
         soundEnabled = game.getSoundEnabled()
         reducedMotion = game.getReducedMotion()
@@ -230,6 +238,20 @@
     onpointercancel={endGuidance}
     onlostpointercapture={endGuidance}
   ></div>
+
+  {#if showPerf && perf}
+    <!--
+      Rendering cost readout (?perf=1). aria-hidden and pointer-events:none so it
+      can never intercept the touch guidance that covers the whole world.
+    -->
+    <aside class="perf" aria-hidden="true">
+      <b>{perf.fps} fps</b><span>{perf.msPerFrame} ms</span>
+      <b>{perf.drawCalls}</b><span>draws</span>
+      <b>{(perf.triangles / 1000).toFixed(1)}k</b><span>tris</span>
+      <b class:throttled={perf.pixelRatio < perf.maxPixelRatio}>{perf.pixelRatio}</b>
+      <span>of {perf.maxPixelRatio} dpr</span>
+    </aside>
+  {/if}
 
   {#if error}
     <section class="unsupported" role="alert">

@@ -234,6 +234,36 @@ Manual:
 4. Player from behind — hair/coat/bag/legs readable
 5. Frame rate acceptable on iPhone Safari (adaptive resolution still active)
 
+### Profiling on a real iPhone
+
+Append `?perf=1` to show a rendering-cost overlay: fps, ms/frame, draw calls, triangles, and the
+live internal pixel ratio against its ceiling. It is gated on the query parameter rather than on a
+dev build **on purpose** — a dev bundle is unminified and slower, so only a production build gives
+numbers worth acting on. With no parameter the callback is absent and the sampler early-returns, so
+it costs nothing.
+
+The pixel-ratio line is the one to watch. `nextRenderResolution` lowers internal density after 45
+sustained frames slower than 1/29 s and only recovers after 240 fast ones, so a value below the
+ceiling (shown amber) means the device is already missing its budget and the adaptive policy is
+compensating.
+
+```bash
+pnpm build
+```
+
+```bash
+pnpm preview --host
+```
+
+`--host` is required: Vite binds to localhost only, so without it the phone cannot reach the Mac.
+Open `http://<your-lan-ip>:4173/?perf=1` on the device.
+
+For a deeper look, Safari Web Inspector profiles the phone over USB — enable Web Inspector on the
+device (Settings → Apps → Safari → Advanced) and web-developer features on the Mac (Safari →
+Settings → Advanced), then Develop → *[device]* → the page. Its **Canvas** tab records WebGL frames
+and its **Timelines** tab shows CPU. If CPU looks fine but frames still miss, the bottleneck is fill
+rate — reach for pixel ratio and shadow-map size, not draw-call work.
+
 ### Verifying from an agent browser pane
 
 An embedded browser pane reports the page as hidden, so `requestAnimationFrame` never

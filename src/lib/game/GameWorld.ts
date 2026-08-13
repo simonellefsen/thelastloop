@@ -58,7 +58,7 @@ import { isCameraPassThrough, kitLoader } from './kit'
 import { Soundscape, soundscapeProfile } from './soundscape'
 import { freshStorySave, readSave, writeSave } from './storage'
 import type { SphericalBlocker, StreetBlocker } from './math'
-import type { ClueId, DistrictId, GameHud, GameSave, PlayerController, RailJourney, SideQuestId, SideQuestStage, WorldInteractable } from './types'
+import type { ClueId, DistrictId, GameHud, GameSave, PerfSample, PlayerController, RailJourney, SideQuestId, SideQuestStage, WorldInteractable } from './types'
 
 const UP = new Vector3(0, 1, 0)
 const PLANET_RADIUS = 10
@@ -73,6 +73,8 @@ export interface GameWorldEvents {
   onSound(enabled: boolean): void
   onReducedMotion(enabled: boolean): void
   onError(message: string): void
+  /** Present only when `?perf=1` asked for the cost overlay; absent costs nothing. */
+  onPerf?(sample: PerfSample): void
 }
 
 interface Clue extends WorldInteractable {
@@ -153,6 +155,8 @@ export class GameWorld implements PlayerController {
   private readonly onVisibilityChange = () => this.handleVisibilityChange()
   private renderPixelRatio = 1
   private maxPixelRatio = 1
+  private perfFrames = 0
+  private perfElapsed = 0
   private slowFrames = 0
   private fastFrames = 0
   private currentNormal = new Vector3()
@@ -5147,9 +5151,36 @@ export class GameWorld implements PlayerController {
       this.updateStreetLife()
       this.soundscape.update(this.clock.elapsed)
       this.renderer.render(this.scene, this.camera)
+      this.samplePerf(frameSeconds)
     } catch (error) {
       console.error('[The Last Loop] frame update failed', error)
     }
+  }
+
+  /**
+   * Average cost over a short window and report it a few times a second.
+   *
+   * Per-frame reporting would make the overlay unreadable and would itself show
+   * up in the measurement; averaging also stops one stalled frame from being
+   * mistaken for a trend. `renderer.info` is read straight after the draw, which
+   * is the only point at which its counts describe the frame just rendered.
+   */
+  private samplePerf(frameSeconds: number): void {
+    if (!this.events.onPerf) return
+    this.perfFrames += 1
+    this.perfElapsed += frameSeconds
+    if (this.perfElapsed < 0.5) return
+    const render = this.renderer.info.render
+    this.events.onPerf({
+      fps: Math.round(this.perfFrames / this.perfElapsed),
+      msPerFrame: Number(((this.perfElapsed / this.perfFrames) * 1000).toFixed(1)),
+      drawCalls: render.calls,
+      triangles: render.triangles,
+      pixelRatio: Number(this.renderPixelRatio.toFixed(2)),
+      maxPixelRatio: Number(this.maxPixelRatio.toFixed(2)),
+    })
+    this.perfFrames = 0
+    this.perfElapsed = 0
   }
 
   private updatePlayer(delta: number): void {

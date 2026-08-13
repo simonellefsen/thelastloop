@@ -94,3 +94,22 @@ export interface RailJourney {
 }
 
 export type RailJourneyPhase = 'atlas' | 'approach'
+
+/**
+ * A rendering-cost snapshot for the `?perf=1` overlay.
+ *
+ * Deliberately reported from inside the frame loop: `renderer.info` counts are
+ * only meaningful per rendered frame, and frame time cannot be sampled from
+ * outside. Gated on the query parameter rather than on a dev build, because the
+ * numbers worth trusting come from a production bundle on a real phone.
+ */
+export interface PerfSample {
+  fps: number
+  msPerFrame: number
+  drawCalls: number
+  triangles: number
+  /** Live internal pixel density, lowered by the adaptive resolution policy. */
+  pixelRatio: number
+  /** Ceiling the adaptive policy is allowed to recover to. */
+  maxPixelRatio: number
+}

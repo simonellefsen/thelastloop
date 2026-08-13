@@ -113,3 +113,33 @@ h1 span { display: inline-block; font-size: .39em; letter-spacing: -.08em; verti
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } .arrival-card { animation: none !important; } }
 .reduced-motion *, .reduced-motion *::before, .reduced-motion *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 .reduced-motion .arrival-card { animation: none !important; }
+
+/*
+ * Rendering cost overlay (?perf=1).
+ *
+ * Sits under the title bar on the left, clear of the quest card (top right),
+ * the route cue (bottom left) and Explore (bottom right). pointer-events:none
+ * matters: the whole world surface is a touch-guidance target, so an overlay
+ * that swallowed taps would break walking on the very device being measured.
+ */
+.perf {
+  position: absolute;
+  top: max(46px, calc(env(safe-area-inset-top) + 34px));
+  left: max(18px, env(safe-area-inset-left));
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 0 6px;
+  align-items: baseline;
+  padding: 6px 9px;
+  border-radius: 5px;
+  background: rgba(18, 40, 45, .72);
+  color: #eafaf4;
+  font: 600 11px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .02em;
+  pointer-events: none;
+  z-index: 30;
+}
+.perf b { justify-self: end; font-weight: 700; }
+.perf span { opacity: .72; font-weight: 500; }
+/* Adaptive resolution has stepped the pixel ratio down — the phone is missing budget. */
+.perf b.throttled { color: #ffc46b; }

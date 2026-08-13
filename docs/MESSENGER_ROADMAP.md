@@ -351,7 +351,12 @@ Runs alongside M1–M5. These are the things that will otherwise block them.
       Visually indistinguishable in a side-by-side from the same position. Note the budget swings
       hard with viewpoint — the same district measured 542 calls in one spot and 2,081 in another —
       so any future target has to be quoted against a named vantage point, not an average.
-      **Still to do:** verify on a real iPhone; that is the number that actually governs.
+
+      **Measuring it:** `?perf=1` shows fps, ms/frame, draw calls, triangles and the live pixel
+      ratio, on a production build. See "Profiling on a real iPhone" in
+      [ART_PIPELINE.md](./ART_PIPELINE.md).
+      **Still to do:** take that reading on a real iPhone; it is the number that actually governs,
+      and every figure in this document is an M2 Max desktop.
 - [ ] **M6.3 Extract district data from `GameWorld.ts`.** 5,786 lines and growing by a pocket per
       commit. Placement should be declarative data so an art pass does not mean editing a monolith.
       This is the main structural risk to every phase above.
