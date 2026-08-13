@@ -268,6 +268,10 @@ changes fill cost and nothing else:
 - **Frame time barely moves** → CPU/draw-call bound. There is fill headroom, and a post pass is
   comparatively cheap.
 
+**Multisampling.** `?aa=0` creates the context without MSAA. Resolve cost and bandwidth scale with
+resolution, so it is a prime suspect on a fill-rate-bound device. At a high pixel ratio the
+downsample already softens edges, so the visual loss is far smaller than it would be at 1x.
+
 **Shadow filtering.** `?shadows=soft|pcf|basic|off` swaps the filter. Soft (the default) costs
 several shadow-map taps for *every lit screen pixel*, so it scales with resolution rather than with
 scene complexity — the first thing to try on a fill-rate-bound device. Note that shadow *map size*

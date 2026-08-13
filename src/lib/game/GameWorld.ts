@@ -41,7 +41,7 @@ import { gentleStreetHeight, isOutsideSphericalBlockers, isOutsideStreetBlockers
 import { nextPassengerIdentity } from './presence'
 import { globalRailRouteWaypoints, globalRailStops, nextGlobalRailStop } from './railway'
 import { restorationLightProfile, type RestorationDistrict } from './restoration'
-import { animationTime, nextRenderResolution, resolveShadowMode, shouldRender, type ShadowMode } from './runtime'
+import { animationTime, nextRenderResolution, resolveAntialias, resolveShadowMode, shouldRender, type ShadowMode } from './runtime'
 import { advanceSideQuest, defaultQuest, isJourneyComplete, resolveClue, unlockHarbour, unlockObservatory } from './quest'
 import {
   addMeshOutline,
@@ -219,7 +219,13 @@ export class GameWorld implements PlayerController {
     this.currentNormal.fromArray(this.save.playerNormal).normalize()
     this.soundscape = new Soundscape(this.save.soundEnabled)
 
-    this.renderer = new WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' })
+    // Multisampling is fixed at context creation, so the ?aa= override has to be
+    // resolved before the renderer exists.
+    this.renderer = new WebGLRenderer({
+      antialias: resolveAntialias(window.location.search),
+      alpha: false,
+      powerPreference: 'high-performance',
+    })
     this.maxPixelRatio = this.resolveMaxPixelRatio()
     this.renderPixelRatio = this.maxPixelRatio
     this.renderer.setPixelRatio(this.renderPixelRatio)

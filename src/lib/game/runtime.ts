@@ -12,6 +12,22 @@ export function shouldRender(visibilityState: DocumentVisibilityState): boolean 
  */
 export type ShadowMode = 'soft' | 'pcf' | 'basic' | 'off'
 
+/**
+ * Multisampling, disabled with `?aa=0`.
+ *
+ * MSAA resolves and their bandwidth scale with resolution, so on a fill-rate-bound
+ * device it is one of the few remaining costs that behaves the way the `dpr`
+ * measurements do. At a high pixel ratio the downsample already softens edges, so
+ * the visual loss from turning it off is much smaller than at 1x.
+ *
+ * Must be decided before the renderer exists — WebGL cannot change multisampling
+ * on an existing context.
+ */
+export function resolveAntialias(search: string): boolean {
+  const value = new URLSearchParams(search).get('aa')
+  return !(value === '0' || value === 'off')
+}
+
 export function resolveShadowMode(search: string): ShadowMode {
   const value = new URLSearchParams(search).get('shadows')
   if (value === '0' || value === 'off') return 'off'

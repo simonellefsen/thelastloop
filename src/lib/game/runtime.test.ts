@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { animationTime, nextRenderResolution, resolveShadowMode, shouldRender } from './runtime'
+import { animationTime, nextRenderResolution, resolveAntialias, resolveShadowMode, shouldRender } from './runtime'
 
 describe('renderer runtime policy', () => {
   it('renders only visible documents', () => {
@@ -39,5 +39,17 @@ describe('shadow mode override', () => {
 
   it('falls back to soft for anything unrecognised', () => {
     expect(resolveShadowMode('?shadows=fancy')).toBe('soft')
+  })
+})
+
+describe('antialias override', () => {
+  it('multisamples by default', () => {
+    expect(resolveAntialias('')).toBe(true)
+    expect(resolveAntialias('?perf=1')).toBe(true)
+  })
+
+  it('turns off for the fill-rate comparison', () => {
+    expect(resolveAntialias('?aa=0')).toBe(false)
+    expect(resolveAntialias('?aa=off')).toBe(false)
   })
 })

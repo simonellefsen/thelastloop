@@ -380,18 +380,31 @@ Runs alongside M1–M5. These are the things that will otherwise block them.
       ~732 inverted-hull shells cost effectively nothing. M1.4 therefore hands back almost no budget,
       and cannot be used to pay for M1.3.
 
-      **The suspect is shadow filtering, added in M1.2.** The two readings only reconcile one way:
-      fill scales hard with resolution, yet the hulls are free. The hulls are `MeshBasicMaterial` —
-      no lighting, no shadow lookup, cheap pixels. Every *lit* pixel is `MeshToonMaterial` running
-      `PCFSoftShadowMap`, which costs several shadow-map taps per fragment. That is a per-screen-pixel
-      cost, which is exactly what scales with `dpr` and exactly what the hull test showed is *not*
-      coming from geometry. `?shadows=soft|pcf|basic|off` swaps the filter so this can be confirmed
-      on the device.
+      **Shadow filtering is not the cost either.** Also tested and rejected, on the same iPad at full
+      density:
 
-      If it is confirmed, the fix is cheap and does not cost the look: `PCFShadowMap` or
-      `BasicShadowMap` keeps the shadows that M1.2 was for, at a fraction of the per-pixel price.
-      Reducing shadow *map size* would not help — that is a fixed cost per frame, not per screen
-      pixel, so it would not scale with `dpr` the way the measurement does.
+      | Setting | fps |
+      | --- | --- |
+      | `shadows=soft` (default) | 36–43 |
+      | `shadows=pcf` | 35–45 |
+      | `shadows=basic` | 35–45 |
+      | `shadows=off` | 40–50 |
+
+      Filter type makes **no difference at all**, so per-fragment shadow taps are not it. Removing
+      shadows entirely buys only ~3 ms, and that is mostly the second geometry pass rather than a
+      per-pixel saving. Roughly 8 ms that scales with resolution remains unexplained; `?aa=0` (MSAA
+      off) is the next candidate, since multisample resolve and its bandwidth scale the same way.
+
+      **On an iPhone 17 the game holds 60 fps regardless of any shadow setting.** So this is an
+      old-device budget question, not a general one. That matters for M1.3: the adaptive resolution
+      policy already exists to trade density for frame rate, so a fullscreen ink pass would stay
+      sharp on current phones and degrade gracefully on a 4-year-old iPad, which is exactly the
+      behaviour that policy was written for.
+
+      **Three hypotheses, three rejections — stop guessing here.** Hulls, shadow filter and shadow
+      pass have all been priced and none explains the resolution-scaling cost. If `?aa=0` does not
+      account for it either, the next step is a real GPU capture (Safari Web Inspector's Canvas
+      timeline), not another flag.
 - [ ] **M6.3 Extract district data from `GameWorld.ts`.** 5,786 lines and growing by a pocket per
       commit. Placement should be declarative data so an art pass does not mean editing a monolith.
       This is the main structural risk to every phase above.
