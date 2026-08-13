@@ -355,8 +355,20 @@ Runs alongside M1–M5. These are the things that will otherwise block them.
       **Measuring it:** `?perf=1` shows fps, ms/frame, draw calls, triangles and the live pixel
       ratio, on a production build. See "Profiling on a real iPhone" in
       [ART_PIPELINE.md](./ART_PIPELINE.md).
-      **Still to do:** take that reading on a real iPhone; it is the number that actually governs,
-      and every figure in this document is an M2 Max desktop.
+
+      **First device reading (iPad mini, ~4 years old):** ~36–43 fps, **23–28 ms/frame**,
+      400–1,200 draws, pixel ratio holding at its 1.65 ceiling, and it *feels* responsive.
+
+      That last part matters more than it looks. The adaptive policy only throttles above
+      **34.5 ms** (29 fps) and only recovers below **19.2 ms** (52 fps), so the device is sitting in
+      the dead band between the two: comfortably clear of degradation, but never a candidate for
+      recovery either. Two consequences:
+
+      - The image is at full density, so the frame cost is honest — nothing is being hidden by a
+        resolution drop.
+      - **Headroom before the picture visibly degrades is only ~6–11 ms.** Crossing 34.5 ms drops
+        the pixel ratio, and since the recovery threshold is 19.2 ms it would not climb back. Any
+        new per-frame cost — M1.3's ink pass above all — has to fit inside that margin.
 - [ ] **M6.3 Extract district data from `GameWorld.ts`.** 5,786 lines and growing by a pocket per
       commit. Placement should be declarative data so an art pass does not mean editing a monolith.
       This is the main structural risk to every phase above.

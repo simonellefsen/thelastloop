@@ -208,7 +208,7 @@ export class GameWorld implements PlayerController {
     this.soundscape = new Soundscape(this.save.soundEnabled)
 
     this.renderer = new WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' })
-    this.maxPixelRatio = Math.min(window.devicePixelRatio || 1, 1.65)
+    this.maxPixelRatio = this.resolveMaxPixelRatio()
     this.renderPixelRatio = this.maxPixelRatio
     this.renderer.setPixelRatio(this.renderPixelRatio)
     this.renderer.outputColorSpace = 'srgb'
@@ -5404,6 +5404,23 @@ export class GameWorld implements PlayerController {
     }
     this.camera.up.copy(UP)
     this.camera.lookAt(lookTarget.clone().addScaledVector(this.streetCameraForward, profile.lookAhead))
+  }
+
+  /**
+   * Internal pixel-density ceiling, with a `?dpr=` override for on-device testing.
+   *
+   * The override answers the one question a frame-time number alone cannot: whether
+   * a device is fill-rate bound or draw-call bound. Halving the pixel ratio changes
+   * only fill cost, so if frame time falls with it the GPU is the constraint and a
+   * fullscreen post pass would be expensive; if frame time barely moves, the cost is
+   * on the CPU and there is fill headroom to spend. Clamped so a stray value cannot
+   * push density above what the display can use.
+   */
+  private resolveMaxPixelRatio(): number {
+    const deviceCeiling = Math.min(window.devicePixelRatio || 1, 1.65)
+    const requested = Number(new URLSearchParams(window.location.search).get('dpr'))
+    if (!Number.isFinite(requested) || requested <= 0) return deviceCeiling
+    return Math.min(deviceCeiling, Math.max(0.5, requested))
   }
 
   /**

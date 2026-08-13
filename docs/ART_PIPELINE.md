@@ -258,6 +258,16 @@ pnpm preview --host
 `--host` is required: Vite binds to localhost only, so without it the phone cannot reach the Mac.
 Open `http://<your-lan-ip>:4173/?perf=1` on the device.
 
+**Is it fill-rate or draw calls?** Frame time alone cannot say, and the answer decides whether a
+fullscreen post pass (M1.3) is affordable. Add `?dpr=` to force the pixel-density ceiling — it
+changes fill cost and nothing else:
+
+- `?perf=1` then `?perf=1&dpr=0.8`, same spot, compare ms/frame.
+- **Frame time falls roughly with the pixel count** → fill-rate bound. Spend on resolution and
+  shadow-map size; a post pass is expensive here.
+- **Frame time barely moves** → CPU/draw-call bound. There is fill headroom, and a post pass is
+  comparatively cheap.
+
 For a deeper look, Safari Web Inspector profiles the phone over USB — enable Web Inspector on the
 device (Settings → Apps → Safari → Advanced) and web-developer features on the Mac (Safari →
 Settings → Advanced), then Develop → *[device]* → the page. Its **Canvas** tab records WebGL frames
