@@ -81,7 +81,12 @@ src/lib/game/
 ### glTF contract
 
 - Format: **glTF 2.0** (`.glb` preferred for one-file drops)
-- Units: **1 unit ≈ 1 metre**; buildings roughly 2.5–4 m tall
+- Units: **1 unit ≈ 1 metre**; street frontages are two-storey, eaves at **4.58 m**
+  (`src/lib/game/kit/scale.ts`)
+- **Camera corridor:** streets need at least **4.2 m** of clear paved width
+  (`MIN_STREET_CORRIDOR_WIDTH`). The follow rig sits 4.25–4.4 m behind the player
+  at ~2.05 m with a 0.42 m probe bundle — a narrower pocket puts flanking eaves
+  into the near frustum.
 - Origin: **bottom centre** of footprint (Y-up), facing **+Z** as the street façade
 - **Characters face +Z too** — the runtime aims a figure with `atan2(dx, dz)`, which points its
   local **+Z** along travel. Blender models drawn facing +Y export to glTF **−Z**, which walks every
@@ -89,6 +94,9 @@ src/lib/game/
   facing whenever a character kit is re-authored.
 - Street frontages must clear the camera: see `src/lib/game/kit/scale.ts` for the eave/camera
   contract, and mirror any change into the exporter's constants.
+- **Long roofs:** if street frontage / lot depth is ≥ 1.45, run the ridge along the street
+  (`roofRidgesAlongStreet` / Blender `along_x`). A wide span sloping to a short ridge reads as a
+  slab from the low camera. Typical houses stay below the ratio and keep a gable to the road.
 - Materials: prefer unlit / simple; runtime will re-skin to cel/toon when needed
 - Naming: `ravnbro-house-cream-01.glb`, `char-player.glb`, `prop-bike-01.glb`
 - License: **original only** (no Marketplace packs, no Messenger rips, no Ribe photo textures)

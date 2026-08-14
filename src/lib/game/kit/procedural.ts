@@ -13,11 +13,12 @@ import {
   addMeshOutline,
   artPalette,
   celMaterial,
+  createFootprintGableRoof,
   createGableRoofGeometry,
   outlineCharacter,
 } from '../style'
 import type { KitCharacterOptions } from './types'
-import { DEFAULT_STOREYS, PLINTH_HEIGHT, ROOF_RISE, STOREY_HEIGHT } from './scale'
+import { DEFAULT_STOREYS, PLINTH_HEIGHT, ROOF_RISE, STOREY_HEIGHT, houseEavesHeight } from './scale'
 
 function outlineMesh(mesh: Mesh, scale = 1.035): void {
   addMeshOutline(mesh, scale)
@@ -70,7 +71,7 @@ export function buildGableHouse(options: {
   outlineMesh(wing, 1.02)
 
   const eavesY = PLINTH_HEIGHT + bodyHeight
-  const roof = new Mesh(createGableRoofGeometry(width + 0.28, ROOF_RISE, depth + 0.28), roofMat)
+  const roof = new Mesh(createFootprintGableRoof(width, depth), roofMat)
   roof.position.y = eavesY
   building.add(roof)
   outlineMesh(roof, 1.015)
@@ -369,31 +370,48 @@ export function buildHarbourWarehouse(): Group {
   const timber = celMaterial(artPalette.timber)
   const glass = celMaterial(artPalette.glass, { side: DoubleSide })
   const doorMaterial = celMaterial(artPalette.door, { side: DoubleSide })
-  const body = new Mesh(new BoxGeometry(3.5, 2.05, 2.25), brick)
-  body.position.y = 1.025
+  const width = 3.6
+  const depth = 2.35
+  const bodyHeight = STOREY_HEIGHT * DEFAULT_STOREYS
+  const eaves = PLINTH_HEIGHT + bodyHeight
+  const plinth = new Mesh(new BoxGeometry(width + 0.14, PLINTH_HEIGHT, depth + 0.14), celMaterial(artPalette.cobbleWarm))
+  plinth.position.y = PLINTH_HEIGHT / 2
+  warehouse.add(plinth)
+  const body = new Mesh(new BoxGeometry(width, bodyHeight, depth), brick)
+  body.position.y = PLINTH_HEIGHT + bodyHeight / 2
   warehouse.add(body)
-  outlineMesh(body, 1.025)
-  const roofMesh = new Mesh(createGableRoofGeometry(3.78, 0.92, 2.48), roof)
-  roofMesh.position.y = 2.05
+  outlineMesh(body, 1.02)
+  const roofMesh = new Mesh(createFootprintGableRoof(width, depth), roof)
+  roofMesh.position.y = eaves
   warehouse.add(roofMesh)
   outlineMesh(roofMesh, 1.02)
-  const loadingDoor = new Mesh(new PlaneGeometry(1.12, 1.24), doorMaterial)
-  loadingDoor.position.set(-0.72, 0.62, 1.14)
+  const frontZ = depth / 2 + 0.02
+  const loadingDoor = new Mesh(new PlaneGeometry(1.2, 1.28), doorMaterial)
+  loadingDoor.position.set(-0.72, PLINTH_HEIGHT + 0.64, frontZ)
   warehouse.add(loadingDoor)
-  for (const x of [0.52, 1.2]) {
-    const frame = new Mesh(new BoxGeometry(0.44, 0.54, 0.07), timber)
-    frame.position.set(x, 1.15, 1.15)
+  for (const x of [0.55, 1.25]) {
+    const frame = new Mesh(new BoxGeometry(0.48, 0.58, 0.07), timber)
+    frame.position.set(x, PLINTH_HEIGHT + 1.05, frontZ + 0.01)
     warehouse.add(frame)
-    const pane = new Mesh(new PlaneGeometry(0.32, 0.4), glass)
-    pane.position.set(x, 1.15, 1.195)
+    const pane = new Mesh(new PlaneGeometry(0.34, 0.42), glass)
+    pane.position.set(x, PLINTH_HEIGHT + 1.05, frontZ + 0.05)
     warehouse.add(pane)
   }
-  const loadingCanopy = new Mesh(new BoxGeometry(1.42, 0.12, 0.48), celMaterial('#d3b46d'))
-  loadingCanopy.position.set(-0.72, 1.46, 1.34)
+  const loadingCanopy = new Mesh(new BoxGeometry(1.5, 0.12, 0.52), celMaterial('#d3b46d'))
+  loadingCanopy.position.set(-0.72, PLINTH_HEIGHT + 1.42, frontZ + 0.22)
   warehouse.add(loadingCanopy)
-  outlineMesh(loadingCanopy, 1.035)
-  const chimney = new Mesh(new BoxGeometry(0.24, 0.7, 0.26), celMaterial('#76433c'))
-  chimney.position.set(1.18, 2.55, -0.24)
+  outlineMesh(loadingCanopy, 1.03)
+  const upperY = PLINTH_HEIGHT + STOREY_HEIGHT + 0.95
+  for (const x of [-1.1, 0, 1.1]) {
+    const frame = new Mesh(new BoxGeometry(0.48, 0.7, 0.07), timber)
+    frame.position.set(x, upperY, frontZ + 0.01)
+    warehouse.add(frame)
+    const pane = new Mesh(new PlaneGeometry(0.34, 0.54), glass)
+    pane.position.set(x, upperY, frontZ + 0.05)
+    warehouse.add(pane)
+  }
+  const chimney = new Mesh(new BoxGeometry(0.26, 0.78, 0.28), celMaterial('#76433c'))
+  chimney.position.set(1.2, eaves + 0.7, -0.24)
   warehouse.add(chimney)
   return warehouse
 }
@@ -433,34 +451,17 @@ export function buildHarbourCrane(): Group {
 
 /** Repair Quay's small workshop, with an awning and stacked repair materials. */
 export function buildHarbourRepairWorkshop(): Group {
-  const workshop = new Group()
-  const brick = celMaterial('#b86750')
-  const slate = celMaterial('#304c54')
-  const timber = celMaterial(artPalette.timber)
-  const doorMaterial = celMaterial(artPalette.door, { side: DoubleSide })
-  const glass = celMaterial(artPalette.glass, { side: DoubleSide })
-  const body = new Mesh(new BoxGeometry(2.5, 1.65, 1.85), brick)
-  body.position.y = 0.825
-  workshop.add(body)
-  outlineMesh(body, 1.025)
-  const roof = new Mesh(createGableRoofGeometry(2.72, 0.76, 2.08), slate)
-  roof.position.y = 1.65
-  workshop.add(roof)
-  outlineMesh(roof, 1.02)
-  const door = new Mesh(new PlaneGeometry(0.92, 1.06), doorMaterial)
-  door.position.set(-0.25, 0.55, 0.931)
-  workshop.add(door)
-  const windowFrame = new Mesh(new BoxGeometry(0.52, 0.56, 0.07), timber)
-  windowFrame.position.set(0.8, 1.12, 0.94)
-  workshop.add(windowFrame)
-  const window = new Mesh(new PlaneGeometry(0.4, 0.42), glass)
-  window.position.set(0.8, 1.12, 0.985)
-  workshop.add(window)
+  const workshop = buildGableHouse({
+    wall: '#b86750',
+    roof: '#304c54',
+    width: 2.6,
+    depth: 1.95,
+  })
   const awning = new Mesh(new BoxGeometry(1.38, 0.12, 0.46), celMaterial('#d3a564'))
-  awning.position.set(-0.22, 1.3, 1.15)
+  awning.position.set(-0.22, PLINTH_HEIGHT + 1.3, 1.18)
   workshop.add(awning)
   const barrel = new Mesh(new CylinderGeometry(0.2, 0.24, 0.5, 7), celMaterial('#8a5a3c'))
-  barrel.position.set(1.18, 0.25, 0.76)
+  barrel.position.set(1.22, 0.25, 0.82)
   workshop.add(barrel)
   return workshop
 }
@@ -499,33 +500,12 @@ export function buildHarbourRepairBoat(): Group {
 
 /** Tidehouse Row's compact working home, with a tide chart window and chimney. */
 export function buildHarbourTidehouse(): Group {
-  const house = new Group()
-  const brick = celMaterial('#ae624b')
-  const slate = celMaterial('#314f56')
-  const timber = celMaterial(artPalette.timber)
-  const doorMaterial = celMaterial(artPalette.door, { side: DoubleSide })
-  const glass = celMaterial(artPalette.glass, { side: DoubleSide })
-  const body = new Mesh(new BoxGeometry(2.22, 1.68, 1.72), brick)
-  body.position.y = 0.84
-  house.add(body)
-  outlineMesh(body, 1.025)
-  const roof = new Mesh(createGableRoofGeometry(2.44, 0.74, 1.94), slate)
-  roof.position.y = 1.68
-  house.add(roof)
-  outlineMesh(roof, 1.02)
-  const door = new Mesh(new PlaneGeometry(0.58, 0.94), doorMaterial)
-  door.position.set(-0.4, 0.5, 0.868)
-  house.add(door)
-  const frame = new Mesh(new BoxGeometry(0.58, 0.62, 0.07), timber)
-  frame.position.set(0.46, 1.0, 0.873)
-  house.add(frame)
-  const window = new Mesh(new PlaneGeometry(0.44, 0.48), glass)
-  window.position.set(0.46, 1.0, 0.918)
-  house.add(window)
-  const chimney = new Mesh(new BoxGeometry(0.2, 0.22, 0.58), celMaterial('#744138'))
-  chimney.position.set(0.64, 2.15, -0.2)
-  house.add(chimney)
-  return house
+  return buildGableHouse({
+    wall: '#ae624b',
+    roof: '#314f56',
+    width: 2.45,
+    depth: 1.85,
+  })
 }
 
 /** Nets drying below a canvas awning give Tidehouse Row a moving-fabric silhouette without animation. */
@@ -533,90 +513,66 @@ export function buildHarbourNetRack(): Group {
   const rack = new Group()
   const timber = celMaterial(artPalette.timber)
   const canvas = celMaterial('#d7cfa8', { side: DoubleSide })
+  const postH = 2.85
   for (const x of [-0.84, 0.84]) {
-    const post = new Mesh(new BoxGeometry(0.1, 1.62, 0.1), timber)
-    post.position.set(x, 0.81, 0)
+    const post = new Mesh(new BoxGeometry(0.1, postH, 0.1), timber)
+    post.position.set(x, postH / 2, 0)
     rack.add(post)
     outlineMesh(post, 1.035)
   }
   const crossbar = new Mesh(new BoxGeometry(1.88, 0.09, 0.09), timber)
-  crossbar.position.y = 1.42
+  crossbar.position.y = 2.62
   rack.add(crossbar)
   for (const [x, colour] of [[-0.48, '#d7c86f'], [0, '#5d9ba0'], [0.48, '#d7c86f']] as Array<[number, string]>) {
-    const net = new Mesh(new PlaneGeometry(0.34, 0.7), celMaterial(colour, { side: DoubleSide }))
-    net.position.set(x, 0.9, 0.045)
+    const net = new Mesh(new PlaneGeometry(0.34, 1.15), celMaterial(colour, { side: DoubleSide }))
+    net.position.set(x, 1.55, 0.045)
     rack.add(net)
   }
   const awning = new Mesh(new BoxGeometry(2.1, 0.1, 0.72), canvas)
-  awning.position.set(0, 1.58, -0.12)
+  awning.position.set(0, 2.8, -0.12)
   rack.add(awning)
   return rack
 }
 
 /** Tide Yard's small net shed, layered with a tideboard and coil of rope. */
 export function buildHarbourTideShed(): Group {
-  const shed = new Group()
-  const timber = celMaterial('#755542')
-  const slate = celMaterial('#3c5559')
-  const doorMaterial = celMaterial('#294b52', { side: DoubleSide })
+  const shed = buildGableHouse({
+    wall: '#755542',
+    roof: '#3c5559',
+    width: 2.05,
+    depth: 1.55,
+  })
   const tidePaint = celMaterial('#d7cfa8', { side: DoubleSide })
   const rope = celMaterial('#c7b48c')
-  const body = new Mesh(new BoxGeometry(1.62, 1.32, 1.14), timber)
-  body.position.y = 0.66
-  shed.add(body)
-  outlineMesh(body, 1.025)
-  const roof = new Mesh(createGableRoofGeometry(1.88, 0.58, 1.38), slate)
-  roof.position.y = 1.32
-  shed.add(roof)
-  outlineMesh(roof, 1.02)
-  const door = new Mesh(new PlaneGeometry(0.58, 0.82), doorMaterial)
-  door.position.set(-0.28, 0.45, 0.576)
-  shed.add(door)
   const tideboard = new Mesh(new PlaneGeometry(0.32, 0.7), tidePaint)
-  tideboard.position.set(0.48, 0.74, 0.58)
+  tideboard.position.set(0.58, PLINTH_HEIGHT + 0.92, 0.8)
   shed.add(tideboard)
-  for (const y of [0.54, 0.72, 0.9]) {
+  for (const y of [0.72, 0.9, 1.08]) {
     const tick = new Mesh(new BoxGeometry(0.15, 0.025, 0.035), rope)
-    tick.position.set(0.48, y, 0.603)
+    tick.position.set(0.58, y, 0.825)
     shed.add(tick)
   }
   const coil = new Mesh(new TorusGeometry(0.19, 0.045, 6, 10), rope)
   coil.rotation.x = Math.PI / 2
-  coil.position.set(0.76, 0.27, 0.59)
+  coil.position.set(0.86, 0.27, 0.78)
   shed.add(coil)
   return shed
 }
 
 /** Rail Shed's brick freight shelter, with a large loading door and lamp bracket. */
 export function buildHarbourRailShed(): Group {
-  const shed = new Group()
-  const brick = celMaterial('#a15b48')
-  const slate = celMaterial('#334e55')
+  const shed = buildGableHouse({
+    wall: '#a15b48',
+    roof: '#334e55',
+    width: 2.55,
+    depth: 1.9,
+  })
   const timber = celMaterial('#694b3b')
-  const doorMaterial = celMaterial('#294c52', { side: DoubleSide })
-  const glass = celMaterial('#dce7dc', { side: DoubleSide })
-  const body = new Mesh(new BoxGeometry(2.24, 1.62, 1.72), brick)
-  body.position.y = 0.81
-  shed.add(body)
-  outlineMesh(body, 1.025)
-  const roof = new Mesh(createGableRoofGeometry(2.52, 0.72, 2.02), slate)
-  roof.position.y = 1.62
-  shed.add(roof)
-  outlineMesh(roof, 1.02)
-  const door = new Mesh(new PlaneGeometry(0.94, 1.0), doorMaterial)
-  door.position.set(-0.28, 0.53, 0.865)
-  shed.add(door)
-  const frame = new Mesh(new BoxGeometry(0.5, 0.54, 0.07), timber)
-  frame.position.set(0.7, 1.06, 0.87)
-  shed.add(frame)
-  const window = new Mesh(new PlaneGeometry(0.38, 0.42), glass)
-  window.position.set(0.7, 1.06, 0.915)
-  shed.add(window)
   const bracket = new Mesh(new BoxGeometry(0.42, 0.06, 0.06), timber)
-  bracket.position.set(-0.28, 1.37, 0.97)
+  bracket.position.set(-0.28, PLINTH_HEIGHT + 1.38, 1.02)
   shed.add(bracket)
   const lamp = new Mesh(new SphereGeometry(0.1, 6, 5), celMaterial('#f5d873'))
-  lamp.position.set(-0.28, 1.23, 1.0)
+  lamp.position.set(-0.28, PLINTH_HEIGHT + 1.24, 1.05)
   shed.add(lamp)
   return shed
 }
@@ -654,69 +610,51 @@ export function buildHarbourPierBeacon(): Group {
   const paint = celMaterial('#e2c45e')
   const iron = celMaterial('#36545a')
   const glow = celMaterial('#fff0a3')
-  const tower = new Mesh(new CylinderGeometry(0.34, 0.48, 2.15, 7), stone)
-  tower.position.y = 1.08
+  const towerH = 5.4
+  const tower = new Mesh(new CylinderGeometry(0.38, 0.56, towerH, 7), stone)
+  tower.position.y = towerH / 2
   beacon.add(tower)
   outlineMesh(tower, 1.03)
-  const band = new Mesh(new CylinderGeometry(0.5, 0.5, 0.24, 7), paint)
-  band.position.y = 1.1
+  const band = new Mesh(new CylinderGeometry(0.58, 0.58, 0.28, 7), paint)
+  band.position.y = 2.4
   beacon.add(band)
-  const roof = new Mesh(new ConeGeometry(0.52, 0.48, 6), iron)
-  roof.position.y = 2.36
+  const roof = new Mesh(new ConeGeometry(0.58, 0.56, 6), iron)
+  roof.position.y = towerH + 0.18
   beacon.add(roof)
   outlineMesh(roof, 1.04)
-  const lamp = new Mesh(new SphereGeometry(0.16, 7, 5), glow)
-  lamp.position.y = 2.09
+  const lamp = new Mesh(new SphereGeometry(0.2, 7, 5), glow)
+  lamp.position.y = towerH - 0.18
   beacon.add(lamp)
   return beacon
 }
 
 /** Chandlery Yard's compact shop, with a broad service window and chimney. */
 export function buildHarbourChandlery(): Group {
-  const shop = new Group()
-  const brick = celMaterial('#a85d49')
-  const slate = celMaterial('#334f55')
-  const doorMaterial = celMaterial('#294d53', { side: DoubleSide })
-  const glass = celMaterial('#dbe8dc', { side: DoubleSide })
-  const body = new Mesh(new BoxGeometry(2.32, 1.7, 1.72), brick)
-  body.position.y = 0.85
-  shop.add(body)
-  outlineMesh(body, 1.025)
-  const roof = new Mesh(createGableRoofGeometry(2.58, 0.74, 2.0), slate)
-  roof.position.y = 1.7
-  shop.add(roof)
-  outlineMesh(roof, 1.02)
-  const door = new Mesh(new PlaneGeometry(0.62, 0.96), doorMaterial)
-  door.position.set(-0.43, 0.5, 0.87)
-  shop.add(door)
-  const frame = new Mesh(new BoxGeometry(0.62, 0.62, 0.07), celMaterial('#6b4c3b'))
-  frame.position.set(0.48, 1.01, 0.875)
-  shop.add(frame)
-  const window = new Mesh(new PlaneGeometry(0.52, 0.52), glass)
-  window.position.set(0.48, 1.01, 0.92)
-  shop.add(window)
-  const chimney = new Mesh(new BoxGeometry(0.25, 0.92, 0.25), celMaterial('#744138'))
-  chimney.position.set(0.64, 2.12, -0.32)
-  shop.add(chimney)
-  return shop
+  return buildGableHouse({
+    wall: '#a85d49',
+    roof: '#334f55',
+    width: 2.5,
+    depth: 1.85,
+  })
 }
 
 /** Three drying sails make Chandlery Yard read as a working outfitter. */
 export function buildHarbourSailRack(): Group {
   const rack = new Group()
   const timber = celMaterial('#6b4c3b')
+  const postH = 2.85
   for (const xOffset of [-0.78, 0.78]) {
-    const post = new Mesh(new BoxGeometry(0.11, 1.68, 0.11), timber)
-    post.position.set(xOffset, 0.84, 0)
+    const post = new Mesh(new BoxGeometry(0.11, postH, 0.11), timber)
+    post.position.set(xOffset, postH / 2, 0)
     rack.add(post)
     outlineMesh(post, 1.035)
   }
   const crossbar = new Mesh(new BoxGeometry(1.82, 0.1, 0.1), timber)
-  crossbar.position.y = 1.47
+  crossbar.position.y = 2.62
   rack.add(crossbar)
   for (const [xOffset, color] of [[-0.42, '#d4c56f'], [0.08, '#6f9c9a'], [0.47, '#d07b55']] as Array<[number, string]>) {
-    const sail = new Mesh(new PlaneGeometry(0.36, 0.82), celMaterial(color, { side: DoubleSide }))
-    sail.position.set(xOffset, 0.98, 0.06)
+    const sail = new Mesh(new PlaneGeometry(0.36, 1.2), celMaterial(color, { side: DoubleSide }))
+    sail.position.set(xOffset, 1.55, 0.06)
     rack.add(sail)
   }
   return rack
@@ -750,31 +688,47 @@ export function buildMoonhillObservatory(): Group {
   const timber = celMaterial(artPalette.timber)
   const doorMaterial = celMaterial(artPalette.door, { side: DoubleSide })
   const glass = celMaterial(artPalette.glass, { side: DoubleSide })
-  const base = new Mesh(new CylinderGeometry(2.15, 2.35, 1.7, 10), stone)
-  base.position.y = 0.85
+  const drumH = houseEavesHeight()
+  const drumR = 2.2
+  const base = new Mesh(new CylinderGeometry(drumR, drumR + 0.18, drumH, 10), stone)
+  base.position.y = drumH / 2
   observatory.add(base)
   outlineMesh(base, 1.02)
-  const dome = new Mesh(new SphereGeometry(2.18, 12, 7, 0, Math.PI * 2, 0, Math.PI / 2), slate)
-  dome.position.y = 1.72
+  const dome = new Mesh(new SphereGeometry(drumR, 12, 7, 0, Math.PI * 2, 0, Math.PI / 2), slate)
+  dome.position.y = drumH
   observatory.add(dome)
   outlineMesh(dome, 1.02)
-  const wing = new Mesh(new BoxGeometry(1.25, 1.05, 1.22), stone)
-  wing.position.set(-1.65, 0.53, -0.2)
+  const wingH = STOREY_HEIGHT * DEFAULT_STOREYS
+  const wing = new Mesh(new BoxGeometry(1.45, wingH, 1.35), stone)
+  wing.position.set(-2.05, PLINTH_HEIGHT + wingH / 2, -0.2)
   observatory.add(wing)
-  const wingRoof = new Mesh(createGableRoofGeometry(1.42, 0.52, 1.4), slate)
-  wingRoof.position.set(-1.65, 1.05, -0.2)
+  const wingRoof = new Mesh(createGableRoofGeometry(1.62, ROOF_RISE, 1.55), slate)
+  wingRoof.position.set(-2.05, PLINTH_HEIGHT + wingH, -0.2)
   observatory.add(wingRoof)
-  const door = new Mesh(new PlaneGeometry(0.72, 1.05), doorMaterial)
-  door.position.set(0, 0.58, 2.18)
+  const door = new Mesh(new PlaneGeometry(0.72, 1.15), doorMaterial)
+  door.position.set(0, 0.62, drumR + 0.03)
   observatory.add(door)
   const windowFrame = new Mesh(new BoxGeometry(0.56, 0.64, 0.07), timber)
-  windowFrame.position.set(-1.65, 0.7, 0.43)
+  windowFrame.position.set(-2.05, PLINTH_HEIGHT + 1.05, 0.5)
   observatory.add(windowFrame)
   const window = new Mesh(new PlaneGeometry(0.42, 0.48), glass)
-  window.position.set(-1.65, 0.7, 0.47)
+  window.position.set(-2.05, PLINTH_HEIGHT + 1.05, 0.55)
   observatory.add(window)
-  const slit = new Mesh(new BoxGeometry(0.14, 0.62, 0.1), celMaterial('#d9c777'))
-  slit.position.set(0.2, 3.12, 0.82)
+  const upperY = PLINTH_HEIGHT + STOREY_HEIGHT + 0.9
+  for (const angle of [-0.45, 0.45]) {
+    const x = Math.sin(angle) * (drumR + 0.02)
+    const z = Math.cos(angle) * (drumR + 0.02)
+    const frame = new Mesh(new BoxGeometry(0.5, 0.7, 0.08), timber)
+    frame.position.set(x, upperY, z)
+    frame.lookAt(x * 2, upperY, z * 2)
+    observatory.add(frame)
+    const pane = new Mesh(new PlaneGeometry(0.36, 0.54), glass)
+    pane.position.set(x * 1.02, upperY, z * 1.02)
+    pane.lookAt(x * 2, upperY, z * 2)
+    observatory.add(pane)
+  }
+  const slit = new Mesh(new BoxGeometry(0.14, 0.72, 0.1), celMaterial('#d9c777'))
+  slit.position.set(0.22, drumH + 1.35, 0.85)
   slit.rotation.z = -0.22
   observatory.add(slit)
   return observatory
@@ -808,35 +762,18 @@ export function buildMoonhillTelescope(): Group {
 
 /** Comet Walk's lookout house, with a weather vane and warm survey window. */
 export function buildMoonhillSkyhouse(): Group {
-  const skyhouse = new Group()
-  const wall = celMaterial('#687977')
-  const slate = celMaterial('#3d496d')
-  const timber = celMaterial(artPalette.timber)
+  const skyhouse = buildGableHouse({
+    wall: '#687977',
+    roof: '#3d496d',
+    width: 2.25,
+    depth: 1.75,
+  })
   const brass = celMaterial('#c9a566')
-  const doorMaterial = celMaterial(artPalette.door, { side: DoubleSide })
-  const glass = celMaterial(artPalette.glass, { side: DoubleSide })
-  const body = new Mesh(new BoxGeometry(1.9, 1.45, 1.48), wall)
-  body.position.y = 0.725
-  skyhouse.add(body)
-  outlineMesh(body, 1.025)
-  const roof = new Mesh(createGableRoofGeometry(2.14, 0.74, 1.72), slate)
-  roof.position.y = 1.45
-  skyhouse.add(roof)
-  outlineMesh(roof, 1.02)
-  const door = new Mesh(new PlaneGeometry(0.58, 0.88), doorMaterial)
-  door.position.set(-0.3, 0.47, 0.746)
-  skyhouse.add(door)
-  const frame = new Mesh(new BoxGeometry(0.5, 0.54, 0.07), timber)
-  frame.position.set(0.43, 0.94, 0.75)
-  skyhouse.add(frame)
-  const window = new Mesh(new PlaneGeometry(0.36, 0.4), glass)
-  window.position.set(0.43, 0.94, 0.795)
-  skyhouse.add(window)
   const vanePost = new Mesh(new CylinderGeometry(0.035, 0.045, 0.92, 5), brass)
-  vanePost.position.set(0.15, 2.0, 0)
+  vanePost.position.set(0.15, houseEavesHeight() + 0.55, 0)
   skyhouse.add(vanePost)
   const vane = new Mesh(new BoxGeometry(0.76, 0.045, 0.09), brass)
-  vane.position.set(0.15, 2.38, 0)
+  vane.position.set(0.15, houseEavesHeight() + 0.95, 0)
   vane.rotation.y = -0.32
   skyhouse.add(vane)
   return skyhouse
@@ -869,61 +806,36 @@ export function buildMoonhillMoonDial(): Group {
 
 /** Small almanac pavilion with an open threshold and oversized weather vane. */
 export function buildMoonhillAlmanacPavilion(): Group {
-  const pavilion = new Group()
-  const wall = celMaterial('#657775')
-  const slate = celMaterial('#414d71')
+  const pavilion = buildGableHouse({
+    wall: '#657775',
+    roof: '#414d71',
+    width: 2.15,
+    depth: 1.65,
+  })
   const brass = celMaterial('#c9a467')
-  const doorMaterial = celMaterial(artPalette.door, { side: DoubleSide })
-  const body = new Mesh(new BoxGeometry(1.7, 1.28, 1.34), wall)
-  body.position.y = 0.64
-  pavilion.add(body)
-  outlineMesh(body, 1.025)
-  const roof = new Mesh(createGableRoofGeometry(1.94, 0.68, 1.58), slate)
-  roof.position.y = 1.28
-  pavilion.add(roof)
-  outlineMesh(roof, 1.02)
-  const door = new Mesh(new PlaneGeometry(0.52, 0.76), doorMaterial)
-  door.position.set(-0.3, 0.42, 0.676)
-  pavilion.add(door)
   const vanePost = new Mesh(new CylinderGeometry(0.035, 0.045, 0.92, 5), brass)
-  vanePost.position.set(0, 2.0, 0)
+  vanePost.position.set(0, houseEavesHeight() + 0.55, 0)
   pavilion.add(vanePost)
   const vane = new Mesh(new BoxGeometry(0.72, 0.05, 0.08), brass)
-  vane.position.set(0, 2.35, 0)
+  vane.position.set(0, houseEavesHeight() + 0.95, 0)
   pavilion.add(vane)
   return pavilion
 }
 
 /** Archive Terrace's small record house, with an oversized star window. */
 export function buildMoonhillStarArchive(): Group {
-  const archive = new Group()
-  const wall = celMaterial('#6e7c7a')
-  const slate = celMaterial('#404c72')
+  const archive = buildGableHouse({
+    wall: '#6e7c7a',
+    roof: '#404c72',
+    width: 2.2,
+    depth: 1.7,
+  })
   const timber = celMaterial('#665047')
-  const doorMaterial = celMaterial('#314f59', { side: DoubleSide })
-  const glass = celMaterial(artPalette.glass, { side: DoubleSide })
-  const body = new Mesh(new BoxGeometry(1.78, 1.38, 1.44), wall)
-  body.position.y = 0.69
-  archive.add(body)
-  outlineMesh(body, 1.025)
-  const roof = new Mesh(createGableRoofGeometry(2.04, 0.63, 1.64), slate)
-  roof.position.y = 1.38
-  archive.add(roof)
-  outlineMesh(roof, 1.02)
-  const door = new Mesh(new PlaneGeometry(0.54, 0.86), doorMaterial)
-  door.position.set(-0.32, 0.46, 0.726)
-  archive.add(door)
-  const frame = new Mesh(new BoxGeometry(0.48, 0.5, 0.07), timber)
-  frame.position.set(0.43, 0.9, 0.73)
-  archive.add(frame)
-  const window = new Mesh(new PlaneGeometry(0.34, 0.36), glass)
-  window.position.set(0.43, 0.9, 0.775)
-  archive.add(window)
   const star = new Mesh(new SphereGeometry(0.07, 6, 5), celMaterial('#d4b669'))
-  star.position.set(0.43, 0.9, 0.81)
+  star.position.set(0.48, PLINTH_HEIGHT + 1.05, 0.9)
   archive.add(star)
   const recordBox = new Mesh(new BoxGeometry(0.38, 0.26, 0.3), timber)
-  recordBox.position.set(0.7, 0.13, 0.74)
+  recordBox.position.set(0.78, 0.13, 0.82)
   archive.add(recordBox)
   return archive
 }
@@ -961,21 +873,22 @@ export function buildMoonhillSkyrailShelter(): Group {
   const shelter = new Group()
   const timber = celMaterial('#665047')
   const slate = celMaterial('#3d4867')
+  const postH = 2.85
   for (const xOffset of [-0.72, 0.72]) {
-    const post = new Mesh(new BoxGeometry(0.11, 1.4, 0.11), timber)
-    post.position.set(xOffset, 0.7, 0)
+    const post = new Mesh(new BoxGeometry(0.11, postH, 0.11), timber)
+    post.position.set(xOffset, postH / 2, 0)
     shelter.add(post)
     outlineMesh(post, 1.035)
   }
-  const canopy = new Mesh(createGableRoofGeometry(1.92, 0.54, 1.44), slate)
-  canopy.position.y = 1.3
+  const canopy = new Mesh(createGableRoofGeometry(1.92, 0.62, 1.44), slate)
+  canopy.position.y = 2.72
   shelter.add(canopy)
   outlineMesh(canopy, 1.02)
   const bench = new Mesh(new BoxGeometry(1.22, 0.14, 0.36), timber)
   bench.position.set(0, 0.47, -0.14)
   shelter.add(bench)
   const timetable = new Mesh(new BoxGeometry(0.42, 0.58, 0.06), celMaterial('#eee9da'))
-  timetable.position.set(0, 0.98, 0.13)
+  timetable.position.set(0, 1.35, 0.13)
   shelter.add(timetable)
   return shelter
 }
@@ -1007,22 +920,17 @@ export function buildMoonhillBaggageTrolley(): Group {
 
 /** Wind Lookout's stout survey shelter with an open, view-facing front. */
 export function buildMoonhillWindShelter(): Group {
-  const shelter = new Group()
-  const timber = celMaterial('#654d42')
-  const slate = celMaterial('#364e5a')
+  const shelter = buildGableHouse({
+    wall: '#654d42',
+    roof: '#364e5a',
+    width: 2.2,
+    depth: 1.6,
+  })
   const inset = celMaterial('#304f54', { side: DoubleSide })
-  const body = new Mesh(new BoxGeometry(1.85, 1.15, 1.25), timber)
-  body.position.y = 0.58
-  shelter.add(body)
-  outlineMesh(body, 1.025)
   const opening = new Mesh(new PlaneGeometry(1.05, 0.72), inset)
-  opening.position.set(0, 0.58, 0.631)
+  opening.position.set(0, PLINTH_HEIGHT + 0.9, 0.83)
   shelter.add(opening)
-  const roof = new Mesh(createGableRoofGeometry(2.12, 0.7, 1.42), slate)
-  roof.position.y = 1.15
-  shelter.add(roof)
-  outlineMesh(roof, 1.02)
-  const bench = new Mesh(new BoxGeometry(1.05, 0.13, 0.32), timber)
+  const bench = new Mesh(new BoxGeometry(1.05, 0.13, 0.32), celMaterial('#654d42'))
   bench.position.set(0, 0.38, -0.18)
   shelter.add(bench)
   return shelter
@@ -1072,38 +980,21 @@ export function buildMoonhillMeteorMarker(): Group {
 
 /** Moonhill's chartmaker has a deep map bay and a small roof lantern. */
 export function buildMoonhillChartmaker(): Group {
-  const shop = new Group()
-  const wall = celMaterial('#687977')
-  const slate = celMaterial('#3d496d')
-  const timber = celMaterial('#665047')
-  const doorMaterial = celMaterial('#315663', { side: DoubleSide })
-  const glass = celMaterial('#dce8dc', { side: DoubleSide })
+  const shop = buildGableHouse({
+    wall: '#687977',
+    roof: '#3d496d',
+    width: 2.45,
+    depth: 1.8,
+  })
   const chart = celMaterial('#e8dec0', { side: DoubleSide })
-  const body = new Mesh(new BoxGeometry(2.22, 1.58, 1.66), wall)
-  body.position.y = 0.79
-  shop.add(body)
-  outlineMesh(body, 1.025)
-  const roof = new Mesh(createGableRoofGeometry(2.5, 0.72, 1.92), slate)
-  roof.position.y = 1.58
-  shop.add(roof)
-  outlineMesh(roof, 1.02)
-  const door = new Mesh(new PlaneGeometry(0.56, 0.92), doorMaterial)
-  door.position.set(-0.48, 0.49, 0.836)
-  shop.add(door)
-  const frame = new Mesh(new BoxGeometry(0.68, 0.66, 0.08), timber)
-  frame.position.set(0.44, 1.03, 0.85)
-  shop.add(frame)
-  const mapBay = new Mesh(new PlaneGeometry(0.55, 0.5), glass)
-  mapBay.position.set(0.44, 1.03, 0.9)
-  shop.add(mapBay)
   const map = new Mesh(new PlaneGeometry(0.32, 0.27), chart)
-  map.position.set(0.44, 1.03, 0.925)
+  map.position.set(0.48, PLINTH_HEIGHT + 1.05, 0.96)
   shop.add(map)
   const awning = new Mesh(new BoxGeometry(1.22, 0.1, 0.44), celMaterial('#8a7db1'))
-  awning.position.set(0.26, 1.38, 1.02)
+  awning.position.set(0.26, PLINTH_HEIGHT + 1.32, 1.12)
   shop.add(awning)
   const lantern = new Mesh(new SphereGeometry(0.095, 6, 5), celMaterial('#d4b669'))
-  lantern.position.set(0, 2.54, 0)
+  lantern.position.set(0, houseEavesHeight() + 0.55, 0)
   shop.add(lantern)
   return shop
 }

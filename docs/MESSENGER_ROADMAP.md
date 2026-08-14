@@ -136,34 +136,35 @@ and `occludedFollowDistance` shortens the follow distance on a hit. Three ways t
       their face. Every character kit is now tagged `cameraPassThrough` in `KitLoader.create` (both
       the glTF and procedural paths), so the tag cannot be missed however an NPC is placed.
       **Remaining half — see M0.4b.**
-- [ ] **M0.4b An NPC standing between camera and player still hides them.** The camera passes
-      through characters geometrically, but they are still drawn. Two candidate fixes, and it is a
-      product call which: alpha-fade a character that comes between camera and player, or give NPCs
-      a collision blocker so the player stops in front of them instead of walking inside them. The
-      second is closer to Messenger and probably the better answer, but it touches quest reachability
-      so it should not be done blind.
+- [x] **M0.4b An NPC standing between camera and player still hides them.** Both halves landed.
+      Standing keepers/wardens now occupy `STREET_NPC_RADIUS` (0.48 m) so the player stops in front
+      of them instead of walking through; talk range stays 1.85–2.0 m, which leaves more than a
+      metre of clearance so no quest is locked behind a body. Anyone on the camera→player segment
+      (including the two Ravnbro walkers) ghosts to 16% opacity and hides their shared outline
+      shell, then restores when they step off the line. The hillside keeper also moved off the
+      hero centreline (`1.72, 2.35`) so the start frame is no longer a hat sitting on the player's
+      head. Helpers live in `npc.ts`.
 - [ ] **M0.5 Hard near-camera cull.** Not currently reproducible — after M0.3/M0.4/M0.6 no frame on
       the walked route put geometry in the camera's face. Keep as a backstop if one shows up; do not
       add the complexity speculatively.
 - [x] **M0.6 Raise `minDistance`** — 1.05 m → `MIN_FOLLOW_DISTANCE` 2.2 m. At a metre from a 1.76 m
       character the avatar fills the screen and the 0.1 m near plane sits inside whatever the camera
       backed into, so the guard was creating the frame it exists to prevent.
-- [ ] **M0.7 Camera-corridor rule for layout.** Streets need clear width for the rig to sit in.
-      Record the minimum in [ART_PIPELINE.md](./ART_PIPELINE.md) so new pockets do not reintroduce
-      this.
-- [ ] **M0.8 Raise Harbour and Moonhill frontages** to the same contract. Their tallest kits are the
-      crane (3.86 m) and the observatory (3.90 m); everything else sits at 1.5–2.7 m against a
-      1.76 m character. Until this lands, `MIN_STREET_EAVES` is a Ravnbro number and the eave
-      invariant is only genuinely enforced there.
-      *Walked and verified 2026-08-12:* Harbour Works has **no occlusion problem** — its buildings
-      are too short to hide anything — but it reads as a model village. The tidehouse is roughly the
-      character's height, and its conifers are still cones on sticks, which fails checklist item 2
-      in [ART_PIPELINE.md](./ART_PIPELINE.md). Raising it is a composition fix, not a bug fix, so it
-      can follow M1.
-- [ ] **M0.10 Roof pitch pass.** Raising the town exposed how shallow the roofs are. The station's
-      long wing needed its ridge turned along the building (`ridgeAlongX` / `along_x`) because a wide
-      span sloping to a short ridge reads as a flat slab from a low camera. Other long kits — rail
-      shed, warehouse, tide shed — likely have the same problem and were not audited.
+- [x] **M0.7 Camera-corridor rule for layout.** Recorded as `MIN_STREET_CORRIDOR_WIDTH` 4.2 m in
+      `kit/scale.ts` and [ART_PIPELINE.md](./ART_PIPELINE.md). That is the Ravnbro hero road: the
+      follow rig sits 4.25–4.4 m behind the player with a 0.42 m probe bundle, so a narrower pocket
+      puts flanking eaves into the near frustum.
+- [x] **M0.8 Raise Harbour and Moonhill frontages** to the same contract. Street houses, sheds and
+      shops now go through `buildGableHouse` (eaves 4.58 m). The warehouse, observatory and pier
+      beacon are custom two-storey / civic-height kits. Open racks and the skyrail shelter lift
+      their canopies above the camera (2.8 m). Tide Garden and Moonhill cone-pines are
+      `tree-broad` at street scale. `MIN_STREET_EAVES` is now a three-district number. Re-export
+      the matching `.glb` files so the loader does not keep serving the doll-house meshes.
+- [x] **M0.10 Roof pitch pass.** `roofRidgesAlongStreet` (aspect ≥ 1.45) turns the ridge along the
+      street so a wide shed is not a shallow triangle. The warehouse and depot cross that line;
+      typical houses keep a gable to the road. `ROOF_RISE` 0.82 → **1.05** so even a short gable
+      reads from the low camera. `createFootprintGableRoof` is the shared helper; the station wing
+      already used the same rule by hand.
 
 **Acceptance:** walk the full hero corridor in desktop landscape and in a narrow lane. The character
 is continuously visible; no frame contains a full-screen roof plane or an outline backface.
@@ -183,9 +184,9 @@ scenery, camera-to-player distance holds between **4.6 m and 5.1 m** across the 
 | Nearest mesh to camera | 0.62 m (keeper's head) | 1.8 m |
 | Range over the walked route | collapsed | **4.6–5.1 m** |
 
-Left to close M0: **M0.4b** (an NPC between camera and player still hides them), **M0.7** (corridor
-width rule), **M0.8** (Harbour/Moonhill frontages), **M0.10** (roof pitch audit). None of these
-reproduce as the reported bug any more; they are the remaining polish and parity work.
+M0 is closed for the reported camera-in-the-roof defect. Remaining M0 items are either
+speculative backstops (M0.5) or already landed. The stranger test now moves to M1's ink
+pass and M3's authored surfaces.
 
 ---
 

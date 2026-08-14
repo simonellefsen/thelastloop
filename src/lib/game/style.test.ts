@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   artPalette,
   celMaterial,
+  createFootprintGableRoof,
   createGableRoofGeometry,
   createPaintTexture,
   getOutlineMaterial,
@@ -10,6 +11,7 @@ import {
   paintKindForColor,
   paintedMaterial,
 } from './style'
+import { roofRidgesAlongStreet } from './kit/scale'
 
 describe('coat customisation', () => {
   it('cycles through every original coat colour', () => {
@@ -47,6 +49,18 @@ describe('art direction tokens', () => {
     const geometry = createGableRoofGeometry(2.4, 0.7, 2.0)
     expect(geometry.attributes.position.count).toBeGreaterThan(6)
     geometry.dispose()
+  })
+
+  it('runs the ridge along the street on long working sheds', () => {
+    expect(roofRidgesAlongStreet(2.85, 2.15)).toBe(false)
+    expect(roofRidgesAlongStreet(3.6, 2.35)).toBe(true)
+    expect(roofRidgesAlongStreet(7.25, 2.45)).toBe(true)
+    const house = createFootprintGableRoof(2.85, 2.15)
+    const shed = createFootprintGableRoof(3.6, 2.35)
+    expect(house.attributes.position.count).toBeGreaterThan(6)
+    expect(shed.attributes.position.count).toBeGreaterThan(6)
+    house.dispose()
+    shed.dispose()
   })
 
   it('caches painted surface textures and classifies ground colours', () => {

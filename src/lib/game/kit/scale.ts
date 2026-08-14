@@ -25,8 +25,21 @@ export const STOREY_HEIGHT = 2.2
 /** Street frontages are two storeys unless a kit asks for more. */
 export const DEFAULT_STOREYS = 2
 
-/** Ridge rise above the eaves on a gable roof. */
-export const ROOF_RISE = 0.82
+/** Ridge rise above the eaves on a gable roof. Steeper than the old 0.82 m so a
+ * low street camera reads a roof, not a slab. */
+export const ROOF_RISE = 1.05
+
+/**
+ * Street-frontage / lot-depth ratio above which the ridge must run along the
+ * street. A wide span sloping to a short ridge is what made the station wing
+ * read as a flat slab (M0.10). Typical houses sit below this and keep a gable
+ * facing the road.
+ */
+export const LONG_ROOF_ASPECT = 1.45
+
+export function roofRidgesAlongStreet(frontage: number, depth: number): boolean {
+  return frontage / Math.max(depth, 0.01) >= LONG_ROOF_ASPECT
+}
 
 /** Height of the eave line — where the wall stops and the roof begins. */
 export function houseEavesHeight(storeys: number = DEFAULT_STOREYS): number {
@@ -55,3 +68,10 @@ export const STREET_CAMERA_EAVE_CLEARANCE = 2.4
  * district's frontage instead of lifting the camera back into the roofs.
  */
 export const MAX_STREET_CAMERA_HEIGHT = MIN_STREET_EAVES - STREET_CAMERA_EAVE_CLEARANCE
+
+/**
+ * Clear paved width the follow camera needs. The Ravnbro hero road is 4.2 m;
+ * the rig sits 4.25–4.4 m behind the player with a 0.42 m probe bundle. A
+ * narrower pocket puts flanking eaves into the near frustum.
+ */
+export const MIN_STREET_CORRIDOR_WIDTH = 4.2

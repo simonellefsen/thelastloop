@@ -52,7 +52,12 @@ SHOE = (0.129, 0.157, 0.169, 1.0)
 PLINTH_HEIGHT = 0.18
 STOREY_HEIGHT = 2.2
 DEFAULT_STOREYS = 2
-ROOF_RISE = 0.82
+ROOF_RISE = 1.05
+LONG_ROOF_ASPECT = 1.45
+
+
+def roof_ridges_along_street(frontage, depth):
+    return frontage / max(depth, 0.01) >= LONG_ROOF_ASPECT
 
 
 def log(msg: str) -> None:
@@ -302,7 +307,8 @@ def build_house(wall, roof, width=2.85, body_h=STOREY_HEIGHT, storeys=DEFAULT_ST
     box(root, "plinth", (width + 0.12, depth + 0.12, PLINTH_HEIGHT), (0, 0, PLINTH_HEIGHT * 0.5), m_cobble)
     box(root, "body", (width, depth, wall_h), (0, 0, PLINTH_HEIGHT + wall_h * 0.5), m_wall)
     box(root, "wing", (width * 0.55, depth * 0.45, wing_h), (width * 0.1, -depth * 0.25, PLINTH_HEIGHT + wing_h * 0.5), m_wall)
-    gable_roof(root, "roof", width + 0.28, depth + 0.28, ROOF_RISE, eaves, m_roof)
+    along = roof_ridges_along_street(width, depth)
+    gable_roof(root, "roof", width + 0.28, depth + 0.28, ROOF_RISE, eaves, m_roof, along_x=along)
     gable_roof(root, "wing_roof", width * 0.62, depth * 0.55, 0.48, PLINTH_HEIGHT + wing_h, m_roof, cx=width * 0.1, cy=-depth * 0.25)
 
     front = depth * 0.5 + 0.03
@@ -466,25 +472,13 @@ def build_laundry():
 
 
 def build_harbour_warehouse():
-    clear_scene()
-    root = new_root("HarbourWarehouse")
-    m_brick = mat("Brick", ROSE_BRICK)
-    m_roof = mat("Roof", (0.188, 0.306, 0.333, 1.0))
-    m_timber = mat("Timber", TIMBER)
-    m_glass = mat("Glass", GLASS)
-    m_door = mat("Door", DOOR)
-    m_canopy = mat("Canopy", (0.827, 0.706, 0.427, 1.0))
-    body_h, depth = 2.05, 2.25
-    box(root, "WarehouseBody", (3.5, depth, body_h), (0, 0, body_h * 0.5), m_brick)
-    gable_roof(root, "WarehouseRoof", 3.78, 2.48, 0.92, body_h, m_roof)
-    front = depth * 0.5 + 0.03
-    plane(root, "LoadingDoor", (1.12, 1.24), (-0.72, front, 0.62), m_door)
-    for x in (0.52, 1.2):
-        box(root, f"WindowFrame_{x}", (0.44, 0.07, 0.54), (x, front, 1.15), m_timber)
-        plane(root, f"Window_{x}", (0.32, 0.4), (x, front + 0.05, 1.15), m_glass)
-    box(root, "LoadingCanopy", (1.42, 0.48, 0.12), (-0.72, front + 0.22, 1.46), m_canopy)
-    box(root, "Chimney", (0.24, 0.26, 0.7), (1.18, -0.24, 2.55), mat("ChimneyBrick", DARK_BRICK))
-    export_root(root, "harbour-warehouse-01.glb")
+    build_house(
+        wall=ROSE_BRICK,
+        roof=(0.188, 0.306, 0.333, 1.0),
+        width=3.6,
+        depth=2.35,
+        filename="harbour-warehouse-01.glb",
+    )
 
 
 def build_harbour_crane():
@@ -509,23 +503,13 @@ def build_harbour_crane():
 
 
 def build_harbour_repair_workshop():
-    clear_scene()
-    root = new_root("RepairWorkshop")
-    m_brick = mat("Brick", (0.722, 0.404, 0.314, 1.0))
-    m_slate = mat("Slate", (0.188, 0.298, 0.329, 1.0))
-    m_timber = mat("Timber", TIMBER)
-    m_door = mat("Door", DOOR)
-    m_glass = mat("Glass", GLASS)
-    body_h, depth = 1.65, 1.85
-    box(root, "WorkshopBody", (2.5, depth, body_h), (0, 0, body_h * 0.5), m_brick)
-    gable_roof(root, "WorkshopRoof", 2.72, 2.08, 0.76, body_h, m_slate)
-    front = depth * 0.5 + 0.03
-    plane(root, "WorkshopDoor", (0.92, 1.06), (-0.25, front, 0.55), m_door)
-    box(root, "WindowFrame", (0.52, 0.07, 0.56), (0.8, front, 1.12), m_timber)
-    plane(root, "Window", (0.4, 0.42), (0.8, front + 0.05, 1.12), m_glass)
-    box(root, "Awning", (1.38, 0.46, 0.12), (-0.22, front + 0.22, 1.3), mat("Awning", (0.827, 0.647, 0.392, 1.0)))
-    cylinder(root, "RepairBarrel", 0.22, 0.5, (1.18, 0.76, 0.25), mat("Barrel", (0.541, 0.353, 0.235, 1.0)), verts=7)
-    export_root(root, "harbour-repair-workshop-01.glb")
+    build_house(
+        wall=(0.722, 0.404, 0.314, 1.0),
+        roof=(0.188, 0.298, 0.329, 1.0),
+        width=2.6,
+        depth=1.95,
+        filename="harbour-repair-workshop-01.glb",
+    )
 
 
 def build_harbour_repair_boat():
@@ -546,22 +530,13 @@ def build_harbour_repair_boat():
 
 
 def build_harbour_tidehouse():
-    clear_scene()
-    root = new_root("Tidehouse")
-    m_brick = mat("Brick", (0.682, 0.384, 0.294, 1.0))
-    m_slate = mat("Slate", (0.192, 0.310, 0.337, 1.0))
-    m_timber = mat("Timber", TIMBER)
-    m_door = mat("Door", DOOR)
-    m_glass = mat("Glass", GLASS)
-    body_h, depth = 1.68, 1.72
-    box(root, "TidehouseBody", (2.22, depth, body_h), (0, 0, body_h * 0.5), m_brick)
-    gable_roof(root, "TidehouseRoof", 2.44, 1.94, 0.74, body_h, m_slate)
-    front = depth * 0.5 + 0.03
-    plane(root, "Door", (0.58, 0.94), (-0.4, front, 0.5), m_door)
-    box(root, "WindowFrame", (0.58, 0.07, 0.62), (0.46, front, 1.0), m_timber)
-    plane(root, "Window", (0.44, 0.48), (0.46, front + 0.05, 1.0), m_glass)
-    box(root, "Chimney", (0.2, 0.22, 0.58), (0.64, -0.2, 2.15), mat("Chimney", DARK_BRICK))
-    export_root(root, "harbour-tidehouse-01.glb")
+    build_house(
+        wall=(0.682, 0.384, 0.294, 1.0),
+        roof=(0.192, 0.310, 0.337, 1.0),
+        width=2.45,
+        depth=1.85,
+        filename="harbour-tidehouse-01.glb",
+    )
 
 
 def build_harbour_net_rack():
@@ -569,58 +544,34 @@ def build_harbour_net_rack():
     root = new_root("NetRack")
     m_timber = mat("Timber", TIMBER)
     m_canvas = mat("Canvas", (0.843, 0.812, 0.659, 1.0))
+    post_h = 2.85
     for x in (-0.84, 0.84):
-        box(root, f"Post_{x}", (0.1, 0.1, 1.62), (x, 0, 0.81), m_timber)
-    box(root, "Crossbar", (1.88, 0.09, 0.09), (0, 0, 1.42), m_timber)
+        box(root, f"Post_{x}", (0.1, 0.1, post_h), (x, 0, post_h * 0.5), m_timber)
+    box(root, "Crossbar", (1.88, 0.09, 0.09), (0, 0, 2.62), m_timber)
     for i, (x, colour) in enumerate([(-0.48, (0.843, 0.784, 0.435, 1.0)), (0, (0.365, 0.608, 0.627, 1.0)), (0.48, (0.843, 0.784, 0.435, 1.0))]):
-        plane(root, f"Net_{i}", (0.34, 0.7), (x, 0.045, 0.9), mat(f"NetMaterial_{i}", colour))
-    box(root, "Awning", (2.1, 0.72, 0.1), (0, -0.12, 1.58), m_canvas)
+        plane(root, f"Net_{i}", (0.34, 1.15), (x, 0.045, 1.55), mat(f"NetMaterial_{i}", colour))
+    box(root, "Awning", (2.1, 0.72, 0.1), (0, -0.12, 2.8), m_canvas)
     export_root(root, "harbour-net-rack-01.glb")
 
 
 def build_harbour_tide_shed():
-    clear_scene()
-    root = new_root("TideShed")
-    m_timber = mat("Timber", (0.459, 0.333, 0.259, 1.0))
-    m_slate = mat("Slate", (0.235, 0.333, 0.349, 1.0))
-    m_door = mat("Door", (0.161, 0.294, 0.322, 1.0))
-    m_board = mat("Tideboard", (0.843, 0.812, 0.659, 1.0))
-    m_rope = mat("Rope", (0.780, 0.706, 0.549, 1.0))
-    body_h, depth = 1.32, 1.14
-    box(root, "TideShedBody", (1.62, depth, body_h), (0, 0, body_h * 0.5), m_timber)
-    gable_roof(root, "TideShedRoof", 1.88, 1.38, 0.58, body_h, m_slate)
-    front = depth * 0.5 + 0.03
-    plane(root, "Door", (0.58, 0.82), (-0.28, front, 0.45), m_door)
-    plane(root, "Tideboard", (0.32, 0.7), (0.48, front + 0.01, 0.74), m_board)
-    for i, z in enumerate((0.54, 0.72, 0.90)):
-        box(root, f"TideTick_{i}", (0.15, 0.035, 0.025), (0.48, front + 0.03, z), m_rope)
-    bpy.ops.mesh.primitive_torus_add(major_radius=0.19, minor_radius=0.045, major_segments=10, minor_segments=6, location=(0.76, front + 0.03, 0.27), rotation=(math.pi / 2, 0, 0))
-    coil = bpy.context.active_object
-    coil.name = "RopeCoil"
-    coil.data.materials.append(m_rope)
-    parent(coil, root)
-    export_root(root, "harbour-tide-shed-01.glb")
+    build_house(
+        wall=(0.459, 0.333, 0.259, 1.0),
+        roof=(0.235, 0.333, 0.349, 1.0),
+        width=2.05,
+        depth=1.55,
+        filename="harbour-tide-shed-01.glb",
+    )
 
 
 def build_harbour_rail_shed():
-    clear_scene()
-    root = new_root("HarbourRailShed")
-    m_brick = mat("Brick", (0.631, 0.357, 0.282, 1.0))
-    m_slate = mat("Slate", (0.200, 0.306, 0.333, 1.0))
-    m_timber = mat("Timber", (0.412, 0.294, 0.231, 1.0))
-    m_door = mat("Door", (0.161, 0.298, 0.322, 1.0))
-    m_glass = mat("Glass", (0.863, 0.906, 0.863, 1.0))
-    m_lamp = mat("Lamp", (0.961, 0.847, 0.451, 1.0))
-    body_h, depth = 1.62, 1.72
-    box(root, "RailShedBody", (2.24, depth, body_h), (0, 0, body_h * 0.5), m_brick)
-    gable_roof(root, "RailShedRoof", 2.52, 2.02, 0.72, body_h, m_slate)
-    front = depth * 0.5 + 0.03
-    plane(root, "LoadingDoor", (0.94, 1.0), (-0.28, front, 0.53), m_door)
-    box(root, "WindowFrame", (0.5, 0.07, 0.54), (0.7, front, 1.06), m_timber)
-    plane(root, "Window", (0.38, 0.42), (0.7, front + 0.05, 1.06), m_glass)
-    box(root, "LampBracket", (0.42, 0.06, 0.06), (-0.28, front + 0.10, 1.37), m_timber)
-    sphere(root, "Lamp", 0.1, (-0.28, front + 0.12, 1.23), m_lamp, scale=(1, 0.45, 1))
-    export_root(root, "harbour-rail-shed-01.glb")
+    build_house(
+        wall=(0.631, 0.357, 0.282, 1.0),
+        roof=(0.200, 0.306, 0.333, 1.0),
+        width=2.55,
+        depth=1.9,
+        filename="harbour-rail-shed-01.glb",
+    )
 
 
 def build_harbour_freight_cart():
@@ -645,45 +596,38 @@ def build_harbour_pier_beacon():
     m_paint = mat("SafetyYellow", (0.886, 0.769, 0.369, 1.0))
     m_iron = mat("Iron", (0.212, 0.329, 0.353, 1.0))
     m_lamp = mat("Lamp", (1.0, 0.941, 0.639, 1.0))
-    cylinder(root, "Tower", 0.34, 2.15, (0, 0, 1.08), m_stone, verts=7)
-    cylinder(root, "SafetyBand", 0.5, 0.24, (0, 0, 1.1), m_paint, verts=7)
-    bpy.ops.mesh.primitive_cone_add(vertices=6, radius1=0.52, radius2=0.0, depth=0.48, location=(0, 0, 2.36))
+    tower_h = 5.4
+    cylinder(root, "Tower", 0.38, tower_h, (0, 0, tower_h * 0.5), m_stone, verts=7)
+    cylinder(root, "SafetyBand", 0.58, 0.28, (0, 0, 2.4), m_paint, verts=7)
+    bpy.ops.mesh.primitive_cone_add(vertices=6, radius1=0.58, radius2=0.0, depth=0.56, location=(0, 0, tower_h + 0.18))
     roof = bpy.context.active_object
     roof.name = "BeaconRoof"
     roof.data.materials.append(m_iron)
     parent(roof, root)
-    sphere(root, "BeaconLamp", 0.16, (0, 0, 2.09), m_lamp, scale=(1, 1, 0.9))
+    sphere(root, "BeaconLamp", 0.2, (0, 0, tower_h - 0.18), m_lamp, scale=(1, 1, 0.9))
     export_root(root, "harbour-pier-beacon-01.glb")
 
 
 def build_harbour_chandlery():
-    clear_scene()
-    root = new_root("Chandlery")
-    m_brick = mat("Brick", (0.659, 0.365, 0.286, 1.0))
-    m_slate = mat("Slate", (0.200, 0.310, 0.333, 1.0))
-    m_timber = mat("Timber", (0.420, 0.298, 0.231, 1.0))
-    m_door = mat("Door", (0.161, 0.302, 0.325, 1.0))
-    m_glass = mat("Glass", (0.859, 0.910, 0.863, 1.0))
-    body_h, depth = 1.7, 1.72
-    box(root, "ChandleryBody", (2.32, depth, body_h), (0, 0, body_h * 0.5), m_brick)
-    gable_roof(root, "ChandleryRoof", 2.58, 2.0, 0.74, body_h, m_slate)
-    front = depth * 0.5 + 0.03
-    plane(root, "Door", (0.62, 0.96), (-0.43, front, 0.5), m_door)
-    box(root, "ServiceWindowFrame", (0.62, 0.07, 0.62), (0.48, front, 1.01), m_timber)
-    plane(root, "ServiceWindow", (0.52, 0.52), (0.48, front + 0.05, 1.01), m_glass)
-    box(root, "Chimney", (0.25, 0.25, 0.92), (0.64, -0.32, 2.12), mat("ChimneyBrick", DARK_BRICK))
-    export_root(root, "harbour-chandlery-01.glb")
+    build_house(
+        wall=(0.659, 0.365, 0.286, 1.0),
+        roof=(0.200, 0.310, 0.333, 1.0),
+        width=2.5,
+        depth=1.85,
+        filename="harbour-chandlery-01.glb",
+    )
 
 
 def build_harbour_sail_rack():
     clear_scene()
     root = new_root("SailRack")
     m_timber = mat("Timber", (0.420, 0.298, 0.231, 1.0))
+    post_h = 2.85
     for i, x in enumerate((-0.78, 0.78)):
-        box(root, f"Post_{i}", (0.11, 0.11, 1.68), (x, 0, 0.84), m_timber)
-    box(root, "Crossbar", (1.82, 0.1, 0.1), (0, 0, 1.47), m_timber)
+        box(root, f"Post_{i}", (0.11, 0.11, post_h), (x, 0, post_h * 0.5), m_timber)
+    box(root, "Crossbar", (1.82, 0.1, 0.1), (0, 0, 2.62), m_timber)
     for i, (x, colour) in enumerate(((-0.42, (0.831, 0.773, 0.435, 1.0)), (0.08, (0.435, 0.612, 0.604, 1.0)), (0.47, (0.816, 0.482, 0.333, 1.0)))):
-        plane(root, f"Sail_{i}", (0.36, 0.82), (x, 0.06, 0.98), mat(f"SailMaterial_{i}", colour))
+        plane(root, f"Sail_{i}", (0.36, 1.2), (x, 0.06, 1.55), mat(f"SailMaterial_{i}", colour))
     export_root(root, "harbour-sail-rack-01.glb")
 
 
@@ -708,15 +652,17 @@ def build_moonhill_observatory():
     m_timber = mat("Timber", TIMBER)
     m_door = mat("Door", DOOR)
     m_glass = mat("Glass", GLASS)
-    cylinder(root, "ObservatoryBase", 2.15, 1.7, (0, 0, 0.85), m_stone, verts=10)
-    hemisphere(root, "ObservatoryDome", 2.18, (0, 0, 1.72), m_slate)
-    # The lower half is hidden inside the cylindrical base after the local lift.
-    box(root, "StudyWing", (1.25, 1.22, 1.05), (-1.65, -0.2, 0.525), m_stone)
-    gable_roof(root, "StudyRoof", 1.42, 1.4, 0.52, 1.05, m_slate, cx=-1.65, cy=-0.2)
-    plane(root, "Door", (0.72, 1.05), (0, 2.18, 0.58), m_door)
-    box(root, "WindowFrame", (0.56, 0.07, 0.64), (-1.65, 0.43, 0.7), m_timber)
-    plane(root, "Window", (0.42, 0.48), (-1.65, 0.47, 0.7), m_glass)
-    slit = box(root, "DomeSlit", (0.14, 0.10, 0.62), (0.2, 0.82, 3.12), mat("BrassSlit", (0.851, 0.780, 0.467, 1.0)))
+    drum_h = PLINTH_HEIGHT + STOREY_HEIGHT * DEFAULT_STOREYS
+    drum_r = 2.2
+    cylinder(root, "ObservatoryBase", drum_r, drum_h, (0, 0, drum_h * 0.5), m_stone, verts=10)
+    hemisphere(root, "ObservatoryDome", drum_r, (0, 0, drum_h), m_slate)
+    wing_h = STOREY_HEIGHT * DEFAULT_STOREYS
+    box(root, "StudyWing", (1.45, 1.35, wing_h), (-2.05, -0.2, PLINTH_HEIGHT + wing_h * 0.5), m_stone)
+    gable_roof(root, "StudyRoof", 1.62, 1.55, 0.82, PLINTH_HEIGHT + wing_h, m_slate, cx=-2.05, cy=-0.2)
+    plane(root, "Door", (0.72, 1.15), (0, drum_r + 0.03, 0.62), m_door)
+    box(root, "WindowFrame", (0.56, 0.07, 0.64), (-2.05, 0.5, PLINTH_HEIGHT + 1.05), m_timber)
+    plane(root, "Window", (0.42, 0.48), (-2.05, 0.55, PLINTH_HEIGHT + 1.05), m_glass)
+    slit = box(root, "DomeSlit", (0.14, 0.10, 0.72), (0.22, 0.85, drum_h + 1.35), mat("BrassSlit", (0.851, 0.780, 0.467, 1.0)))
     slit.rotation_euler[1] = -0.22
     export_root(root, "moonhill-observatory-01.glb")
 
@@ -738,25 +684,13 @@ def build_moonhill_telescope():
 
 
 def build_moonhill_skyhouse():
-    clear_scene()
-    root = new_root("Skyhouse")
-    m_wall = mat("Wall", (0.408, 0.475, 0.467, 1.0))
-    m_slate = mat("Slate", (0.239, 0.286, 0.427, 1.0))
-    m_timber = mat("Timber", TIMBER)
-    m_brass = mat("Brass", (0.788, 0.647, 0.400, 1.0))
-    m_door = mat("Door", DOOR)
-    m_glass = mat("Glass", GLASS)
-    body_h, depth = 1.45, 1.48
-    box(root, "SkyhouseBody", (1.9, depth, body_h), (0, 0, body_h * 0.5), m_wall)
-    gable_roof(root, "SkyhouseRoof", 2.14, 1.72, 0.74, body_h, m_slate)
-    front = depth * 0.5 + 0.03
-    plane(root, "Door", (0.58, 0.88), (-0.3, front, 0.47), m_door)
-    box(root, "WindowFrame", (0.5, 0.07, 0.54), (0.43, front, 0.94), m_timber)
-    plane(root, "Window", (0.36, 0.4), (0.43, front + 0.05, 0.94), m_glass)
-    cylinder(root, "VanePost", 0.04, 0.92, (0.15, 0, 2.0), m_brass, verts=5)
-    vane = box(root, "WeatherVane", (0.76, 0.09, 0.045), (0.15, 0, 2.38), m_brass)
-    vane.rotation_euler[2] = -0.32
-    export_root(root, "moonhill-skyhouse-01.glb")
+    build_house(
+        wall=(0.408, 0.475, 0.467, 1.0),
+        roof=(0.239, 0.286, 0.427, 1.0),
+        width=2.25,
+        depth=1.75,
+        filename="moonhill-skyhouse-01.glb",
+    )
 
 
 def build_moonhill_moon_dial():
@@ -779,40 +713,23 @@ def build_moonhill_moon_dial():
 
 
 def build_moonhill_almanac_pavilion():
-    clear_scene()
-    root = new_root("AlmanacPavilion")
-    m_wall = mat("Wall", (0.396, 0.467, 0.459, 1.0))
-    m_slate = mat("Slate", (0.255, 0.302, 0.443, 1.0))
-    m_brass = mat("Brass", (0.788, 0.647, 0.404, 1.0))
-    m_door = mat("Door", DOOR)
-    body_h, depth = 1.28, 1.34
-    box(root, "PavilionBody", (1.7, depth, body_h), (0, 0, body_h * 0.5), m_wall)
-    gable_roof(root, "PavilionRoof", 1.94, 1.58, 0.68, body_h, m_slate)
-    plane(root, "OpenDoor", (0.52, 0.76), (-0.3, depth * 0.5 + 0.03, 0.42), m_door)
-    cylinder(root, "VanePost", 0.04, 0.92, (0, 0, 2.0), m_brass, verts=5)
-    box(root, "WeatherVane", (0.72, 0.08, 0.05), (0, 0, 2.35), m_brass)
-    export_root(root, "moonhill-almanac-pavilion-01.glb")
+    build_house(
+        wall=(0.396, 0.467, 0.459, 1.0),
+        roof=(0.255, 0.302, 0.443, 1.0),
+        width=2.15,
+        depth=1.65,
+        filename="moonhill-almanac-pavilion-01.glb",
+    )
 
 
 def build_moonhill_star_archive():
-    clear_scene()
-    root = new_root("StarArchive")
-    m_wall = mat("Wall", (0.431, 0.486, 0.478, 1.0))
-    m_slate = mat("Slate", (0.251, 0.298, 0.447, 1.0))
-    m_timber = mat("Timber", (0.400, 0.314, 0.278, 1.0))
-    m_door = mat("Door", (0.192, 0.310, 0.349, 1.0))
-    m_glass = mat("Glass", GLASS)
-    m_star = mat("Star", (0.831, 0.714, 0.412, 1.0))
-    body_h, depth = 1.38, 1.44
-    box(root, "ArchiveBody", (1.78, depth, body_h), (0, 0, body_h * 0.5), m_wall)
-    gable_roof(root, "ArchiveRoof", 2.04, 1.64, 0.63, body_h, m_slate)
-    front = depth * 0.5 + 0.03
-    plane(root, "Door", (0.54, 0.86), (-0.32, front, 0.46), m_door)
-    box(root, "StarWindowFrame", (0.48, 0.07, 0.50), (0.43, front, 0.9), m_timber)
-    plane(root, "StarWindow", (0.34, 0.36), (0.43, front + 0.05, 0.9), m_glass)
-    sphere(root, "StarWindowMark", 0.07, (0.43, front + 0.08, 0.9), m_star, scale=(1, 0.45, 1))
-    box(root, "RecordBox", (0.38, 0.30, 0.26), (0.7, front + 0.03, 0.13), m_timber)
-    export_root(root, "moonhill-star-archive-01.glb")
+    build_house(
+        wall=(0.431, 0.486, 0.478, 1.0),
+        roof=(0.251, 0.298, 0.447, 1.0),
+        width=2.2,
+        depth=1.7,
+        filename="moonhill-star-archive-01.glb",
+    )
 
 
 def build_moonhill_orrery():
@@ -844,11 +761,12 @@ def build_moonhill_skyrail_shelter():
     m_timber = mat("Timber", (0.400, 0.314, 0.278, 1.0))
     m_slate = mat("Slate", (0.239, 0.282, 0.404, 1.0))
     m_board = mat("Timetable", (0.933, 0.914, 0.855, 1.0))
+    post_h = 2.85
     for i, x in enumerate((-0.72, 0.72)):
-        box(root, f"Post_{i}", (0.11, 0.11, 1.4), (x, 0, 0.7), m_timber)
-    gable_roof(root, "ShelterRoof", 1.92, 1.44, 0.54, 1.3, m_slate)
+        box(root, f"Post_{i}", (0.11, 0.11, post_h), (x, 0, post_h * 0.5), m_timber)
+    gable_roof(root, "ShelterRoof", 1.92, 1.44, 0.62, 2.72, m_slate)
     box(root, "Bench", (1.22, 0.36, 0.14), (0, -0.14, 0.47), m_timber)
-    box(root, "Timetable", (0.42, 0.06, 0.58), (0, 0.13, 0.98), m_board)
+    box(root, "Timetable", (0.42, 0.06, 0.58), (0, 0.13, 1.35), m_board)
     export_root(root, "moonhill-skyrail-shelter-01.glb")
 
 
@@ -871,16 +789,13 @@ def build_moonhill_baggage_trolley():
 
 
 def build_moonhill_wind_shelter():
-    clear_scene()
-    root = new_root("WindShelter")
-    m_timber = mat("Timber", (0.396, 0.302, 0.259, 1.0))
-    m_slate = mat("Slate", (0.212, 0.306, 0.353, 1.0))
-    m_inset = mat("OpenFront", (0.188, 0.310, 0.329, 1.0))
-    box(root, "ShelterBody", (1.85, 1.25, 1.15), (0, 0, 0.58), m_timber)
-    plane(root, "OpenFront", (1.05, 0.72), (0, 0.631, 0.58), m_inset)
-    gable_roof(root, "ShelterRoof", 2.12, 1.42, 0.7, 1.15, m_slate)
-    box(root, "LookoutBench", (1.05, 0.32, 0.13), (0, -0.18, 0.38), m_timber)
-    export_root(root, "moonhill-wind-shelter-01.glb")
+    build_house(
+        wall=(0.396, 0.302, 0.259, 1.0),
+        roof=(0.212, 0.306, 0.353, 1.0),
+        width=2.2,
+        depth=1.6,
+        filename="moonhill-wind-shelter-01.glb",
+    )
 
 
 def build_moonhill_star_chart_table():
@@ -913,27 +828,13 @@ def build_moonhill_meteor_marker():
 
 
 def build_moonhill_chartmaker():
-    clear_scene()
-    root = new_root("MoonhillChartmaker")
-    m_wall = mat("Wall", (0.408, 0.475, 0.467, 1.0))
-    m_slate = mat("Slate", (0.239, 0.286, 0.427, 1.0))
-    m_timber = mat("Timber", (0.400, 0.314, 0.278, 1.0))
-    m_door = mat("Door", (0.192, 0.337, 0.388, 1.0))
-    m_glass = mat("Glass", GLASS)
-    m_chart = mat("Map", (0.910, 0.871, 0.753, 1.0))
-    m_awning = mat("VioletAwning", (0.541, 0.490, 0.694, 1.0))
-    m_lantern = mat("Lantern", (0.831, 0.714, 0.412, 1.0))
-    body_h, depth = 1.58, 1.66
-    box(root, "ChartmakerBody", (2.22, depth, body_h), (0, 0, body_h * 0.5), m_wall)
-    gable_roof(root, "ChartmakerRoof", 2.5, 1.92, 0.72, body_h, m_slate)
-    front = depth * 0.5 + 0.03
-    plane(root, "Door", (0.56, 0.92), (-0.48, front, 0.49), m_door)
-    box(root, "MapBayFrame", (0.68, 0.08, 0.66), (0.44, front, 1.03), m_timber)
-    plane(root, "MapBayGlass", (0.55, 0.50), (0.44, front + 0.05, 1.03), m_glass)
-    plane(root, "Map", (0.32, 0.27), (0.44, front + 0.08, 1.03), m_chart)
-    box(root, "VioletAwning", (1.22, 0.44, 0.10), (0.26, front + 0.18, 1.38), m_awning)
-    sphere(root, "RoofLantern", 0.095, (0, 0, 2.54), m_lantern)
-    export_root(root, "moonhill-chartmaker-01.glb")
+    build_house(
+        wall=(0.408, 0.475, 0.467, 1.0),
+        roof=(0.239, 0.286, 0.427, 1.0),
+        width=2.45,
+        depth=1.8,
+        filename="moonhill-chartmaker-01.glb",
+    )
 
 
 def build_moonhill_star_tea_kiosk():

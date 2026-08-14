@@ -17,6 +17,7 @@ import {
   type Object3D,
   type Texture,
 } from 'three'
+import { ROOF_RISE, roofRidgesAlongStreet } from './kit/scale'
 import type { CoatColor } from './types'
 
 export type PaintKind = 'grass' | 'cobble' | 'water' | 'road' | 'plank' | 'plaster'
@@ -247,6 +248,22 @@ export function createGableRoofGeometry(
   if (ridgeAlongX) geometry.rotateY(Math.PI / 2)
   geometry.computeVertexNormals()
   return geometry
+}
+
+/**
+ * Gable for a building footprint. Long street frontages run the ridge along
+ * the road so the low camera sees a slope, not a shallow triangle.
+ */
+export function createFootprintGableRoof(
+  frontage: number,
+  depth: number,
+  rise = ROOF_RISE,
+  overhang = 0.28,
+): BufferGeometry {
+  if (roofRidgesAlongStreet(frontage, depth)) {
+    return createGableRoofGeometry(depth + overhang, rise, frontage + overhang, true)
+  }
+  return createGableRoofGeometry(frontage + overhang, rise, depth + overhang, false)
 }
 
 /** Soft vertical sky gradient for a large inverted sphere. */

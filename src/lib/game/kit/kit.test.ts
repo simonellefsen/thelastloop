@@ -1,8 +1,26 @@
 import { describe, expect, it } from 'vitest'
 import { buildKit, listKitIds, kitRegistry } from './registry'
 import { HERO_KIT_IDS } from './loader'
-import { buildBroadTree, buildCharacterFigure, buildGableHouse, buildStationCivic } from './procedural'
-import { CHARACTER_HEIGHT, MAX_STREET_CAMERA_HEIGHT, houseEavesHeight, houseRidgeHeight } from './scale'
+import {
+  buildBroadTree,
+  buildCharacterFigure,
+  buildGableHouse,
+  buildHarbourChandlery,
+  buildHarbourPierBeacon,
+  buildHarbourRailShed,
+  buildHarbourRepairWorkshop,
+  buildHarbourTideShed,
+  buildHarbourTidehouse,
+  buildHarbourWarehouse,
+  buildMoonhillAlmanacPavilion,
+  buildMoonhillChartmaker,
+  buildMoonhillObservatory,
+  buildMoonhillSkyhouse,
+  buildMoonhillStarArchive,
+  buildMoonhillWindShelter,
+  buildStationCivic,
+} from './procedural'
+import { CHARACTER_HEIGHT, MAX_STREET_CAMERA_HEIGHT, MIN_STREET_CORRIDOR_WIDTH, houseEavesHeight, houseRidgeHeight } from './scale'
 import { Box3, Group, Mesh } from 'three'
 
 describe('art kit registry', () => {
@@ -95,6 +113,32 @@ describe('art kit registry', () => {
       expect(instance).toBeTruthy()
       expect(instance.type === 'Group' || instance.type === 'Object3D' || instance.type === 'Mesh' || true).toBe(true)
     }
+  })
+
+  it('raises Harbour and Moonhill frontages to the street eave contract', () => {
+    const frontages = [
+      buildHarbourWarehouse(),
+      buildHarbourTidehouse(),
+      buildHarbourRepairWorkshop(),
+      buildHarbourChandlery(),
+      buildHarbourRailShed(),
+      buildHarbourTideShed(),
+      buildHarbourPierBeacon(),
+      buildMoonhillObservatory(),
+      buildMoonhillSkyhouse(),
+      buildMoonhillStarArchive(),
+      buildMoonhillAlmanacPavilion(),
+      buildMoonhillChartmaker(),
+      buildMoonhillWindShelter(),
+    ]
+    for (const kit of frontages) {
+      const bounds = new Box3().setFromObject(kit)
+      expect(bounds.max.y, kit.name || kit.type).toBeGreaterThan(houseEavesHeight() - 0.2)
+    }
+  })
+
+  it('records a camera corridor wide enough for the follow rig', () => {
+    expect(MIN_STREET_CORRIDOR_WIDTH).toBeGreaterThanOrEqual(4.2)
   })
 
   it('lists hero kit ids that match Blender export targets', () => {

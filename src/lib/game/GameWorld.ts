@@ -46,6 +46,16 @@ import {
 import { objectiveDirection, screenRelativeStreetDirection } from './controls'
 import { ATLAS_JOURNEY_PORTION, createRailJourney, RAIL_JOURNEY_SECONDS, REDUCED_MOTION_RAIL_JOURNEY_SECONDS } from './journey'
 import { gentleStreetHeight, isOutsideSphericalBlockers, isOutsideStreetBlockers, isWithinWalkableCap, tangentForward } from './math'
+import {
+  HARBOUR_KEEPER_POSITION,
+  HILLSIDE_KEEPER_INTERACT_RADIUS,
+  HILLSIDE_KEEPER_POSITION,
+  MOON_WARDEN_POSITION,
+  STREET_NPC_INTERACT_RADIUS,
+  STREET_NPC_RADIUS,
+  characterOcclusionOpacity,
+  setCharacterOpacity,
+} from './npc'
 import { nextPassengerIdentity } from './presence'
 import { globalRailRouteWaypoints, globalRailStops, nextGlobalRailStop } from './railway'
 import { restorationLightProfile, type RestorationDistrict } from './restoration'
@@ -57,7 +67,7 @@ import {
   artPalette,
   celMaterial,
   coatColors,
-  createGableRoofGeometry,
+  createFootprintGableRoof,
   createSkyGradientTexture,
   getOutlineMaterial,
   nextCoatColor,
@@ -166,6 +176,8 @@ export class GameWorld implements PlayerController {
   private readonly streetLife = new Group()
   private readonly harbourStreetLife = new Group()
   private readonly observatoryStreetLife = new Group()
+  /** Standing NPCs that can sit between the camera and the player. */
+  private readonly streetNpcs: Object3D[] = []
   private readonly resizeObserver: ResizeObserver
   private readonly visualViewport = window.visualViewport
   private readonly onKeyDown = (event: KeyboardEvent) => this.keys.add(event.key.toLowerCase())
@@ -834,7 +846,7 @@ export class GameWorld implements PlayerController {
     this.addRavnbroCoppersmithLane()
     this.addRavnbroNorthMarketWalk()
     this.addSignalYard()
-    this.addFlatKeeper(0, 2.2)
+    this.addFlatKeeper(HILLSIDE_KEEPER_POSITION.x, HILLSIDE_KEEPER_POSITION.z)
     this.addFlatClue('signal', 'Signal box', -7.2, -0.5, 'The brass plate reads: “Every last train returns in a LOOP.”')
     this.addFlatClue('mural', 'Market mural', 7.2, -1.7, 'A faded market mural shows the town under a gold SUNSET.')
     this.addFlatClue('bell', 'Hill bell', 0, -11.2, 'The hill bell rings once: the old sign needs the last word—LOOP.')
@@ -2279,7 +2291,7 @@ export class GameWorld implements PlayerController {
     addMeshOutline(body, 1.03)
 
     // Gable prism reads as Danish street roofing; terracotta family is preferred.
-    const roof = new Mesh(createGableRoofGeometry(width + 0.18, 0.78, depth + 0.22), roofMaterial)
+    const roof = new Mesh(createFootprintGableRoof(width, depth, 0.78, 0.2), roofMaterial)
     roof.position.y = bodyHeight
     building.add(roof)
     addMeshOutline(roof, 1.02)
@@ -2791,6 +2803,7 @@ export class GameWorld implements PlayerController {
     })
     keeper.position.set(x, gentleStreetHeight(x, z), z)
     this.hillsideStreet.add(keeper)
+    this.registerStreetNpc(keeper, x, z, this.streetBlockers)
   }
 
   private addFlatClue(id: ClueId, label: string, x: number, z: number, text: string): void {
@@ -2880,6 +2893,28 @@ export class GameWorld implements PlayerController {
 
   private addStreetBlocker(x: number, z: number, radius: number): void {
     this.streetBlockers.push({ center: new Vector3(x, 0, z), radius })
+  }
+
+  /** Standing people occupy space and can ghost if they cover the player. */
+  private registerStreetNpc(object: Object3D, x: number, z: number, blockers: StreetBlocker[]): void {
+    this.streetNpcs.push(object)
+    blockers.push({ center: new Vector3(x, 0, z), radius: STREET_NPC_RADIUS })
+  }
+
+  /** Ghost anyone standing on the camera→player segment so they cannot hide the avatar. */
+  private fadeOccludingCharacters(playerPosition: Vector3): void {
+    const camera = this.camera.position
+    const chest = { x: playerPosition.x, y: playerPosition.y + 0.95, z: playerPosition.z }
+    const cameraPoint = { x: camera.x, y: camera.y, z: camera.z }
+    const outline = getOutlineMaterial()
+    const fade = (object: Object3D) => {
+      const mid = { x: object.position.x, y: object.position.y + 0.9, z: object.position.z }
+      setCharacterOpacity(object, characterOcclusionOpacity(cameraPoint, chest, mid), outline)
+    }
+    for (const npc of this.streetNpcs) fade(npc)
+    for (const child of this.streetLife.children) {
+      if (child.userData.kind === 'walker') fade(child)
+    }
   }
 
   private addFlatStreetFurniture(): void {
@@ -3033,7 +3068,7 @@ export class GameWorld implements PlayerController {
     this.harbourStreet.add(warehouseGroup)
     const warehouseSign = this.createSign('HARBOUR WORKS', '#f4d46a', 260, 58)
     warehouseSign.scale.set(1.5, 0.34, 1)
-    warehouseSign.position.set(-4.05, harbourStreetHeight(-4.05, -0.7) + 3.15, -0.7)
+    warehouseSign.position.set(-4.05, harbourStreetHeight(-4.05, -0.7) + 4.15, -0.7)
     this.harbourStreet.add(warehouseSign)
     const crane = kitLoader.create('harbour-crane')
     crane.position.set(4.35, harbourStreetHeight(4.35, -4.8), -4.8)
@@ -3059,7 +3094,7 @@ export class GameWorld implements PlayerController {
     this.addHarbourChandleryYard()
     this.addHarbourTidehouseRow()
     this.addHarbourTideClockLights()
-    this.addHarbourDockKeeper(-0.9, -6.35)
+    this.addHarbourDockKeeper(HARBOUR_KEEPER_POSITION.x, HARBOUR_KEEPER_POSITION.z)
     this.addHarbourStreetMarker('harbour-valve', 'Tide valve', 'first', -5.6, -3.5, 'A blue tide valve clicks free. The dock pump can hear the sea again.')
     this.addHarbourStreetMarker('harbour-pump', 'Wake clock', 'second', 1.55, -8.0, 'The tide clock turns once, then keeps time with the water. The harbour breathes again.')
     this.harbourStreetBlockers.push({ center: new Vector3(-4.05, 0, -0.7), radius: 2.05 }, { center: new Vector3(4.35, 0, -4.8), radius: 0.72 })
@@ -3301,7 +3336,7 @@ export class GameWorld implements PlayerController {
     const shed = kitLoader.create('harbour-rail-shed')
     const shedSign = this.createSign('RAIL SHED', '#f3e9d0', 180, 46)
     shedSign.scale.set(1.0, 0.28, 1)
-    shedSign.position.set(0, 1.92, 0.88)
+    shedSign.position.set(0, 3.15, 0.98)
     shed.add(shedSign)
     shed.position.set(7.82, harbourStreetHeight(7.82, 7.32), 7.32)
     this.harbourStreet.add(shed)
@@ -3439,21 +3474,12 @@ export class GameWorld implements PlayerController {
     this.harbourStreet.add(this.createHarbourStreetSurface(4.05, 4.55, -6.1, 4.98, '#83a96f', 0.135))
     const gardenStone = new MeshLambertMaterial({ color: '#b9aa82', flatShading: true })
     const timber = new MeshLambertMaterial({ color: '#70503d', flatShading: true })
-    const leaf = new MeshLambertMaterial({ color: '#4f8b62', flatShading: true })
-    const darkLeaf = new MeshLambertMaterial({ color: '#376d56', flatShading: true })
-    for (const [x, z, scale] of [[-7.72, 4.25, 0.82], [-4.72, 5.62, 0.68]] as Array<[number, number, number]>) {
-      const tree = new Group()
-      const trunk = new Mesh(new CylinderGeometry(0.1, 0.15, 1.05 * scale, 5), timber)
-      trunk.position.y = 0.52 * scale
-      trunk.rotation.z = x < -6 ? -0.18 : 0.14
-      tree.add(trunk)
-      const crown = new Mesh(new ConeGeometry(0.9 * scale, 1.75 * scale, 6), x < -6 ? darkLeaf : leaf)
-      crown.position.set(0.12 * (x < -6 ? -1 : 1), 1.56 * scale, 0)
-      crown.rotation.z = trunk.rotation.z
-      tree.add(crown)
+    for (const [x, z, scale] of [[-7.72, 4.25, 1.85], [-4.72, 5.62, 1.65]] as Array<[number, number, number]>) {
+      const tree = kitLoader.create('tree-broad')
+      tree.scale.setScalar(scale)
       tree.position.set(x, harbourStreetHeight(x, z), z)
       this.harbourStreet.add(tree)
-      this.addHarbourStreetBlocker(x, z, 0.72 * scale)
+      this.addHarbourStreetBlocker(x, z, 0.78)
     }
 
     const bench = new Group()
@@ -3533,7 +3559,7 @@ export class GameWorld implements PlayerController {
     const shop = kitLoader.create('harbour-chandlery')
     const shopSign = this.createSign('CHANDLERY', '#f4ebd1', 190, 46)
     shopSign.scale.set(1.05, 0.27, 1)
-    shopSign.position.set(0, 1.95, 0.88)
+    shopSign.position.set(0, 3.15, 0.95)
     shop.add(shopSign)
     shop.position.set(shopX, harbourStreetHeight(shopX, shopZ), shopZ)
     this.harbourStreet.add(shop)
@@ -3601,7 +3627,7 @@ export class GameWorld implements PlayerController {
     const tidehouse = kitLoader.create('harbour-tidehouse')
     const houseSign = this.createSign('TIDEHOUSE', '#f2ead1', 180, 46)
     houseSign.scale.set(1.0, 0.28, 1)
-    houseSign.position.set(0, 1.9, 0.88)
+    houseSign.position.set(0, 3.15, 0.95)
     tidehouse.add(houseSign)
     tidehouse.position.set(-7.72, harbourStreetHeight(-7.72, 9.4), 9.4)
     this.harbourStreet.add(tidehouse)
@@ -3664,7 +3690,7 @@ export class GameWorld implements PlayerController {
     addMeshOutline(apron, 1.06)
     keeper.position.set(x, harbourStreetHeight(x, z), z)
     this.harbourStreet.add(keeper)
-    this.addHarbourStreetBlocker(x, z, 0.38)
+    this.registerStreetNpc(keeper, x, z, this.harbourStreetBlockers)
   }
 
   private createHarbourStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number): Mesh {
@@ -3760,7 +3786,7 @@ export class GameWorld implements PlayerController {
     const dome = kitLoader.create('moonhill-observatory')
     const domeSign = this.createSign('MOONHILL', '#f0dc83', 250, 58)
     domeSign.scale.set(1.42, 0.34, 1)
-    domeSign.position.set(0, 3.18, 2.22)
+    domeSign.position.set(0, 3.7, 2.24)
     dome.add(domeSign)
     dome.position.set(0, observatoryStreetHeight(0, -7.35), -7.35)
     this.observatoryStreet.add(dome)
@@ -3802,17 +3828,12 @@ export class GameWorld implements PlayerController {
       this.observatoryStreet.add(wall)
       this.addObservatoryStreetBlocker(x, -5.5, 0.45)
     }
-    for (const [x, z, height] of [[-7.6, -0.4, 2.4], [5.6, -1.4, 2.1], [-4.8, -9.4, 2.6], [4.6, -9.6, 2.25]] as Array<[number, number, number]>) {
-      const pine = new Group()
-      const trunk = new Mesh(new CylinderGeometry(0.1, 0.15, height * 0.38, 5), new MeshLambertMaterial({ color: '#55443d', flatShading: true }))
-      trunk.position.y = height * 0.19
-      pine.add(trunk)
-      const crown = new Mesh(new ConeGeometry(height * 0.32, height, 6), new MeshLambertMaterial({ color: '#355f59', flatShading: true }))
-      crown.position.y = height * 0.72
-      pine.add(crown)
-      pine.position.set(x, observatoryStreetHeight(x, z), z)
-      this.observatoryStreet.add(pine)
-      this.addObservatoryStreetBlocker(x, z, 0.62)
+    for (const [x, z, scale] of [[-7.6, -0.4, 1.95], [5.6, -1.4, 1.75], [-4.8, -9.4, 2.1], [4.6, -9.6, 1.85]] as Array<[number, number, number]>) {
+      const tree = kitLoader.create('tree-broad')
+      tree.scale.setScalar(scale)
+      tree.position.set(x, observatoryStreetHeight(x, z), z)
+      this.observatoryStreet.add(tree)
+      this.addObservatoryStreetBlocker(x, z, 0.78)
     }
     this.addMoonhillLookout()
     this.addMoonhillArchiveTerrace()
@@ -3826,7 +3847,7 @@ export class GameWorld implements PlayerController {
     this.addMoonhillCometWalk()
     this.addMoonhillSpringCrossingAndHighStreet()
     this.addMoonhillSignalLights()
-    this.addMoonhillWarden(-2.55, -1.5)
+    this.addMoonhillWarden(MOON_WARDEN_POSITION.x, MOON_WARDEN_POSITION.z)
     this.addObservatoryStreetMarker('observatory-lens', 'Starlight lens', 'first', -5.5, -2.2, 'A starlight lens rests beside the hill path. The telescope can see again.')
     this.addObservatoryStreetMarker('observatory-scope', 'Align scope', 'second', 1.5, -3.85, 'The moon signal crosses the glass. Every faraway station gets one clear night.')
     this.updateSideQuestMarkers()
@@ -3903,7 +3924,7 @@ export class GameWorld implements PlayerController {
     const archive = kitLoader.create('moonhill-star-archive')
     const archiveSign = this.createSign('STAR ARCHIVE', '#eee8d1', 190, 46)
     archiveSign.scale.set(1.06, 0.28, 1)
-    archiveSign.position.set(0, 1.72, 0.735)
+    archiveSign.position.set(0, 3.15, 0.88)
     archive.add(archiveSign)
     archive.position.set(7.15, observatoryStreetHeight(7.15, -8.0), -8.0)
     this.observatoryStreet.add(archive)
@@ -4026,7 +4047,7 @@ export class GameWorld implements PlayerController {
     const shelter = kitLoader.create('moonhill-skyrail-shelter')
     const shelterSign = this.createSign('SKYRAIL', '#eee9da', 155, 42)
     shelterSign.scale.set(0.86, 0.24, 1)
-    shelterSign.position.set(0, 1.44, 0.2)
+    shelterSign.position.set(0, 2.35, 0.2)
     shelter.add(shelterSign)
     shelter.position.set(-7.15, observatoryStreetHeight(-7.15, 7.12), 7.12)
     this.observatoryStreet.add(shelter)
@@ -4131,7 +4152,7 @@ export class GameWorld implements PlayerController {
     const pavilion = kitLoader.create('moonhill-almanac-pavilion')
     const pavilionSign = this.createSign('ALMANAC', '#eee9d6', 145, 42)
     pavilionSign.scale.set(0.82, 0.23, 1)
-    pavilionSign.position.set(0.15, 1.53, 0.69)
+    pavilionSign.position.set(0.15, 3.15, 0.86)
     pavilion.add(pavilionSign)
     pavilion.position.set(7.45, observatoryStreetHeight(7.45, 8.78), 8.78)
     this.observatoryStreet.add(pavilion)
@@ -4204,7 +4225,7 @@ export class GameWorld implements PlayerController {
     const skyhouse = kitLoader.create('moonhill-skyhouse')
     const sign = this.createSign('SKYHOUSE', '#eee9d8', 158, 42)
     sign.scale.set(0.88, 0.24, 1)
-    sign.position.set(0, 1.67, 0.755)
+    sign.position.set(0, 3.15, 0.9)
     skyhouse.add(sign)
     skyhouse.position.set(skyhouseX, observatoryStreetHeight(skyhouseX, skyhouseZ), skyhouseZ)
     this.observatoryStreet.add(skyhouse)
@@ -4313,7 +4334,7 @@ export class GameWorld implements PlayerController {
     const chartmaker = kitLoader.create('moonhill-chartmaker')
     const chartSign = this.createSign('CHARTMAKER', '#eee9d8', 184, 44)
     chartSign.scale.set(1.0, 0.25, 1)
-    chartSign.position.set(0, 1.82, 0.845)
+    chartSign.position.set(0, 3.15, 0.93)
     chartmaker.add(chartSign)
     chartmaker.position.set(-4.75, observatoryStreetHeight(-4.75, 3.72), 3.72)
     this.observatoryStreet.add(chartmaker)
@@ -4405,7 +4426,7 @@ export class GameWorld implements PlayerController {
     addMeshOutline(starBook, 1.06)
     warden.position.set(x, observatoryStreetHeight(x, z), z)
     this.observatoryStreet.add(warden)
-    this.addObservatoryStreetBlocker(x, z, 0.38)
+    this.registerStreetNpc(warden, x, z, this.observatoryStreetBlockers)
   }
 
   private createObservatoryStreetSurface(width: number, length: number, x: number, z: number, color: string, offset: number): Mesh {
@@ -5356,6 +5377,7 @@ export class GameWorld implements PlayerController {
 
     const profile = this.nextStreetArrivalProfile(delta, streetCameraProfiles.hillside)
     this.updateStreetCamera(delta, playerPosition, profile)
+    this.fadeOccludingCharacters(playerPosition)
     this.findNearby(playerPosition)
   }
 
@@ -5370,6 +5392,7 @@ export class GameWorld implements PlayerController {
     this.player.rotation.y = Math.atan2(this.streetForward.x, this.streetForward.z)
     const profile = this.nextStreetArrivalProfile(delta, streetCameraProfiles.harbour)
     this.updateStreetCamera(delta, playerPosition, profile)
+    this.fadeOccludingCharacters(playerPosition)
     this.findNearby(playerPosition)
   }
 
@@ -5384,6 +5407,7 @@ export class GameWorld implements PlayerController {
     this.player.rotation.y = Math.atan2(this.streetForward.x, this.streetForward.z)
     const profile = this.nextStreetArrivalProfile(delta, streetCameraProfiles.observatory)
     this.updateStreetCamera(delta, playerPosition, profile)
+    this.fadeOccludingCharacters(playerPosition)
     this.findNearby(playerPosition)
   }
 
@@ -5747,8 +5771,10 @@ export class GameWorld implements PlayerController {
   private findNearby(position: Vector3): void {
     let next: Clue | SideMarker | 'station-keeper' | 'station-door' | 'harbour-keeper' | 'moon-warden' | undefined
     if (this.save.district === 'hillside') {
-      const keeperPosition = this.hillsideStreet.visible ? new Vector3(0, gentleStreetHeight(0, 2.2), 2.2) : this.normalAt(0.47, -0.14).multiplyScalar(PLANET_RADIUS)
-      if (position.distanceTo(keeperPosition) < 2) next = 'station-keeper'
+      const keeperPosition = this.hillsideStreet.visible
+        ? new Vector3(HILLSIDE_KEEPER_POSITION.x, gentleStreetHeight(HILLSIDE_KEEPER_POSITION.x, HILLSIDE_KEEPER_POSITION.z), HILLSIDE_KEEPER_POSITION.z)
+        : this.normalAt(0.47, -0.14).multiplyScalar(PLANET_RADIUS)
+      if (position.distanceTo(keeperPosition) < HILLSIDE_KEEPER_INTERACT_RADIUS) next = 'station-keeper'
       const stationDoor = this.hillsideStreet.visible ? this.streetStationDoorPosition : this.stationDoorPosition
       if (this.save.quest.stationNameRestored && position.distanceTo(stationDoor) < 2.45) next = 'station-door'
       for (const clue of this.hillsideStreet.visible ? this.streetClues : this.clues) {
@@ -5758,12 +5784,20 @@ export class GameWorld implements PlayerController {
       }
     }
     if (this.harbourStreet.visible) {
-      const keeperPosition = new Vector3(-0.9, harbourStreetHeight(-0.9, -6.35), -6.35)
-      if (position.distanceTo(keeperPosition) < 1.85) next = 'harbour-keeper'
+      const keeperPosition = new Vector3(
+        HARBOUR_KEEPER_POSITION.x,
+        harbourStreetHeight(HARBOUR_KEEPER_POSITION.x, HARBOUR_KEEPER_POSITION.z),
+        HARBOUR_KEEPER_POSITION.z,
+      )
+      if (position.distanceTo(keeperPosition) < STREET_NPC_INTERACT_RADIUS) next = 'harbour-keeper'
     }
     if (this.observatoryStreet.visible) {
-      const wardenPosition = new Vector3(-2.55, observatoryStreetHeight(-2.55, -1.5), -1.5)
-      if (position.distanceTo(wardenPosition) < 1.85) next = 'moon-warden'
+      const wardenPosition = new Vector3(
+        MOON_WARDEN_POSITION.x,
+        observatoryStreetHeight(MOON_WARDEN_POSITION.x, MOON_WARDEN_POSITION.z),
+        MOON_WARDEN_POSITION.z,
+      )
+      if (position.distanceTo(wardenPosition) < STREET_NPC_INTERACT_RADIUS) next = 'moon-warden'
     }
     const activeSideMarkers = this.hillsideStreet.visible
       ? this.streetSideMarkers
