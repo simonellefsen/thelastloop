@@ -59,7 +59,8 @@ import {
 import { nextPassengerIdentity } from './presence'
 import { globalRailRouteWaypoints, globalRailStops, nextGlobalRailStop } from './railway'
 import { restorationLightProfile, type RestorationDistrict } from './restoration'
-import { animationTime, nextRenderResolution, resolveAntialias, resolveShadowMode, shouldRender, type ShadowMode } from './runtime'
+import { InkPass } from './ink'
+import { animationTime, nextRenderResolution, resolveAntialias, resolveInkEnabled, resolveShadowMode, shouldRender, type ShadowMode } from './runtime'
 import { advanceSideQuest, defaultQuest, isJourneyComplete, resolveClue, unlockHarbour, unlockObservatory } from './quest'
 import {
   addMeshOutline,
@@ -125,6 +126,7 @@ interface SideMarker extends WorldInteractable {
 
 export class GameWorld implements PlayerController {
   private readonly renderer: WebGLRenderer
+  private readonly ink: InkPass | undefined
   private readonly scene = new Scene()
   private readonly camera = new PerspectiveCamera(40, 1, 0.1, 120)
   private readonly root = new Group()
@@ -255,6 +257,7 @@ export class GameWorld implements PlayerController {
     this.renderer.shadowMap.type = SHADOW_FILTERS[this.shadowMode]
     this.renderer.domElement.setAttribute('aria-hidden', 'true')
     container.appendChild(this.renderer.domElement)
+    this.ink = resolveInkEnabled(window.location.search) ? new InkPass() : undefined
     // Labels sit on layer 1 so camera-occlusion rays (layer 0 only) never hit sprites.
     this.camera.layers.enable(GameWorld.SOLID_LAYER)
     this.camera.layers.enable(GameWorld.LABEL_LAYER)
@@ -618,6 +621,7 @@ export class GameWorld implements PlayerController {
     window.removeEventListener('keyup', this.onKeyUp)
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
     this.soundscape.dispose()
+    this.ink?.dispose()
     this.renderer.dispose()
     this.container.replaceChildren()
   }
@@ -5213,7 +5217,8 @@ export class GameWorld implements PlayerController {
       this.updateAmbient()
       this.updateStreetLife()
       this.soundscape.update(this.clock.elapsed)
-      this.renderer.render(this.scene, this.camera)
+      if (this.ink) this.ink.render(this.renderer, this.scene, this.camera)
+      else this.renderer.render(this.scene, this.camera)
       this.samplePerf(frameSeconds)
     } catch (error) {
       console.error('[The Last Loop] frame update failed', error)
@@ -5496,18 +5501,12 @@ export class GameWorld implements PlayerController {
   }
 
   /**
-   * `?outlines=0` hides the inverted-hull outline shells.
-   *
-   * Not a feature — a measuring tool. Each outlined mesh is drawn a second time as
-   * a slightly inflated back-face copy, so on a fill-rate-bound device the hulls are
-   * pure overdraw, not merely extra draw calls. Comparing frame time with and
-   * without them prices what M1.4 would give back, which is what decides whether
-   * M1.3's fullscreen ink pass can be afforded: that change trades N inflated hull
-   * rasterisations for one or two fullscreen passes, and may be close to
-   * fill-neutral rather than an addition.
+   * Hide inverted-hull shells when the screen-space ink pass is on (M1.4), or
+   * when `?outlines=0` is measuring the old hull cost.
    */
   private applyDebugFlags(): void {
-    if (new URLSearchParams(window.location.search).get('outlines') !== '0') return
+    const hideHulls = Boolean(this.ink) || new URLSearchParams(window.location.search).get('outlines') === '0'
+    if (!hideHulls) return
     const outlineMaterial = getOutlineMaterial()
     this.scene.traverse((object) => {
       const mesh = object as Mesh
@@ -6030,6 +6029,7 @@ export class GameWorld implements PlayerController {
     this.camera.fov = streetFov(this.camera.aspect)
     this.camera.updateProjectionMatrix()
     this.renderer.setSize(width, height, false)
+    this.ink?.setSize(width, height, this.renderPixelRatio)
   }
 
   private handleVisibilityChange(): void {

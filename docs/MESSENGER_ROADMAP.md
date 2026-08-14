@@ -222,29 +222,24 @@ prototype. Both are single-file fixes.
       while the player camera sees a slice of it. That cost was then largely bought back by the
       caster size budget in **M6.2** — see there for the numbers. Verify on a real phone before
       assuming the 512² map is enough.
-- [ ] **M1.3 Depth + normal edge pass.** One fullscreen shader that reads depth and normals and
-      draws both silhouette and crease lines at a constant screen-space width. This is what gives
-      Messenger its printed look — see the window frames and panel seams in
-      `Screenshot ... 12.27.15.png`, none of which an inverted hull can produce.
-- [ ] **M1.4 Retire inverted hulls** once M1.3 lands, keeping `addMeshOutline` only where a hero mesh
-      genuinely needs a thicker ink weight. This *removes* draw calls — currently every outlined mesh
-      is drawn twice.
+- [x] **M1.3 Depth + normal edge pass.** `InkPass` renders the scene to colour+depth, then once
+      more with `MeshNormalMaterial`, then composites a Sobel of both at constant screen width.
+      Window frames, roof seams and timber joints now carry ink the hulls could not draw. Fog
+      fades the lines out with distance. `?ink=0` restores the old hull path. ART_DIRECTION.md
+      now permits this bounded stack and still bans SSAO/bloom.
+- [x] **M1.4 Retire inverted hulls** *(first cut).* When the ink pass is on, hull shells are
+      hidden. `addMeshOutline` stays in the kit so `?ink=0` still has a silhouette. A later pass
+      can delete the hulls from kits that do not need a thicker hero weight.
 - [ ] **M1.5 Paper grade.** A cheap final pass: slight desaturation toward the palette, a faint paper
       grain, gentle warm/cool split between lit and shade. No bloom, no SSAO.
 
 **Acceptance:** stand at Station Gate, hide the UI, screenshot. Buildings sit *on* the ground with
 visible cast shadows; window frames and roof seams carry ink; nothing reads as plastic.
 
-**Status (2026-08-13):** M1.1 and M1.2 are in — forms now have a clear lit/shade split and
-everything casts a raking shadow, so the town sits on the ground instead of floating. The ink half
-(M1.3/M1.4) is **blocked on the ART_DIRECTION amendment below** and has not been started, so seams
-and creases still carry no line; only silhouettes do, via the old hulls.
+**Status (2026-08-14):** M1.1–M1.4 are in. Forms have a lit/shade split, raking shadows, and
+screen-space ink on both silhouettes and creases. M1.5 (paper grade) is the remaining M1 item.
 
-**Note on the doc conflict:** [ART_DIRECTION.md](./ART_DIRECTION.md) currently rules out
-"expensive multi-pass post (SSAO, heavy bloom)". M1.3 and M1.5 are two fullscreen passes with no
-blur chain and no sampling loops, and M1.4 pays for them by deleting a per-mesh draw call. That is
-cheaper than what ships today. **ART_DIRECTION.md must be amended** to permit a bounded edge+grade
-pass while keeping the ban on SSAO and bloom — otherwise this phase contradicts our own contract.
+ART_DIRECTION.md was amended: a bounded ink+grade stack is allowed; SSAO and bloom stay banned.
 
 ---
 

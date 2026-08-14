@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { animationTime, nextRenderResolution, resolveAntialias, resolveShadowMode, shouldRender } from './runtime'
+import { animationTime, nextRenderResolution, resolveAntialias, resolveInkEnabled, resolveShadowMode, shouldRender } from './runtime'
 
 describe('renderer runtime policy', () => {
   it('renders only visible documents', () => {
@@ -39,6 +39,18 @@ describe('shadow mode override', () => {
 
   it('falls back to soft for anything unrecognised', () => {
     expect(resolveShadowMode('?shadows=fancy')).toBe('soft')
+  })
+})
+
+describe('ink pass override', () => {
+  it('draws screen-space ink by default', () => {
+    expect(resolveInkEnabled('')).toBe(true)
+    expect(resolveInkEnabled('?perf=1')).toBe(true)
+  })
+
+  it('falls back to inverted hulls when asked', () => {
+    expect(resolveInkEnabled('?ink=0')).toBe(false)
+    expect(resolveInkEnabled('?ink=off')).toBe(false)
   })
 })
 

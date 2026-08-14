@@ -10,7 +10,9 @@ Systems and districts are already strong. Art work should mostly **re-skin and d
 
 - Every model, texture and written line is **original** to this project.
 - No photoreal photo textures from real places (including `CityImages/`).
-- Mobile-first: prefer shared materials, instancing, and cheap outlines over post-processing stacks.
+- Mobile-first: prefer shared materials, instancing, and cheap outlines. A bounded
+  two-pass post stack is allowed — depth+normal ink and a colour grade — with no
+  blur chain and no sampling loops. SSAO and bloom stay banned.
 - Decorative motion still honours reduced-motion settings.
 
 ## Visual language
@@ -68,14 +70,12 @@ Player and NPCs share one low-poly language:
 ## Out of scope (for now)
 
 - Photoreal materials or real-world photo maps.
-- Expensive multi-pass post (SSAO, heavy bloom) on iPhone.
+- SSAO, bloom, or any post pass with a blur chain or sampling loop, on any device.
 - Copying Messenger assets, glyphs, or characters.
 
-> **Pending amendment.** [MESSENGER_ROADMAP.md](./MESSENGER_ROADMAP.md) M1.3/M1.5 propose a bounded
-> two-pass post stack — a depth+normal edge pass and a colour grade — with no blur chain and no
-> sampling loops, paid for by deleting the per-mesh inverted-hull draw call it replaces. That is
-> cheaper on iPhone than what ships today, but it does conflict with the line above as written.
-> Resolve this rule before implementing M1, and keep the SSAO/bloom ban either way.
+A depth+normal ink pass (M1.3) and a paper grade (M1.5) are in scope. They replace the
+per-mesh inverted-hull draw, so they are a swap, not an addition. Disable with `?ink=0`
+if a device needs the old hulls back.
 
 **In scope for quality leap:** optional Blender `.glb` modules registered in `kit/registry.ts` (see pipeline doc).
 

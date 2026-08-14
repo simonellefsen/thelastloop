@@ -28,6 +28,12 @@ export function resolveAntialias(search: string): boolean {
   return !(value === '0' || value === 'off')
 }
 
+/** Screen-space ink (M1.3). Default on; `?ink=0` falls back to inverted hulls. */
+export function resolveInkEnabled(search: string): boolean {
+  const value = new URLSearchParams(search).get('ink')
+  return !(value === '0' || value === 'off')
+}
+
 export function resolveShadowMode(search: string): ShadowMode {
   const value = new URLSearchParams(search).get('shadows')
   if (value === '0' || value === 'off') return 'off'
